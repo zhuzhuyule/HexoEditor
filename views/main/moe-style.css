@@ -1,0 +1,478 @@
+/*
+ *  This file is part of Moeditor.
+ *
+ *  Copyright (c) 2016 Menci <huanghaorui301@gmail.com>
+ *  Copyright (c) 2016 Wamadahama
+ *
+ *  Moeditor is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Moeditor is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Moeditor. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    -webkit-user-select: none;
+}
+
+#side-menu {
+    width: 300px;
+    margin-left: -300px;
+    height: 100%;
+    background: #fafafa;
+    transition: all 200ms ease-in-out;
+    padding-top: 45px;
+    padding-bottom: 45px;
+    cursor: default;
+    z-index: 1;
+    position: absolute;
+    border-right: 1px solid #ccc;
+}
+
+#side-menu #logo {
+    font-family: Raleway;
+    font-size: 35px;
+    font-weight: lighter;
+    letter-spacing: 10px;
+    text-align: center;
+    color: #666;
+    border-bottom: 1px solid #ececec;
+    padding-bottom: 30px;
+}
+
+#side-menu ul {
+    margin-top: 10px;
+    padding: 0;
+    color: #444;
+    font-size: 14px;
+    letter-spacing: 1px;
+}
+
+#side-menu li {
+    font-family: Roboto, Helvetica, 'Segoe UI', Arial, sans-serif;;
+    list-style-type: none;
+    height: 50px;
+    line-height: 50px;
+    padding-left: 30px;
+    text-align: left;
+    vertical-align: middle;
+}
+
+#side-menu li:hover {
+    background-color: rgb(236, 236, 236);
+}
+
+#side-menu li:active {
+    background-color: rgb(222, 222, 222);
+}
+
+#side-menu li.break {
+    height: 10px;
+    pointer-events: none;
+    border-bottom: 1px solid #ececec;
+    margin-bottom: 10px;
+}
+
+#side-menu-cover, #file-tree-cover {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    z-index: 1000001;
+    background: rgba(77, 77, 77, 0.2);
+    transition: all 500ms ease-in-out;
+    pointer-events: none;
+    opacity: 0;
+}
+
+#main {
+    transition: all 500ms ease-in-out;
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+}
+
+#main-container {
+    height: calc(100% - 25px);
+}
+
+#left-panel {
+    position: absolute;
+    left: 0;
+    width: 50%;
+    height: calc(100% - 25px);
+    transition: all 500ms ease-in-out;
+}
+
+#right-panel {
+    position: absolute;
+    right: 0;
+    width: 50%;
+    height: calc(100% - 25px);
+    transition: all 500ms ease-in-out;
+}
+
+#main.read-mode #left-panel {
+    left: -50%;
+    width: 50%;
+}
+
+#main.read-mode #right-panel {
+    width: 100%;
+    padding-right: 4px;
+}
+
+#main.read-mode #right-panel .cover-top {
+    left: 0;
+    width: calc(100% - 10px);
+}
+
+#main.write-mode #left-panel {
+    width: 100%;
+}
+
+#main.read-mode #left-panel .cover-top {
+    width: calc(100% - 10px);
+}
+
+#main.write-mode #right-panel {
+    right: -50%;
+    width: 50%;
+}
+
+#editor {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    transition: all 500ms ease-in-out;
+    -webkit-user-select: initial;
+}
+
+#main.write-mode.write-mode-thin .CodeMirror-scroll {
+    width: calc(100% / 3 + 6px) !important;
+    padding-left: calc(100% / 3) !important;
+    padding-right: calc(100% / 3) !important;
+}
+
+#main.write-mode.write-mode-medium .CodeMirror-scroll {
+    width: calc(100% / 2 + 6px) !important;
+    padding-left: calc(100% / 4) !important;
+    padding-right: calc(100% / 4) !important;
+}
+
+#main.write-mode.write-mode-wide .CodeMirror-scroll {
+    width: calc((100% / 3) * 2 + 6px) !important;
+    padding-left: calc(100% / 6) !important;
+    padding-right: calc(100% / 6) !important;
+}
+
+#editor.write-mode .CodeMirror-scroll {
+    padding-left: 0;
+    padding-right: 0;
+    width: calc(100% + 30px) !important;
+}
+
+#editor.focus .CodeMirror-line {
+    transition: opacity 150ms !important;
+    opacity: 0.3;
+}
+
+#editor.focus .CodeMirror-activeline .CodeMirror-line {
+    opacity: 1;
+}
+
+.CodeMirror-activeline-background { background: none; }
+
+#editor textarea {
+    width: 0;
+    height: 0;
+    border: 0;
+    margin: 0;
+    padding: 0;
+}
+
+.cover {
+    position: absolute;
+    pointer-events: none;
+    top: 0;
+    width: 50%;
+    height: 100%;
+    cursor: default;
+    z-index: 1000;
+}
+
+.cover-top {
+    position: absolute;
+    top: 0;
+    width: 100%;
+    height: 50px;
+    z-index: 1000;
+}
+
+#left-panel .cover-top {
+    left: 0;
+}
+
+#right-panel .cover-top {
+    right: 0;
+}
+
+.cover-nobackground {
+    background: transparent !important;
+}
+
+#cover-bottom {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 25px;
+    z-index: 1000;
+    border-top: 1px solid rgba(128, 128, 128, 0.3);
+    -webkit-app-region: no-drag;
+}
+
+#cover-bottom #cover-bottom-background-left {
+    position: absolute;
+    left: 0;
+    width: 50%;
+    height: 100%;
+    transition: all 500ms ease-in-out;
+}
+
+#cover-bottom #cover-bottom-background-right {
+    position: absolute;
+    right: 0;
+    width: 50%;
+    height: 100%;
+    transition: all 500ms ease-in-out;
+}
+
+#main.read-mode #cover-bottom-background-left {
+    left: -50%;
+}
+
+#main.read-mode #cover-bottom-background-right {
+    width: 100%;
+}
+
+#main.write-mode #cover-bottom-background-left {
+    width: 100%;
+}
+
+#main.write-mode #cover-bottom-background-right {
+    right: -50%;
+}
+
+#cover-bottom .button-bottom {
+    display: inline-block;
+    pointer-events: auto;
+    color: #b3b3b3;
+    font-size: 14px;
+    /*margin-top: 5px;*/
+    margin-left: 3px;
+    margin-right: 3px;
+}
+
+#cover-bottom-left {
+    position: absolute;
+    left: 0;
+    width: calc(50% - 10px);
+    height: 100%;
+    padding-left: 10px;
+}
+
+#cover-bottom-right {
+    position: absolute;
+    right: 0;
+    width: calc(50% - 10px);
+    height: 100%;
+    padding-right: 10px;
+    text-align: right;
+}
+
+#cover-bottom .button-bottom.hover {
+    color: #cecece;
+}
+
+#cover-bottom .button-bottom:active {
+    color: #dcdcdc;
+}
+
+/*#editor * {
+    transition: all 500ms ease-in-out;
+}*/
+
+body[settings-editor-font="default"] #editor * {
+    font-family: 'Roboto Mono', 'Menlo', 'Ubuntu Mono', 'Consolas', 'Liberation Mono', 'Dejavu Mans Mono', monospace !important;
+}
+
+html[lang="zh_CN"] body[settings-editor-font="default"] #editor * {
+    font-family: 'Roboto Mono', 'Menlo', 'Ubuntu Mono', 'Consolas', 'Liberation Mono', 'Dejavu Mans Mono', monospace, 'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft Yahei' !important;
+}
+
+body[settings-editor-font="monospace"] #editor * {
+    font-family: monospace !important;
+}
+
+body[settings-editor-font="serif"] #editor  * {
+    font-family: serif !important;
+}
+
+body[settings-editor-font="sans"] #editor  * {
+    font-family: sans-serif !important;
+}
+
+.CodeMirror-wrap, .CodeMirror pre, .CodeMirror span, .CodeMirror-vscrollbar div, .CodeMirror-measure {
+    transition: none !important;
+}
+
+#editor .CodeMirror {
+    width: 100%;
+    height: 100%;
+}
+
+#container-wrapper {
+    width: calc(100% + 6px);
+    height: 100%;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    outline: none;
+}
+
+#container {
+    padding-top: 40px;
+    padding-bottom: 30px;
+    padding-left: 45px;
+    padding-right: 40px;
+    font-size: 14 !important;
+    transition: all 500ms ease-in-out;
+    -webkit-user-select: initial;
+}
+
+#main.read-mode #container {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+#main.read-mode #container-wrapper {
+    width: calc(100%);
+}
+
+#main.read-mode.read-mode-thin #container {
+    width: calc(100% / 3);
+    margin-left: calc(100% / 3);
+    margin-right: calc(100% / 3);
+}
+
+#main.read-mode.read-mode-medium #container {
+    width: calc(100% / 2);
+    margin-left: calc(100% / 4);
+    margin-right: calc(100% / 4);
+}
+
+#main.read-mode.read-mode-wide #container {
+    width: calc((100% / 3) * 2);
+    margin-left: calc(100% / 6);
+    margin-right: calc(100% / 6);
+}
+
+.cm-s-default .cm-header {
+    color: inherit !important;
+}
+
+.cm-header-1 { font-size: 1.5em; }
+.cm-header-2 { font-size: 1.3em; }
+.cm-header-3 { font-size: 1.2em; }
+.cm-header-4 { font-size: 1.1em; }
+.cm-header-5 { font-size: 1.05em; }
+.cm-header-6 { font-size: 1em; }
+
+.CodeMirror-scroll {
+    overflow: hidden !important;
+    overflow-x: hidden !important;
+    overflow-y: scroll !important;
+    padding-left: 45px;
+    padding-right: 20px;
+    padding-top: 35px;
+    height: calc(100% - 35px - 31px);
+    width: calc(100% - 45px - 20px - 24px + 30px) !important;
+    transition: all 500ms ease-in-out;
+}
+
+.CodeMirror-vscrollbar {
+    z-index: 1000000 !important;
+}
+
+#main.write-mode .CodeMirror-vscrollbar {
+    position: fixed !important;
+    right: 4px !important;
+    bottom: 25px !important;
+}
+
+.CodeMirror {
+    font-size: 14px;
+}
+
+.CodeMirror-cursors {
+    transition: opacity 500ms ease-in-out !important;
+}
+
+.CodeMirror-cursors[style="visibility: hidden;"] {
+    opacity: 0 !important;
+    visibility: visible !important;
+}
+
+.CodeMirror-lines {
+    overflow-x: hidden;
+}
+
+#drag-left {
+    z-index: -1;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: calc(50% - 6px);
+    height: 100%;
+}
+
+#drag-right {
+    z-index: -1;
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 50%;
+    height: 100%;
+}
+
+body[settings-mode=read] #drag-left, body[settings-mode=write] #drag-left {
+    width: calc(100% - 6px);
+}
+
+body[settings-mode=read] #drag-right, body[settings-mode=write] #drag-right {
+    width: 0;
+    right: 0;
+}
+
+.notransition, .notransition *:not(.CodeMirror-cursors):not(.CodeMirror-lines) {
+    transition: none !important;
+}
+
+.biu-instance {
+    -webkit-app-region: no-drag;
+    font-size: 14px;
+    font-family: Roboto, Helvetica, 'Segoe UI', Arial, sans-serif;
+}
