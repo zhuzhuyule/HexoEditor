@@ -115,7 +115,9 @@ const strings = {
         "Directory": "Directory",
         "Toggle focus mode": "Toggle focus mode",
         "Edit mode": "Edit mode",
+        "Refresh": "Refresh",
 
+        "Restart Script": "Restart script",
         "Write Mode": "Write Mode",
         "Read Mode": "Read Mode",
         "Preview Mode": "Preview Mode",
@@ -213,6 +215,7 @@ const strings = {
         "Toggle focus mode": "切换专注模式",
         "Edit mode": "编辑模式",
 
+        "Restart Script": "重启脚本",
         "Write Mode": "写作模式",
         "Read Mode": "阅读模式",
         "Preview Mode": "预览模式",
@@ -310,6 +313,7 @@ const strings = {
         "Toggle focus mode": "Fokusmodus umschalten",
         "Edit mode": "Bearbeitungsmodus",
 
+        "Restart Script": "Restart script",
         "Write Mode": "Schreibmodus",
         "Read Mode": "Lesemodus",
         "Preview Mode": "Vorschaumodus",
@@ -407,6 +411,7 @@ const strings = {
         "Toggle focus mode": "Alternar para o modo foco",
         "Edit mode": "Editar modo",
 
+        "Restart Script": "Inicie o script",
         "Write Mode": "Modo Escrita",
         "Read Mode": "Modo Leitura",
         "Preview Mode": "Mode de Pré-visualização",
@@ -504,6 +509,7 @@ const strings = {
         "Toggle focus mode": "Basculer en mode focus",
         "Edit mode": "Mode édition",
 
+        "Restart Script": "Démarrer le script",
         "Write Mode": "Mode écriture",
         "Read Mode": "Mode lecture",
         "Preview Mode": "Mode prévisualisation",
@@ -601,6 +607,7 @@ const strings = {
         "Toggle focus mode": "Activar modo de concentración",
         "Edit mode": "Modo de edición",
 
+        "Restart Script": "Comience la secuencia de comandos",
         "Write Mode": "Modo de Escritura",
         "Read Mode": "Modo de Lectura",
         "Preview Mode": "Modo de Previsualización",
@@ -698,6 +705,7 @@ const strings = {
         "Toggle focus mode": "Focus modus aan-/uitzetten",
         "Edit mode": "Bewerk modus",
 
+        "Restart Script": "Start scriptet",
         "Write Mode": "Schrijf Modus",
         "Read Mode": "Lees Modus",
         "Preview Mode": "Voorbeeld Modus",
@@ -795,6 +803,7 @@ const strings = {
         "Toggle focus mode": "Attiva modalità concentrazione",
         "Edit mode": "Modalità modifica",
 
+        "Restart Script": "Byrjaðu handritið",
         "Write Mode": "Modalità scrittura",
         "Read Mode": "Modalità lettura",
         "Preview Mode": "Modalità anteprima",
@@ -892,6 +901,7 @@ const strings = {
         "Toggle focus mode": "Переключить режим фокусировки",
         "Edit mode": "Выбрать режим",
 
+        "Restart Script": "Запустить скрипт",
         "Write Mode": "Правка",
         "Read Mode": "Чтение",
         "Preview Mode": "Предпросмотр",

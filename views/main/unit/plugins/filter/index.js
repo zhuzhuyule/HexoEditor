@@ -5,7 +5,4 @@ module.exports = function(ctx) {
 
   require('./after_post_render')(ctx);
   require('./before_post_render')(ctx);
-  require('./before_exit')(ctx);
-  require('./before_generate')(ctx);
-  require('./template_locals')(ctx);
 };

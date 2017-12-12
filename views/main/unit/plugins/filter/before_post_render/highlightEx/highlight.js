@@ -1,8 +1,8 @@
 'use strict';
 
 var hljs = require('highlight.js/lib/highlight');
-// var Entities = require('html-entities').XmlEntities;
-// var entities = new Entities();
+var Entities = require('html-entities').XmlEntities;
+var entities = new Entities();
 var alias = require('./highlight_alias.json');
 
 hljs.configure({
@@ -84,8 +84,7 @@ function highlightUtil(str, options) {
 }
 
 function encodePlainString(str) {
-    // return entities.encode(str);
-    return str;
+    return entities.encode(str);
 }
 
 function replaceTabs(str, tab) {
@@ -102,12 +101,20 @@ function replaceTabs(str, tab) {
 
 function loadLanguage(lang) {
     hljs.registerLanguage(lang, require('highlight.js/lib/languages/' + lang));
+
+}
+
+function loadLanguageExtend(lang) {
+    hljs.registerLanguage(lang, require('./languages/'+lang));
 }
 
 function tryLanguage(lang) {
     if (hljs.getLanguage(lang)) return true;
+    if (alias.extends[lang]) {
+        loadLanguageExtend(alias.extends[lang]);
+        return true;
+    }
     if (!alias.aliases[lang]) return false;
-
     loadLanguage(alias.aliases[lang]);
     return true;
 }
@@ -119,8 +126,6 @@ function loadAllLanguages() {
 }
 
 function highlight(str, options) {
-    console.log('hexo.js-util_______highlight');
-
     var lang = options.lang;
     var autoDetect = options.hasOwnProperty('autoDetect') ? options.autoDetect : false;
 
@@ -153,25 +158,6 @@ function highlight(str, options) {
 
     return tryHighlight(str, result.language) || result;
 }
-
-// function tryHighlight(str, lang) {
-//     try {
-//         var matching = str.match(/(\r?\n)/);
-//         var separator = matching ? matching[1] : '';
-//         var lines = matching ? str.split(separator) : [str];
-//         var result = hljs.highlight(lang, lines.shift());
-//         var html = result.value;
-//         while (lines.length > 0) {
-//             result = hljs.highlight(lang, lines.shift(), false, result.top);
-//             html += separator + result.value;
-//         }
-//
-//         result.value = html;
-//         return result;
-//     } catch (err) {
-//         return;
-//     }
-// }
 
 function tryHighlight(str, lang) {
     try {

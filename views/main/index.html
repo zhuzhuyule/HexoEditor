@@ -183,28 +183,44 @@
                     </div-->
                 </div>
                 <div id="cover-bottom-right">
+                    <script type="text/javascript">
+                        function startScript(){
+                            var rightpanel = document.getElementById('right-panel');
+                            var scripts = rightpanel.getElementsByTagName('script');
+                            var script = document.getElementById('dynamicScript');
+                            if (script){
+                                rightpanel.removeChild(script);
+                            }
+                            script = document.createElement('script');
+                            script.id = 'dynamicScript';
+                            script.text = '';
+                            for( var i = 0, len = scripts.length; i< len; i++){
+                                script.text += scripts[i].innerHTML;
+                            }
+                            rightpanel.appendChild(script);
+                        }
+
+                        function clickItem(index){
+                            var modeMenu = document.getElementById('popup-menu-mode');
+                            var modeMenuItems = modeMenu.getElementsByTagName('li');
+                            modeMenuItems[index].click();
+                        }
+                    </script>
+
+                    <div class="button-bottom l10n-title"  title="Restart Script" onclick="startScript()">
+                        <i class="fa fa-play" aria-hidden="true"></i>
+                    </div>
                     <!--<div class="button-bottom l10n-title" id="button-bottom-focus" title="Toggle focus mode">-->
-                        <!--<i class="fa fa-dot-circle-o" aria-hidden="true"></i>-->
+                    <!--<i class="fa fa-dot-circle-o" aria-hidden="true"></i>-->
                     <!--</div>-->
-                    <div class="button-bottom l10n-title"  title="Write Mode" onclick="(function(){
-                        var modeMenu = document.getElementById('popup-menu-mode');
-                        var modeMenuItems = modeMenu.getElementsByTagName('li');
-                         modeMenuItems[0].click();
-                    })()">
+
+                    <div class="button-bottom l10n-title"  title="Write Mode" onclick="clickItem(0)">
                         <i class="fa fa-pencil" aria-hidden="true"></i>
                     </div>
-                    <div class="button-bottom l10n-title"  title="Preview Mode" onclick="(function(){
-                        var modeMenu = document.getElementById('popup-menu-mode');
-                        var modeMenuItems = modeMenu.getElementsByTagName('li');
-                         modeMenuItems[6].click();
-                    })()">
+                    <div class="button-bottom l10n-title"  title="Preview Mode" onclick="clickItem(6)">
                         <i class="fa fa-pencil-square-o" aria-hidden="true"></i>
                     </div>
-                    <div class="button-bottom l10n-title"  title="Read Mode" onclick="(function(){
-                        var modeMenu = document.getElementById('popup-menu-mode');
-                        var modeMenuItems = modeMenu.getElementsByTagName('li');
-                         modeMenuItems[3].click();
-                    })()">
+                    <div class="button-bottom l10n-title"  title="Read Mode" onclick="clickItem(3)">
                         <i class="fa fa-eye" aria-hidden="true"></i>
                     </div>
                     <div class="button-bottom l10n-title" id="button-bottom-mode" title="Edit mode">
