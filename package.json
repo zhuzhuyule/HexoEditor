@@ -1,34 +1,62 @@
 {
-  "name": "moeditor",
-  "version": "0.2.0",
-  "description": "Your all-purpose markdown editor",
+  "name": "hexoeditor",
+  "version": "1.0.1",
+  "description": "It's markdown editor for Hexo",
   "main": "app/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
     "start": "electron ."
+  },
+  "build": {
+    "appId": "com.zhuzhuyule.hexoeditor",
+    "productName":"HexoEditor",
+    "asar": false,
+    "nsis": {
+      "artifactName": "${productName}-x64.${ext}",
+      "runAfterFinish": false,
+      "deleteAppDataOnUninstall": true,
+      "allowToChangeInstallationDirectory": true,
+      "oneClick": false,
+      "installerLanguages": "zh_CN",
+      "language": 2052,
+      "perMachine": true
+    },
+    "publish": {
+      "provider": "github"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "icon/icon.ico"
+    }
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Menci/Moeditor.git"
+    "url": "git+https://github.com/zhuzhuyule/HexoEditor.git"
   },
   "keywords": [
     "markdown",
-    "editor"
+    "editor",
+    "hexomarkdown"
   ],
-  "author": "Menci",
+  "author": "Menci,zhuzhuxia",
   "license": "GPL-3.0",
   "bugs": {
-    "url": "https://github.com/Menci/Moeditor/issues"
+    "url": "https://github.com/zhuzhuyule/HexoEditor/issues"
   },
-  "homepage": "https://github.com/Menci/Moeditor#readme",
+  "homepage": "https://github.com/zhuzhuyule/HexoEditor#readme",
   "dependencies": {
     "biu.js": "^1.2.0",
     "cheerio": "^1.0.0-rc.2",
     "codemirror": "^5.18.2",
     "configstore": "^2.1.0",
-    "electron": "^1.7.9",
     "electron-localshortcut": "^0.6.1",
-    "electron-titlebar": "0.0.2",
     "flowchart.js": "^1.6.3",
     "font-awesome": "^4.6.3",
     "hexo-util": "^0.6.2",
@@ -51,8 +79,10 @@
     "nunjucks": "^3.0.1",
     "strip-indent": "^2.0.0",
     "util": "^0.10.3",
-    "yamljs": "^0.3.0"
+    "yamljs": "^0.3.0",
+    "electron-titlebar": "0.0.2"
   },
   "devDependencies": {
+    "electron": "^1.7.9"
   }
 }
