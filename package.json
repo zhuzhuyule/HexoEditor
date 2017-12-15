@@ -1,7 +1,7 @@
 {
   "name": "hexoeditor",
   "version": "1.0.1",
-  "description": "It's markdown editor for Hexo",
+  "description": "This is markdown editor for Hexo.",
   "main": "app/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -21,7 +21,8 @@
       "oneClick": false,
       "installerLanguages": "zh_CN",
       "language": 2052,
-      "perMachine": true
+      "perMachine": true,
+      "createDesktopShortcut": true
     },
     "publish": {
       "provider": "github"
@@ -33,7 +34,7 @@
           "arch": ["x64"]
         }
       ],
-      "icon": "icon/icon.ico"
+      "icon": "icons/HexoEditor.ico"
     }
   },
   "repository": {

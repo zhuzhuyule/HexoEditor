@@ -149,6 +149,7 @@ const strings = {
         "Edit": "Edit",
         "Appearance": "Appearance",
         "Render": "Render",
+        "Breaks": "Breaks",
         "Language": "Language",
         "Reload when file changed": "Reload when file changed",
         "Font": "Editor Font",
@@ -163,12 +164,21 @@ const strings = {
         "Render Theme": "Render Theme",
         "Custom CSSs": "Custom CSSs",
 
+        "Hexo": "Hexo",
+        "Extend Highlight": "Extend Highlight",
+        "Hexo Config": "Hexo Config",
+        "Hexo tags": "Tag Templates",
+
         "Default": "Default",
         "System Default": "System Default",
 
         "version": "version",
+        "Refresh": "Refresh",
 
+        "Auto save": "Auto save",
         "Auto": "Auto",
+        "On Blur": "On Blur",
+        "Disabled": "Disabled",
         "Prompt": "Prompt",
         "Never": "Never",
 
@@ -247,6 +257,7 @@ const strings = {
         "Edit": "编辑",
         "Appearance": "外观",
         "Render": "渲染",
+        "Breaks": "换行",
         "Language": "语言",
         "Reload when file changed": "当文件被修改时，重新加载",
         "Font": "字体",
@@ -261,12 +272,22 @@ const strings = {
         "Render Theme": "渲染主题",
         "Custom CSSs": "自定义 CSS",
 
+        "Hexo": "Hexo",
+        "Extend Highlight": "自定义代码块",
+        "Hexo Config": "Hexo配置文件",
+        "Hexo tags": "Tag模板目录",
+
+
         "Default": "默认",
         "System Default": "系统默认",
 
         "version": "版本",
+        "Refresh": "刷新界面",
 
+        "Auto save": "自动保存",
         "Auto": "自动",
+        "On Blur": "询问",
+        "Disabled": "从不",
         "Prompt": "询问",
         "Never": "从不",
 

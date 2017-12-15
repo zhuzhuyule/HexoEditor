@@ -19,4 +19,9 @@ Helper.prototype.register = function(name, fn) {
   this.store[name] = fn;
 };
 
+Helper.prototype.clear = function() {
+    this.store = {};
+};
+
+
 module.exports = Helper;

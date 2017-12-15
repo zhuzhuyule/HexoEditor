@@ -55,6 +55,11 @@ Filter.prototype.unregister = function(type, fn) {
   }
 };
 
+Filter.prototype.clear = function() {
+    this.store = {};
+};
+
+
 Filter.prototype.exec = function(type, data, options) {
   options = options || {};
 

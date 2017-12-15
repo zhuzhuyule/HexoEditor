@@ -69,7 +69,5 @@ module.exports = function(ctx) {
   var debug = require('./debug');
   helper.register('inspect', debug.inspectObject);
   helper.register('log', debug.log);
-  helper.register('loadconfig',require('./loadconfig'));
-  helper.register('loaddir',require('./load_dir'));
   helper.register('extend',require('./objExtend'));
 };

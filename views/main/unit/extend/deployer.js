@@ -27,4 +27,9 @@ Deployer.prototype.register = function(name, fn) {
   this.store[name] = fn;
 };
 
+Deployer.prototype.clear = function() {
+    this.store = {};
+};
+
+
 module.exports = Deployer;

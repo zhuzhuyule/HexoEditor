@@ -38,13 +38,15 @@ body {
 
 #logo img {
     position: fixed;
+    width: 100px;
+    height: 100px;
 }
 
 #logo #logo-name {
     font-family: Raleway;
-    font-size: 65px;
+    font-size: 60px;
     font-weight: lighter;
-    letter-spacing: 10px;
+    letter-spacing: 13px;
     position: fixed;
     color: #666;
     left: 195px;
@@ -58,7 +60,7 @@ body {
     letter-spacing: 1px;
     position: fixed;
     color: #666;
-    left: 293px;
+    left: 237px;
     top: 120px;
 }
 

@@ -27,7 +27,7 @@ function showAboutWindow() {
     if (typeof aboutWindow !== 'undefined') return;
     const debug = (moeApp.flag.debug | moeApp.config.get('debug')) != 0;
     var conf = {
-        icon: Const.path + "/icons/Moeditor.ico",
+        icon: Const.path + "/icons/HexoEditor.ico",
         autoHideMenuBar: true,
         width: 660 * moeApp.config.get('scale-factor'),
         height: 290 * moeApp.config.get('scale-factor'),

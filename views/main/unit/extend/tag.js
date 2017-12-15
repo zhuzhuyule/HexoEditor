@@ -46,6 +46,13 @@ Tag.prototype.register = function(name, fn, options) {
     this.env.addExtension(name, tag);
 };
 
+Tag.prototype.clear = function() {
+    this.store = {};
+    this.env.extensions = {};
+    this.env.extensionsList.length = 0;
+};
+
+
 var placeholder = '\uFFFC';
 var rPlaceholder = /(?:<|&lt;)\!--\uFFFC(\d+)--(?:>|&gt;)/g;
 

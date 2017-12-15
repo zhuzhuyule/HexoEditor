@@ -39,5 +39,9 @@ module.exports = {
     'highlight-theme': 'github',
     'render-theme': 'GitHub',
     'custom-render-themes': {},
-    'custom-csss': {}
+    'custom-csss': {},
+    'hexo-highlight-extend': false,
+    'hexo-config-enable': false,
+    'hexo-config': '',
+    'hexo-tag-paths': []
 };

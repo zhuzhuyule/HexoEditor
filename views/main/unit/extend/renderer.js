@@ -60,4 +60,8 @@ Renderer.prototype.register = function(name, output, fn, sync) {
   this.store[name].compile = fn.compile;
 };
 
+Renderer.prototype.clear = function() {
+    this.store = {};
+};
+
 module.exports = Renderer;

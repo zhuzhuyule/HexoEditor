@@ -87,6 +87,27 @@ function setRenderTheme(val) {
     link.href = require('./moe-rendertheme').getCSS(true);
 }
 
+function setHexoHighlightExtend(val) {
+    hexo.highlightEx = val;
+    window.updatePreview(true);
+};
+
+function setHexoConfigEnable(val) {
+    hexo.enable = val;
+    hexo.changeConfig();
+    window.updatePreview(true);
+};
+
+function setHexoConfig(val) {
+    hexo.changeConfig();
+    window.updatePreview(true);
+};
+
+function setHexoTagPaths(val) {
+    hexo.loadTags();
+    window.updatePreview(true);
+}
+
 function setTabSize(val) {
     window.editor.setOption('tabSize', parseInt(val));
     window.editor.setOption('indentUnit', parseInt(val));
@@ -113,6 +134,10 @@ setEditorLineHeight(moeApp.config.get('editor-line-height'));
 setHighlightTheme(moeApp.config.get('highlight-theme'));
 setRenderTheme(moeApp.config.get('render-theme'));
 setCustomCSSs(moeApp.config.get('custom-csss'));
+setHexoHighlightExtend(moeApp.config.get('hexo-highlight-extend'));
+setHexoConfigEnable(moeApp.config.get('hexo-config-enable'));
+setHexoConfig(moeApp.config.get('hexo-config'));
+setHexoTagPaths(moeApp.config.get('hexo-tag-paths'));
 
 const ipcRenderer = require('electron').ipcRenderer;
 ipcRenderer.on('setting-changed', (e, arg) => {
@@ -134,6 +159,14 @@ ipcRenderer.on('setting-changed', (e, arg) => {
         setRenderTheme(arg.val);
     } else if (arg.key === 'tab-size') {
         setTabSize(arg.val);
+    } else if (arg.key === 'hexo-highlight-extend') {
+        setHexoHighlightExtend(arg.val);
+    } else if (arg.key === 'hexo-config-enable') {
+        setHexoConfigEnable(arg.val);
+    } else if (arg.key === 'hexo-config') {
+        setHexoConfig(arg.val);
+    } else if (arg.key === 'hexo-tag-paths') {
+        setHexoTagPaths(arg.val);
     } else if (arg.key === 'custom-csss') {
         setCustomCSSs(arg.val);
     }

@@ -42,7 +42,7 @@ class MoeditorWindow {
         this.changed = false;
         const debug = (moeApp.flag.debug | moeApp.config.get('debug')) != 0;
         var conf = {
-            icon: Const.path + "/icons/Moeditor.ico",
+            icon: Const.path + "/icons/HexoEditor.ico",
             autoHideMenuBar: true,
             width: 1000 * moeApp.config.get('scale-factor'),
             height: 600 * moeApp.config.get('scale-factor'),

@@ -54,5 +54,5 @@ function listPostsHelper(posts, options) {
 
   return result;
 }
-
+    console.log('list_post');
 module.exports = listPostsHelper;

@@ -2,6 +2,7 @@
 
 const YAML = require('yamljs');
 const Hexo = require('./hexo');
+const __ = require('lodash');
 
 var rEscapeContent = /<escape(?:[^>]*)>([\s\S]*?)<\/escape>/g;
 var rSwigVar = /\{\{[\s\S]*?\}\}/g;
@@ -11,22 +12,18 @@ var rSwigFullBlock = /\{% *(.+?)(?: *| +.*)%\}[\s\S]+?\{% *end\1 *%\}/g;
 var placeholder = '\uFFFC';
 var rPlaceholder = /(?:<|&lt;)\!--\uFFFC(\d+)--(?:>|&gt;)/g;
 
+global.lodash = require('lodash');
 global.ctx = global.hexo = new Hexo();
-
+hexo.loadTags()
 
 function Previewer() {
-    this.loaddir(hexo.config.tagdir);
-}
-
-Previewer.prototype.loaddir = function (dir) {
-    hexo.extend.helper.get('loaddir')(dir);
 }
 
 Previewer.prototype.render = function (content, MoeMark, options) {
     var data = {
-		//highlightEx:true,
-		content:content		
-	};
+        highlightEx: hexo.highlightEx,
+        content: content
+    };
     var cache = [];
     var tag = hexo.extend.tag;
 
@@ -36,7 +33,7 @@ Previewer.prototype.render = function (content, MoeMark, options) {
 
     function before_post_render() {
         data.content = data.content.replace(/^---+([\w\W]+?)---+/, function () {
-            data = hexo.extend.helper.get('extend')(data, YAML.parse(arguments[1]))
+            data = __.extend(data, YAML.parse(arguments[1]))
             return '';
         });
         hexo.execFilterSync('before_post_render', data, {context: hexo});
@@ -68,7 +65,6 @@ Previewer.prototype.render = function (content, MoeMark, options) {
 
     function after_post_render() {
         hexo.execFilter('after_post_render', data, {context: hexo});
-
     }
 
     try {

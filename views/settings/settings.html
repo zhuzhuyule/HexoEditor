@@ -21,7 +21,7 @@
     <head>
         <meta charset="UTF-8">
         <base href="../href.html">
-        <title>Moeditor Settings</title>
+        <title>HexoEditor Settings</title>
 
 		<script>
 		window.$ = window.jQuery = require("jquery");
@@ -65,6 +65,10 @@
                     <div class="item" data-tab="render">
                         <div class="image"><i class="fa fa-magic" aria-hidden="true"></i></div>
                         <div class="text l10n">Render</div>
+                    </div>
+                    <div class="item" data-tab="hexo">
+                        <div class="image"><i class="fa fa-code" aria-hidden="true"></i></div>
+                        <div class="text l10n">Hexo</div>
                     </div>
                 </div>
                 <div class="content">
@@ -169,12 +173,12 @@
                                 <td width="60%">
                                     <select class="settings-item" data-key="highlight-theme">
                                         <script>
-                                        fs.readdirSync(path.resolve(path.dirname(path.dirname(require.resolve('highlight.js'))), 'styles'))
-                                          .filter(s => s.endsWith('.css'))
-                                          .map(s => s.substr(0, s.length - 4))
-                                          .forEach(s => {
-                                               document.write(`<option value="${s}">${s}</option>`)
-                                          });
+                                            fs.readdirSync(path.resolve(path.dirname(path.dirname(require.resolve('highlight.js'))), 'styles'))
+                                                .filter(s => s.endsWith('.css'))
+                                            .map(s => s.substr(0, s.length - 4))
+                                            .forEach(s => {
+                                                document.write(`<option value="${s}">${s}</option>`)
+                                            });
                                         </script>
                                     </select>
                                 </td>
@@ -184,15 +188,15 @@
                                 <td width="60%">
                                     <select class="settings-item" data-key="render-theme" style="width: calc(100% - 49px); ">
                                         <script>
-                                        fs.readdirSync(`${app.getAppPath()}/themes`)
-                                          .forEach(s => {
-                                               document.write(`<option value="${s}" class="builtin">${s}</option>`);
-                                          });
+                                            fs.readdirSync(`${app.getAppPath()}/themes`)
+                                                .forEach(s => {
+                                                document.write(`<option value="${s}" class="builtin">${s}</option>`);
+                                            });
 
-                                        const custom = moeApp.config.get('custom-render-themes');
-                                        for (const s in custom) {
-                                            document.write(`<option value="${s}">${s}</option>`);
-                                        }
+                                            const custom = moeApp.config.get('custom-render-themes');
+                                            for (const s in custom) {
+                                                document.write(`<option value="${s}">${s}</option>`);
+                                            }
                                         </script>
                                     </select>
                                     <button class="button-add-remove button-add" style="border-right: none; margin-left: -5px; "><i class="fa fa-plus" aria-hidden="true"></i></button>
@@ -204,10 +208,49 @@
                                 <td width="60%">
                                     <select class="settings-item" multiple size="5" id="custom-csss" style="height: 50px; width: calc(100% - 25px); font-size: 11px; ">
                                         <script>
-                                        const a = moeApp.config.get('custom-csss');
-                                        for (const s in a) {
-                                            document.write(`<option value="${s}"${a[s].selected ? ' selected' : ''}>${s}</option>`);
-                                        }
+                                            const a = moeApp.config.get('custom-csss');
+                                            for (const s in a) {
+                                                document.write(`<option value="${s}"${a[s].selected ? ' selected' : ''}>${s}</option>`);
+                                            }
+                                        </script>
+                                    </select>
+                                    <div style="display: inline-block; margin-left: -1px; position: absolute; ">
+                                        <button class="button-add-remove button-add" style="border-bottom: none; "><i class="fa fa-plus" aria-hidden="true"></i></button>
+                                        <br>
+                                        <button class="button-add-remove button-remove"><i class="fa fa-minus" aria-hidden="true"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="panel" data-tab="hexo">
+                        <table width="80%" align="center">
+                            <tr>
+                                <td width="30%" class="l10n">Extend Highlight</td>
+                                <td width="70%">
+                                    <input type="checkbox" class="settings-item" data-key="hexo-highlight-extend">
+                                </td>
+                            </tr>
+                            <tr>
+                                <td width="30%" class="l10n">Hexo Config</td>
+                                <td width="70%">
+                                    <input type="checkbox" class="settings-item" data-key="hexo-config-enable">
+                                    <input type="text" class="settings-item" disabled="disabled"  data-key="hexo-config" style="width: calc(100% - 50px);">
+                                    <div style="display: inline-block; margin-left: -1px; position: absolute; " id="hexo-config-btn">
+                                        <button class="button-add-remove button-add" ><i class="fa fa-folder-o" aria-hidden="true"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr style="height: 60px; ">
+                                <td width="30%" class="l10n">Hexo tags</td>
+                                <td width="70%">
+                                    <select class="settings-item" multiple size="5" id="custom-tags" style="height: 120px; width: calc(100% - 25px);">
+                                        <script>
+                                            const t = moeApp.config.get('hexo-tag-paths');
+                                            for (var i=0,len=t.length;i<len;i++) {
+                                                s=t[i];
+                                                document.write(`<option value="${s}">${s}</option>`);
+                                            }
                                         </script>
                                     </select>
                                     <div style="display: inline-block; margin-left: -1px; position: absolute; ">
