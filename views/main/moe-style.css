@@ -33,7 +33,7 @@ html, body {
     height: 100%;
     background: #fafafa;
     transition: all 200ms ease-in-out;
-    padding-top: 45px;
+    padding-top: 20px;
     padding-bottom: 45px;
     cursor: default;
     z-index: 1;
@@ -45,11 +45,11 @@ html, body {
     font-family: Raleway;
     font-size: 35px;
     font-weight: lighter;
-    letter-spacing: 10px;
+    letter-spacing: 5px;
     text-align: center;
     color: #666;
     border-bottom: 1px solid #ececec;
-    padding-bottom: 30px;
+    padding-bottom: 15px;
 }
 
 #side-menu ul {

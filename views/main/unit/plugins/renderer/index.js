@@ -12,5 +12,10 @@ module.exports = function(ctx) {
 
   renderer.register('json', 'json', require('./json'), true);
 
+  renderer.register('swig', 'html', require('./swig'), true);
 
+  var yaml = require('./yaml');
+
+  renderer.register('yml', 'json', yaml, true);
+  renderer.register('yaml', 'json', yaml, true);
 };

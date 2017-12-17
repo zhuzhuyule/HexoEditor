@@ -1,33 +1,54 @@
-# If you are a developer, please read [The future of HexoEditor](https://github.com/Moeditor/Moeditor/issues/153)
-# If you are a developer, please read [The future of Moeditor](https://github.com/Moeditor/Moeditor/issues/153)
 
-# Moeditor
-Your all-purpose markdown editor.
+# HexoEditor
+This is markdown editor for Hexo.
 
 Built with Electron.
 
-Visit our [homepage](https://moeditor.org/) or download [releases](https://github.com/Moeditor/Moeditor/releases).
+Inherit [Moeditor](https://github.com/Moeditor/Moeditor), I want to fix it appropriate to Hexo Blog!
 
 # Features
-* GitHub Flavored Markdown
-* TeX math expressions
-* UML diagrams
-* Code highlight in editor
-* Read/Write/Preview mode
-* Custom font / line height / font size
-* Code highlight themes (powered by [highlight.js](https://highlightjs.org/))
-* Auto reload
-* Localization
-* Focus mode
+* HexoEditor 
+  * Hexo Post Preview same as in Browser
+  * Hexo Tag/Filter/Renderer support
+  * Custom tag support
+  * Use Hexo `_config.yml` support
+    * highlight setting
+    * theme tag support
+* HexoEditor (Inherit [Moeditor](https://github.com/Moeditor/Moeditor))
+  * GitHub Flavored Markdown
+  * TeX math expressions
+  * UML diagrams
+  * Code highlight in editor
+  * Read/Write/Preview mode
+  * Custom font / line height / font size
+  * Custom themes
+  * Code highlight themes (powered by [highlight.js](https://highlightjs.org/))
+  * Auto reload
+  * Localization
+  * Focus mode
 
 # Screenshots
+
 ![Moeditor Main](screenshots/main.png)
 
-![Moeditor Side Menu](screenshots/side-menu.png)
+![Moeditor Write Mode](screenshots/side-menu.png)
+
+![Moeditor Write Mode](screenshots/settings.png)
 
 ![Moeditor About](screenshots/about.png)
 
-![Moeditor Write Mode](screenshots/write-mode.png)
+# Gif Screenshots
+![Moeditor About](screenshots/gif-tag.gif)
+
+![Moeditor About](screenshots/gif-mode.gif)
+
+![Moeditor About](screenshots/gif-hexo.gif)
+# Plan To Do
+- [ ] Add Toc
+- [ ] Add Hexo Title Header setting
+.....
+- [ ] Deploy Post
+- [ ] Add multi-editing in tabs
 
 # Building
 ```bash
@@ -42,7 +63,6 @@ npm install cnpm -g --registry=https://registry.npm.taobao.org
 cnpm install
 cnpm start
 ```
-
 # Debugging
 There's three ways to open the [Chromium Developer Tools](https://developer.chrome.com/devtools).
 
@@ -55,10 +75,6 @@ npm start -- --debug
 
 * `Ctrl` + `Shift` + `I` in Linux / Windows or `Command` + `Option` + `I` in OS X / macOS to toggle devtools for a window.
 
-# Todo
-* [ ] Custom themes
-* [ ] Spell check
-* [ ] UI/UX
 
 # Localization
 Moeditor will auto detect your system language and use the localization.
@@ -79,5 +95,22 @@ The `Raleway` font is licensed under the OFL open font license.
 # Credits
 The domain `moeditor.org` is sponsored by [Showfom](https://ttt.tt/).
 
-# Known Bug(s)
-Issue #31.
+
+```
+Support Tag
+- {% cq - %}
+[HexoEditor](https://github.com/zhuzhuyule/HexoEditor)
+{% endcq %}
+
+- {% blockquote zhuzhuyule https://github.com/zhuzhuyule/HexoEditor HexoEditor %}
+This is markdown editor for Hexo.
+{% endblockquote %}
+
+- {% quotelist Reference %}
+Moeditorhttps://github.com/Moeditor/Moeditor
+{% endquotelist %}
+　
+- {% exturl HexoEditor url "title" %}
+- {% btn https://github.com/zhuzhuyule/HexoEditor, HexoEditor, , HexoEditor Button %}
+- {% lb,HexoEditor %}
+```
