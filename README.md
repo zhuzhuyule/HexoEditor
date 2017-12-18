@@ -1,4 +1,3 @@
-
 # HexoEditor
 This is markdown editor for Hexo.
 
@@ -94,23 +93,3 @@ The `Raleway` font is licensed under the OFL open font license.
 
 # Credits
 The domain `moeditor.org` is sponsored by [Showfom](https://ttt.tt/).
-
-
-```
-Support Tag
-- {% cq - %}
-[HexoEditor](https://github.com/zhuzhuyule/HexoEditor)
-{% endcq %}
-
-- {% blockquote zhuzhuyule https://github.com/zhuzhuyule/HexoEditor HexoEditor %}
-This is markdown editor for Hexo.
-{% endblockquote %}
-
-- {% quotelist Reference %}
-Moeditorhttps://github.com/Moeditor/Moeditor
-{% endquotelist %}
-　
-- {% exturl HexoEditor url "title" %}
-- {% btn https://github.com/zhuzhuyule/HexoEditor, HexoEditor, , HexoEditor Button %}
-- {% lb,HexoEditor %}
-```

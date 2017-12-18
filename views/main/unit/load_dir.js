@@ -12,7 +12,9 @@ var load = function(path, name) {
 
 module.exports = function (dir) {
     try{
+        if (!dir) return ;
         dir = dir.toString().replace(/\\+/g, '\\\\');
+	if (!fs.existsSync(dir)) return;
         fs.readdirSync(dir).forEach(function (filename) {
             if (!/\.js$/.test(filename)) {
                 return;

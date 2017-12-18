@@ -12,7 +12,7 @@
   "build": {
     "appId": "com.zhuzhuyule.hexoeditor",
     "productName": "HexoEditor",
-    "asar": false,
+    "asar": true,
     "nsis": {
       "artifactName": "${productName}-x64.${ext}",
       "runAfterFinish": false,
@@ -27,13 +27,18 @@
     "publish": {
       "provider": "github"
     },
+    "linux": {
+      "target": [
+        "appImage",
+        "deb"
+      ] ,
+      "icon": "icons/HexoEditor.ico"
+    },
     "win": {
       "target": [
         {
           "target": "nsis",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64","ia32" ]
         }
       ],
       "icon": "icons/HexoEditor.ico"
@@ -48,7 +53,7 @@
     "editor",
     "hexomarkdown"
   ],
-  "author": "Menci,zhuzhuxia",
+  "author": "Menci,zhuzhuxia  <zhuzhuyule@126.com> (http://zhuzhuyule.com/)",
   "license": "GPL-3.0",
   "bugs": {
     "url": "https://github.com/zhuzhuyule/HexoEditor/issues"
