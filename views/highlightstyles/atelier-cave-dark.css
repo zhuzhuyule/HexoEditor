@@ -1,0 +1,88 @@
+/* Base16 Atelier Cave Dark - Theme */
+/* by Bram de Haan (http://atelierbram.github.io/syntax-highlighting/atelier-schemes/cave) */
+/* Original Base16 color scheme by Chris Kempson (https://github.com/chriskempson/base16) */
+
+/* Atelier-Cave Comment */
+._def pre .comment,
+._def pre .quote {
+  color: #7e7887;
+}
+
+/* Atelier-Cave Red */
+._def pre .variable,
+._def pre .template-variable,
+._def pre .attribute,
+._def pre .regexp,
+._def pre .link,
+._def pre .tag,
+._def pre .name,
+._def pre .selector-id,
+._def pre .selector-class {
+  color: #be4678;
+}
+
+/* Atelier-Cave Orange */
+._def pre .number,
+._def pre .meta,
+._def pre .built_in,
+._def pre .builtin-name,
+._def pre .literal,
+._def pre .type,
+._def pre .params {
+  color: #aa573c;
+}
+
+/* Atelier-Cave Green */
+._def pre .string,
+._def pre .symbol,
+._def pre .bullet {
+  color: #2a9292;
+}
+
+/* Atelier-Cave Blue */
+._def pre .title,
+._def pre .section {
+  color: #576ddb;
+}
+
+/* Atelier-Cave Purple */
+._def pre .keyword,
+._def pre .selector-tag {
+  color: #955ae7;
+}
+
+._def pre .deletion,
+._def pre .addition {
+  color: #19171c;
+  display: inline-block;
+  width: 100%;
+}
+
+._def pre .deletion {
+  background-color: #be4678;
+}
+
+._def pre .addition {
+  background-color: #2a9292;
+}
+
+._def .highlight {
+  display: block;
+  overflow-x: auto;
+  color: #8b8792;
+  background: #19171c;
+  padding: 0.5em;
+}
+
+._def pre{
+  color: #8b8792;
+  background: #19171c;
+}
+
+._def pre .emphasis {
+  font-style: italic;
+}
+
+._def pre .strong {
+  font-weight: bold;
+}

@@ -1,0 +1,65 @@
+/*
+  codepen.io Embed Theme
+  Author: Justin Perry <http://github.com/ourmaninamsterdam>
+  Original theme - https://github.com/chriskempson/tomorrow-theme
+*/
+
+._def .highlight {
+  display: block;
+  overflow-x: auto;
+  padding: 0.5em;
+  color: #fff;
+  background: #222;
+}
+
+._def pre{
+  color: #fff;
+  background: #222;
+}
+
+._def pre .comment,
+._def pre .quote {
+  color: #777;
+}
+
+._def pre .variable,
+._def pre .template-variable,
+._def pre .tag,
+._def pre .regexp,
+._def pre .meta,
+._def pre .number,
+._def pre .built_in,
+._def pre .builtin-name,
+._def pre .literal,
+._def pre .params,
+._def pre .symbol,
+._def pre .bullet,
+._def pre .link,
+._def pre .deletion {
+  color: #ab875d;
+}
+
+._def pre .section,
+._def pre .title,
+._def pre .name,
+._def pre .selector-id,
+._def pre .selector-class,
+._def pre .type,
+._def pre .attribute {
+  color: #9b869b;
+}
+
+._def pre .string,
+._def pre .keyword,
+._def pre .selector-tag,
+._def pre .addition {
+  color: #8f9c6c;
+}
+
+._def pre .emphasis {
+  font-style: italic;
+}
+
+._def pre .strong {
+  font-weight: bold;
+}

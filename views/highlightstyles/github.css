@@ -1,0 +1,104 @@
+/*
+
+github.com style (c) Vasily Polovnyov <vast@whiteants.net>
+
+*/
+
+._def .highlight {
+  display: block;
+  overflow-x: auto;
+  padding: 0.5em;
+  color: #333;
+  background: #f8f8f8;
+}
+
+._def pre{
+  color: #333;
+  background: #f8f8f8;
+}
+
+._def pre .comment,
+._def pre .quote {
+  color: #998;
+  font-style: italic;
+}
+
+._def pre .keyword,
+._def pre .selector-tag,
+._def pre .subst {
+  color: #333;
+  font-weight: bold;
+}
+
+._def pre .number,
+._def pre .literal,
+._def pre .variable,
+._def pre .template-variable,
+._def pre .tag ._def pre .attr {
+  color: #008080;
+}
+
+._def pre .string,
+._def pre .doctag {
+  color: #d14;
+}
+
+._def pre .title,
+._def pre .section,
+._def pre .selector-id {
+  color: #900;
+  font-weight: bold;
+}
+
+._def pre .subst {
+  font-weight: normal;
+}
+
+._def pre .type,
+._def pre .class ._def pre .title {
+  color: #458;
+  font-weight: bold;
+}
+
+._def pre .tag,
+._def pre .name,
+._def pre .attribute {
+  color: #000080;
+  font-weight: normal;
+}
+
+._def pre .regexp,
+._def pre .link {
+  color: #009926;
+}
+
+._def pre .symbol,
+._def pre .bullet {
+  color: #990073;
+}
+
+._def pre .built_in,
+._def pre .builtin-name {
+  color: #0086b3;
+}
+
+._def pre .meta {
+  color: #999;
+  font-weight: bold;
+}
+
+._def pre .deletion {
+  background: #fdd;
+}
+
+._def pre .addition {
+  background: #dfd;
+}
+
+._def pre .emphasis {
+  font-style: italic;
+}
+
+._def pre .strong {
+  font-weight: bold;
+}

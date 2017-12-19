@@ -72,10 +72,16 @@ function setHighlightTheme(val) {
         link.rel = 'stylesheet';
         link.id = 'highlight-theme';
     }
-    link.href = path.resolve(path.dirname(path.dirname(require.resolve('highlight.js'))), `styles/${val}.css`);
+    link.href = path.join('../views/highlightstyles', `${val}.css`);
 }
 
 function setRenderTheme(val) {
+    const container = document.getElementById('container');
+    if (['GitHub','No Theme'].indexOf(val) > -1){
+        $(container).addClass('_def')
+    } else{
+        $(container).removeClass('_def')
+    }
     let link = document.getElementById('render-theme');
     if (!link) {
         link = document.createElement('link');
@@ -83,7 +89,6 @@ function setRenderTheme(val) {
         link.rel = 'stylesheet';
         link.id = 'render-theme';
     }
-    const container = document.getElementById('container');
     link.href = require('./moe-rendertheme').getCSS(true);
 }
 

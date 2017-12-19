@@ -1,0 +1,110 @@
+/*
+
+vim-hybrid theme by w0ng (https://github.com/w0ng/vim-hybrid)
+
+*/
+
+/*background color*/
+._def .highlight {
+  display: block;
+  overflow-x: auto;
+  padding: 0.5em;
+  background: #1d1f21;
+}
+
+._def pre{
+  background: #1d1f21;
+}
+
+/*selection color*/
+._def .highlight::selection,
+._def .highlight span::selection {
+  background: #373b41;
+}
+
+._def .highlight::-moz-selection,
+._def .highlight span::-moz-selection {
+  background: #373b41;
+}
+
+/*foreground color*/
+._def .highlight {
+  color: #c5c8c6;
+}
+
+._def pre {
+  color: #c5c8c6;
+}
+
+/*color: fg_yellow*/
+._def pre .title,
+._def pre .name {
+  color: #f0c674;
+}
+
+/*color: fg_comment*/
+._def pre .comment,
+._def pre .meta,
+._def pre .meta ._def pre .keyword {
+  color: #707880;
+}
+
+/*color: fg_red*/
+._def pre .number,
+._def pre .symbol,
+._def pre .literal,
+._def pre .deletion,
+._def pre .link {
+ color: #cc6666
+}
+
+/*color: fg_green*/
+._def pre .string,
+._def pre .doctag,
+._def pre .addition,
+._def pre .regexp,
+._def pre .selector-attr,
+._def pre .selector-pseudo {
+  color: #b5bd68;
+}
+
+/*color: fg_purple*/
+._def pre .attribute,
+._def pre .code,
+._def pre .selector-id {
+ color: #b294bb;
+}
+
+/*color: fg_blue*/
+._def pre .keyword,
+._def pre .selector-tag,
+._def pre .bullet,
+._def pre .tag {
+ color: #81a2be;
+}
+
+/*color: fg_aqua*/
+._def pre .subst,
+._def pre .variable,
+._def pre .template-tag,
+._def pre .template-variable {
+  color: #8abeb7;
+}
+
+/*color: fg_orange*/
+._def pre .type,
+._def pre .built_in,
+._def pre .builtin-name,
+._def pre .quote,
+._def pre .section,
+._def pre .selector-class {
+  color: #de935f;
+}
+
+._def pre .emphasis {
+  font-style: italic;
+}
+
+._def pre .strong {
+  font-weight: bold;
+}

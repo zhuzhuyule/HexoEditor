@@ -1,0 +1,80 @@
+/* Tomorrow Night Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+
+/* Tomorrow Comment */
+._def pre .comment,
+._def pre .quote {
+  color: #969896;
+}
+
+/* Tomorrow Red */
+._def pre .variable,
+._def pre .template-variable,
+._def pre .tag,
+._def pre .name,
+._def pre .selector-id,
+._def pre .selector-class,
+._def pre .regexp,
+._def pre .deletion {
+  color: #cc6666;
+}
+
+/* Tomorrow Orange */
+._def pre .number,
+._def pre .built_in,
+._def pre .builtin-name,
+._def pre .literal,
+._def pre .type,
+._def pre .params,
+._def pre .meta,
+._def pre .link {
+  color: #de935f;
+}
+
+/* Tomorrow Yellow */
+._def pre .attribute {
+  color: #f0c674;
+}
+
+/* Tomorrow Green */
+._def pre .string,
+._def pre .symbol,
+._def pre .bullet,
+._def pre .addition {
+  color: #b5bd68;
+}
+
+/* Tomorrow Blue */
+._def pre .title,
+._def pre .section {
+  color: #81a2be;
+}
+
+/* Tomorrow Purple */
+._def pre .keyword,
+._def pre .selector-tag {
+  color: #b294bb;
+}
+
+._def .highlight {
+  display: block;
+  overflow-x: auto;
+  color: #c5c8c6;
+  background: #1d1f21;
+  padding: 0.5em;
+}
+
+._def pre{
+  color: #c5c8c6;
+  background: #1d1f21;
+}
+
+._def pre .emphasis {
+  font-style: italic;
+}
+
+._def pre .strong {
+  font-weight: bold;
+}

@@ -1,0 +1,74 @@
+/*
+Monokai style - ported by Luigi Maselli - http://grigio.org
+*/
+
+._def .highlight {
+  display: block;
+  overflow-x: auto;
+  padding: 0.5em;
+  color: #ddd; background: #272822;
+}
+
+._def pre{
+  color: #ddd; background: #272822;
+}
+
+._def pre .tag,
+._def pre .keyword,
+._def pre .selector-tag,
+._def pre .literal,
+._def pre .strong,
+._def pre .name {
+  color: #f92672;
+}
+
+._def pre .code {
+  color: #66d9ef;
+}
+
+._def pre .class ._def pre .title {
+  color: white;
+}
+
+._def pre .attribute,
+._def pre .symbol,
+._def pre .regexp,
+._def pre .link {
+  color: #bf79db;
+}
+
+._def pre .string,
+._def pre .bullet,
+._def pre .subst,
+._def pre .title,
+._def pre .section,
+._def pre .emphasis,
+._def pre .type,
+._def pre .built_in,
+._def pre .builtin-name,
+._def pre .selector-attr,
+._def pre .selector-pseudo,
+._def pre .addition,
+._def pre .variable,
+._def pre .template-tag,
+._def pre .template-variable {
+  color: #a6e22e;
+}
+
+._def pre .comment,
+._def pre .quote,
+._def pre .deletion,
+._def pre .meta {
+  color: #75715e;
+}
+
+._def pre .keyword,
+._def pre .selector-tag,
+._def pre .literal,
+._def pre .doctag,
+._def pre .title,
+._def pre .section,
+._def pre .type,
+._def pre .selector-id {
+  font-weight: bold;
+}

@@ -94,6 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             renderThemeButtonRemove.removeAttribute('disabled');
         }
+        reloadHighlightSelect(renderThemeSelect.value);
     }
     setRenderThemeButtons();
     renderThemeSelect.addEventListener('change', setRenderThemeButtons);
@@ -132,6 +133,44 @@ document.addEventListener('DOMContentLoaded', () => {
         renderThemeSelect.dispatchEvent(e);
     });
 
+    // Highlight Theme
+    function reloadHighlightSelect(currTheme) {
+        let highlightSelect = document.querySelector('select[data-key="highlight-theme"]');
+        const oldvar = highlightSelect.value || moeApp.config.get("highlight-theme");
+
+        highlightSelect.innerHTML = '';
+        if (currTheme == 'GitHub' || currTheme == 'No Theme'){
+            var arr=['default','github','github-gist'];
+            arr.forEach(s => {
+                if (fs.existsSync(path.join('./views/highlightstyles/',s+'.css')))    {
+                    const option = document.createElement('option');
+                    option.value = option.text = s;
+                    option.style.background = "#f4f4f4";
+                    highlightSelect.appendChild(option);
+                }
+            });
+            fs.readdirSync('./views/highlightstyles/')
+                .filter(s => s.endsWith('.css'))
+                .map(s => s.substr(0, s.length - 4))
+                .filter(s => arr.indexOf(s) < 0)
+                .forEach(s => {
+                    const option = document.createElement('option');
+                    option.value = option.text = s;
+                    highlightSelect.appendChild(option);
+                });
+            if (oldvar){
+                highlightSelect.value = oldvar;
+            } else if (currTheme == 'GitHub') {
+                highlightSelect.value = 'github';
+            } else {
+                highlightSelect.value = moeApp.config.get("highlight-theme");
+            }
+            highlightSelect.removeAttribute('disabled');
+
+        } else {
+            highlightSelect.setAttribute('disabled',null);
+        }
+    }
 
     //Hexo config loading
     let hexoConfigEnableButton = document.querySelector('input[data-key="hexo-config-enable"]');

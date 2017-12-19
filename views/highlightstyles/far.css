@@ -1,0 +1,79 @@
+/*
+
+FAR Style (c) MajestiC <majestic2k@gmail.com>
+
+*/
+
+._def .highlight {
+  display: block;
+  overflow-x: auto;
+  padding: 0.5em;
+  background: #000080;
+}
+
+._def pre{
+  background: #000080;
+}
+
+._def .highlight,
+._def pre .subst {
+  color: #0ff;
+}
+
+._def pre {
+  color: #0ff;
+}
+
+._def pre .string,
+._def pre .attribute,
+._def pre .symbol,
+._def pre .bullet,
+._def pre .built_in,
+._def pre .builtin-name,
+._def pre .template-tag,
+._def pre .template-variable,
+._def pre .addition {
+  color: #ff0;
+}
+
+._def pre .keyword,
+._def pre .selector-tag,
+._def pre .section,
+._def pre .type,
+._def pre .name,
+._def pre .selector-id,
+._def pre .selector-class,
+._def pre .variable {
+  color: #fff;
+}
+
+._def pre .comment,
+._def pre .quote,
+._def pre .doctag,
+._def pre .deletion {
+  color: #888;
+}
+
+._def pre .number,
+._def pre .regexp,
+._def pre .literal,
+._def pre .link {
+  color: #0f0;
+}
+
+._def pre .meta {
+  color: #008080;
+}
+
+._def pre .keyword,
+._def pre .selector-tag,
+._def pre .title,
+._def pre .section,
+._def pre .name,
+._def pre .strong {
+  font-weight: bold;
+}
+
+._def pre .emphasis {
+  font-style: italic;
+}

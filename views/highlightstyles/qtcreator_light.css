@@ -1,0 +1,91 @@
+/*
+
+Qt Creator light color scheme
+
+*/
+
+
+._def .highlight {
+  display: block;
+  overflow-x: auto;
+  padding: 0.5em;
+  background: #ffffff;
+}
+
+._def pre{
+  background: #ffffff;
+}
+
+._def .highlight,
+._def pre .subst,
+._def pre .tag,
+._def pre .title {
+  color: #000000;
+}
+
+._def pre {
+  color: #000000;
+}
+
+._def pre .strong,
+._def pre .emphasis {
+  color: #000000;
+}
+
+._def pre .bullet,
+._def pre .quote,
+._def pre .number,
+._def pre .regexp,
+._def pre .literal {
+  color: #000080;
+}
+
+._def pre .code
+._def pre .selector-class {
+  color: #800080;
+}
+
+._def pre .emphasis,
+._def pre .stronge,
+._def pre .type {
+  font-style: italic;
+}
+
+._def pre .keyword,
+._def pre .selector-tag,
+._def pre .function,
+._def pre .section,
+._def pre .symbol,
+._def pre .name {
+  color: #808000;
+}
+
+._def pre .attribute {
+  color: #800000;
+}
+
+._def pre .variable,
+._def pre .params,
+._def pre .class ._def pre .title {
+  color: #0055AF;
+}
+
+._def pre .string,
+._def pre .selector-id,
+._def pre .selector-attr,
+._def pre .selector-pseudo,
+._def pre .type,
+._def pre .built_in,
+._def pre .builtin-name,
+._def pre .template-tag,
+._def pre .template-variable,
+._def pre .addition,
+._def pre .link {
+  color: #008000;
+}
+
+._def pre .comment,
+._def pre .meta,
+._def pre .deletion {
+  color: #008000;
+}

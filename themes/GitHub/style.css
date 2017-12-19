@@ -506,24 +506,24 @@
   border: 0;
 }
 
-#container .highlight {
-  margin-bottom: 16px;
-}
+/*#container .highlight {*/
+  /*margin-bottom: 16px;*/
+/*}*/
 
-#container .highlight pre,
+/*#container .highlight pre,*/
 #container pre {
   padding: 16px;
   overflow: auto;
   font-size: 85%;
   line-height: 1.45;
-  background-color: #f7f7f7;
+  /*background-color: #f7f7f7;*/
   border-radius: 3px;
 }
 
-#container .highlight pre {
-  margin-bottom: 0;
-  word-break: normal;
-}
+/*#container .highlight pre {*/
+  /*margin-bottom: 0;*/
+  /*word-break: normal;*/
+/*}*/
 
 #container pre {
   word-wrap: normal;

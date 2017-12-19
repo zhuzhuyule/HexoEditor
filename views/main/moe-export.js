@@ -78,7 +78,8 @@ function html(cb) {
         head.appendChild(style);
         if (haveCode) {
             const styleHLJS = doc.createElement('style');
-            styleHLJS.innerHTML = MoeditorFile.read(path.resolve(path.dirname(path.dirname(require.resolve('highlight.js'))), `styles/${moeApp.config.get('highlight-theme')}.css`), '').toString();
+            // styleHLJS.innerHTML = MoeditorFile.read(path.resolve(path.dirname(path.dirname(require.resolve('highlight.js'))), `styles/${moeApp.config.get('highlight-theme')}.css`), '').toString();
+            styleHLJS.innerHTML = MoeditorFile.read(path.join('../views/highlightstyles', `${moeApp.config.get('highlight-theme')}.css`), '').toString();
             head.appendChild(styleHLJS);
         }
         const customCSSs = moeApp.config.get('custom-csss');
@@ -108,7 +109,7 @@ function pdf(cb) {
         head.appendChild(link);
         if (haveCode) {
             const styleHLJS = doc.createElement('style');
-            styleHLJS.innerHTML = MoeditorFile.read(path.resolve(path.dirname(path.dirname(require.resolve('highlight.js'))), `styles/${moeApp.config.get('highlight-theme')}.css`), '').toString();
+            styleHLJS.innerHTML = MoeditorFile.read(path.join('../views/highlightstyles', `${moeApp.config.get('highlight-theme')}.css`), '').toString();
             head.appendChild(styleHLJS);
         }
         if (haveMath) {

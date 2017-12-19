@@ -1,0 +1,89 @@
+/* Base16 Atelier Plateau Dark - Theme */
+/* by Bram de Haan (http://atelierbram.github.io/syntax-highlighting/atelier-schemes/plateau) */
+/* Original Base16 color scheme by Chris Kempson (https://github.com/chriskempson/base16) */
+
+/* Atelier-Plateau Comment */
+._def pre .comment,
+._def pre .quote {
+  color: #7e7777;
+}
+
+/* Atelier-Plateau Red */
+._def pre .variable,
+._def pre .template-variable,
+._def pre .attribute,
+._def pre .tag,
+._def pre .name,
+._def pre .regexp,
+._def pre .link,
+._def pre .name,
+._def pre .selector-id,
+._def pre .selector-class {
+  color: #ca4949;
+}
+
+/* Atelier-Plateau Orange */
+._def pre .number,
+._def pre .meta,
+._def pre .built_in,
+._def pre .builtin-name,
+._def pre .literal,
+._def pre .type,
+._def pre .params {
+  color: #b45a3c;
+}
+
+/* Atelier-Plateau Green */
+._def pre .string,
+._def pre .symbol,
+._def pre .bullet {
+  color: #4b8b8b;
+}
+
+/* Atelier-Plateau Blue */
+._def pre .title,
+._def pre .section {
+  color: #7272ca;
+}
+
+/* Atelier-Plateau Purple */
+._def pre .keyword,
+._def pre .selector-tag {
+  color: #8464c4;
+}
+
+._def pre .deletion,
+._def pre .addition {
+  color: #1b1818;
+  display: inline-block;
+  width: 100%;
+}
+
+._def pre .deletion {
+  background-color: #ca4949;
+}
+
+._def pre .addition {
+  background-color: #4b8b8b;
+}
+
+._def .highlight {
+  display: block;
+  overflow-x: auto;
+  color: #8a8585;
+  background: #1b1818;
+  padding: 0.5em;
+}
+
+._def pre{
+  color: #8a8585;
+  background: #1b1818;
+}
+
+._def pre .emphasis {
+  font-style: italic;
+}
+
+._def pre .strong {
+  font-weight: bold;
+}

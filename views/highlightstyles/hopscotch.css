@@ -1,0 +1,88 @@
+/*
+ * Hopscotch
+ * by Jan T. Sott
+ * https://github.com/idleberg/Hopscotch
+ *
+ * This work is licensed under the Creative Commons CC0 1.0 Universal License
+ */
+
+/* Comment */
+._def pre .comment,
+._def pre .quote {
+  color: #989498;
+}
+
+/* Red */
+._def pre .variable,
+._def pre .template-variable,
+._def pre .attribute,
+._def pre .tag,
+._def pre .name,
+._def pre .selector-id,
+._def pre .selector-class,
+._def pre .regexp,
+._def pre .link,
+._def pre .deletion {
+  color: #dd464c;
+}
+
+/* Orange */
+._def pre .number,
+._def pre .built_in,
+._def pre .builtin-name,
+._def pre .literal,
+._def pre .type,
+._def pre .params {
+  color: #fd8b19;
+}
+
+/* Yellow */
+._def pre .class ._def pre .title {
+  color: #fdcc59;
+}
+
+/* Green */
+._def pre .string,
+._def pre .symbol,
+._def pre .bullet,
+._def pre .addition {
+  color: #8fc13e;
+}
+
+/* Aqua */
+._def pre .meta {
+  color: #149b93;
+}
+
+/* Blue */
+._def pre .function,
+._def pre .section,
+._def pre .title {
+  color: #1290bf;
+}
+
+/* Purple */
+._def pre .keyword,
+._def pre .selector-tag {
+  color: #c85e7c;
+}
+
+._def .highlight {
+  display: block;
+  color: #b9b5b8;
+  background: #322931;
+  padding: 0.5em;
+}
+
+._def pre{
+  color: #b9b5b8;
+  background: #322931;
+}
+
+._def pre .emphasis {
+  font-style: italic;
+}
+
+._def pre .strong {
+  font-weight: bold;
+}

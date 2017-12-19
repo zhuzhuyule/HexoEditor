@@ -1,0 +1,102 @@
+/*
+
+Intellij Idea-like styling (c) Vasily Polovnyov <vast@whiteants.net>
+
+*/
+
+._def .highlight {
+  display: block;
+  overflow-x: auto;
+  padding: 0.5em;
+  color: #000;
+  background: #fff;
+}
+
+._def pre{
+  color: #000;
+  background: #fff;
+}
+
+._def pre .subst,
+._def pre .title {
+  font-weight: normal;
+  color: #000;
+}
+
+._def pre .comment,
+._def pre .quote {
+  color: #808080;
+  font-style: italic;
+}
+
+._def pre .meta {
+  color: #808000;
+}
+
+._def pre .tag {
+  background: #efefef;
+}
+
+._def pre .section,
+._def pre .name,
+._def pre .literal,
+._def pre .keyword,
+._def pre .selector-tag,
+._def pre .type,
+._def pre .selector-id,
+._def pre .selector-class {
+  font-weight: bold;
+  color: #000080;
+}
+
+._def pre .attribute,
+._def pre .number,
+._def pre .regexp,
+._def pre .link {
+  font-weight: bold;
+  color: #0000ff;
+}
+
+._def pre .number,
+._def pre .regexp,
+._def pre .link {
+  font-weight: normal;
+}
+
+._def pre .string {
+  color: #008000;
+  font-weight: bold;
+}
+
+._def pre .symbol,
+._def pre .bullet,
+._def pre .formula {
+  color: #000;
+  background: #d0eded;
+  font-style: italic;
+}
+
+._def pre .doctag {
+  text-decoration: underline;
+}
+
+._def pre .variable,
+._def pre .template-variable {
+  color: #660e7a;
+}
+
+._def pre .addition {
+  background: #baeeba;
+}
+
+._def pre .deletion {
+  background: #ffc8bd;
+}
+
+._def pre .emphasis {
+  font-style: italic;
+}
+
+._def pre .strong {
+  font-weight: bold;
+}

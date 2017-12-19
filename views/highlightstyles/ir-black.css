@@ -1,0 +1,78 @@
+/*
+  IR_Black style (c) Vasily Mikhailitchenko <vaskas@programica.ru>
+*/
+
+._def .highlight {
+  display: block;
+  overflow-x: auto;
+  padding: 0.5em;
+  color: #f8f8f8;
+  background: #000;
+}
+
+._def pre{
+  color: #f8f8f8;
+  background: #000;
+}
+
+._def pre .comment,
+._def pre .quote,
+._def pre .meta {
+  color: #7c7c7c;
+}
+
+._def pre .keyword,
+._def pre .selector-tag,
+._def pre .tag,
+._def pre .name {
+  color: #96cbfe;
+}
+
+._def pre .attribute,
+._def pre .selector-id {
+  color: #ffffb6;
+}
+
+._def pre .string,
+._def pre .selector-attr,
+._def pre .selector-pseudo,
+._def pre .addition {
+  color: #a8ff60;
+}
+
+._def pre .subst {
+  color: #daefa3;
+}
+
+._def pre .regexp,
+._def pre .link {
+  color: #e9c062;
+}
+
+._def pre .title,
+._def pre .section,
+._def pre .type,
+._def pre .doctag {
+  color: #ffffb6;
+}
+
+._def pre .symbol,
+._def pre .bullet,
+._def pre .variable,
+._def pre .template-variable,
+._def pre .literal {
+  color: #c6c5fe;
+}
+
+._def pre .number,
+._def pre .deletion {
+  color:#ff73fd;
+}
+
+._def pre .emphasis {
+  font-style: italic;
+}
+
+._def pre .strong {
+  font-weight: bold;
+}

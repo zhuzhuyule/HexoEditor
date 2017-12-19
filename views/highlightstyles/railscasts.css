@@ -1,0 +1,111 @@
+/*
+
+Railscasts-like style (c) Visoft, Inc. (Damien White)
+
+*/
+
+._def .highlight {
+  display: block;
+  overflow-x: auto;
+  padding: 0.5em;
+  color: #e6e1dc;
+  background: #232323;
+}
+
+._def pre{
+  color: #e6e1dc;
+  background: #232323;
+}
+
+._def pre .comment,
+._def pre .quote {
+  color: #bc9458;
+  font-style: italic;
+}
+
+._def pre .keyword,
+._def pre .selector-tag {
+  color: #c26230;
+}
+
+._def pre .string,
+._def pre .number,
+._def pre .regexp,
+._def pre .variable,
+._def pre .template-variable {
+  color: #a5c261;
+}
+
+._def pre .subst {
+  color: #519f50;
+}
+
+._def pre .tag,
+._def pre .name {
+  color: #e8bf6a;
+}
+
+._def pre .type {
+  color: #da4939;
+}
+
+
+._def pre .symbol,
+._def pre .bullet,
+._def pre .built_in,
+._def pre .builtin-name,
+._def pre .attr,
+._def pre .link {
+  color: #6d9cbe;
+}
+
+._def pre .params {
+  color: #d0d0ff;
+}
+
+._def pre .attribute {
+  color: #cda869;
+}
+
+._def pre .meta {
+  color: #9b859d;
+}
+
+._def pre .title,
+._def pre .section {
+  color: #ffc66d;
+}
+
+._def pre .addition {
+  background-color: #144212;
+  color: #e6e1dc;
+  display: inline-block;
+  width: 100%;
+}
+
+._def pre .deletion {
+  background-color: #600;
+  color: #e6e1dc;
+  display: inline-block;
+  width: 100%;
+}
+
+._def pre .selector-class {
+  color: #9b703f;
+}
+
+._def pre .selector-id {
+  color: #8b98ab;
+}
+
+._def pre .emphasis {
+  font-style: italic;
+}
+
+._def pre .strong {
+  font-weight: bold;
+}
+
+._def pre .link {
+  text-decoration: underline;
+}

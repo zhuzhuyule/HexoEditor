@@ -1,0 +1,89 @@
+/* Base16 Atelier Savanna Dark - Theme */
+/* by Bram de Haan (http://atelierbram.github.io/syntax-highlighting/atelier-schemes/savanna) */
+/* Original Base16 color scheme by Chris Kempson (https://github.com/chriskempson/base16) */
+
+/* Atelier-Savanna Comment */
+._def pre .comment,
+._def pre .quote {
+  color: #78877d;
+}
+
+/* Atelier-Savanna Red */
+._def pre .variable,
+._def pre .template-variable,
+._def pre .attribute,
+._def pre .tag,
+._def pre .name,
+._def pre .regexp,
+._def pre .link,
+._def pre .name,
+._def pre .selector-id,
+._def pre .selector-class {
+  color: #b16139;
+}
+
+/* Atelier-Savanna Orange */
+._def pre .number,
+._def pre .meta,
+._def pre .built_in,
+._def pre .builtin-name,
+._def pre .literal,
+._def pre .type,
+._def pre .params {
+  color: #9f713c;
+}
+
+/* Atelier-Savanna Green */
+._def pre .string,
+._def pre .symbol,
+._def pre .bullet {
+  color: #489963;
+}
+
+/* Atelier-Savanna Blue */
+._def pre .title,
+._def pre .section {
+  color: #478c90;
+}
+
+/* Atelier-Savanna Purple */
+._def pre .keyword,
+._def pre .selector-tag {
+  color: #55859b;
+}
+
+._def pre .deletion,
+._def pre .addition {
+  color: #171c19;
+  display: inline-block;
+  width: 100%;
+}
+
+._def pre .deletion {
+  background-color: #b16139;
+}
+
+._def pre .addition {
+  background-color: #489963;
+}
+
+._def .highlight {
+  display: block;
+  overflow-x: auto;
+  color: #87928a;
+  background: #171c19;
+  padding: 0.5em;
+}
+
+._def pre{
+  color: #87928a;
+  background: #171c19;
+}
+
+._def pre .emphasis {
+  font-style: italic;
+}
+
+._def pre .strong {
+  font-weight: bold;
+}

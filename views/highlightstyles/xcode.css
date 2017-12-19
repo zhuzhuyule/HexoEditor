@@ -1,0 +1,97 @@
+/*
+
+XCode style (c) Angel Garcia <angelgarcia.mail@gmail.com>
+
+*/
+
+._def .highlight {
+  display: block;
+  overflow-x: auto;
+  padding: 0.5em;
+  background: #fff;
+  color: black;
+}
+
+._def pre{
+  background: #fff;
+}
+
+._def pre .comment,
+._def pre .quote {
+  color: #006a00;
+}
+
+._def pre .keyword,
+._def pre .selector-tag,
+._def pre .literal {
+  color: #aa0d91;
+}
+
+._def pre .name {
+  color: #008;
+}
+
+._def pre .variable,
+._def pre .template-variable {
+  color: #660;
+}
+
+._def pre .string {
+  color: #c41a16;
+}
+
+._def pre .regexp,
+._def pre .link {
+  color: #080;
+}
+
+._def pre .title,
+._def pre .tag,
+._def pre .symbol,
+._def pre .bullet,
+._def pre .number,
+._def pre .meta {
+  color: #1c00cf;
+}
+
+._def pre .section,
+._def pre .class ._def pre .title,
+._def pre .type,
+._def pre .attr,
+._def pre .built_in,
+._def pre .builtin-name,
+._def pre .params {
+  color: #5c2699;
+}
+
+._def pre .attribute,
+._def pre .subst {
+  color: #000;
+}
+
+._def pre .formula {
+  background-color: #eee;
+  font-style: italic;
+}
+
+._def pre .addition {
+  background-color: #baeeba;
+}
+
+._def pre .deletion {
+  background-color: #ffc8bd;
+}
+
+._def pre .selector-id,
+._def pre .selector-class {
+  color: #9b703f;
+}
+
+._def pre .doctag,
+._def pre .strong {
+  font-weight: bold;
+}
+
+._def pre .emphasis {
+  font-style: italic;
+}

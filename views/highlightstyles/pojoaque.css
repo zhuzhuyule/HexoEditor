@@ -1,0 +1,90 @@
+/*
+
+Pojoaque Style by Jason Tate
+http://web-cms-designs.com/ftopict-10-pojoaque-style-for-highlight-js-code-highlighter.html
+Based on Solarized Style from http://ethanschoonover.com/solarized
+
+*/
+
+._def .highlight {
+  display: block;
+  overflow-x: auto;
+  padding: 0.5em;
+  color: #dccf8f;
+  background: url(./pojoaque.jpg) repeat scroll left top #181914;
+}
+
+._def pre {
+  color: #dccf8f;
+  background: url(./pojoaque.jpg) repeat scroll left top #181914;
+}
+
+
+
+._def pre .comment,
+._def pre .quote {
+  color: #586e75;
+  font-style: italic;
+}
+
+._def pre .keyword,
+._def pre .selector-tag,
+._def pre .literal,
+._def pre .addition {
+  color: #b64926;
+}
+
+._def pre .number,
+._def pre .string,
+._def pre .doctag,
+._def pre .regexp {
+  color: #468966;
+}
+
+._def pre .title,
+._def pre .section,
+._def pre .built_in,
+._def pre .name {
+  color: #ffb03b;
+}
+
+._def pre .variable,
+._def pre .template-variable,
+._def pre .class ._def pre .title,
+._def pre .type,
+._def pre .tag {
+  color: #b58900;
+}
+
+._def pre .attribute {
+  color: #b89859;
+}
+
+._def pre .symbol,
+._def pre .bullet,
+._def pre .link,
+._def pre .subst,
+._def pre .meta {
+  color: #cb4b16;
+}
+
+._def pre .deletion {
+  color: #dc322f;
+}
+
+._def pre .selector-id,
+._def pre .selector-class {
+  color: #d3a60c;
+}
+
+._def pre .formula {
+  background: #073642;
+}
+
+._def pre .emphasis {
+  font-style: italic;
+}
+
+._def pre .strong {
+  font-weight: bold;
+}

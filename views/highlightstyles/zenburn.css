@@ -1,0 +1,85 @@
+/*
+
+Zenburn style from voldmar.ru (c) Vladimir Epifanov <voldmar@voldmar.ru>
+based on dark.css by Ivan Sagalaev
+
+*/
+
+._def .highlight {
+  display: block;
+  overflow-x: auto;
+  padding: 0.5em;
+  color: #dcdcdc;
+  background: #3f3f3f;
+}
+
+._def pre{
+  color: #dcdcdc;
+  background: #3f3f3f;
+}
+
+._def pre .keyword,
+._def pre .selector-tag,
+._def pre .tag {
+  color: #e3ceab;
+}
+
+._def pre .template-tag {
+  color: #dcdcdc;
+}
+
+._def pre .number {
+  color: #8cd0d3;
+}
+
+._def pre .variable,
+._def pre .template-variable,
+._def pre .attribute {
+  color: #efdcbc;
+}
+
+._def pre .literal {
+  color: #efefaf;
+}
+
+._def pre .subst {
+  color: #8f8f8f;
+}
+
+._def pre .title,
+._def pre .name,
+._def pre .selector-id,
+._def pre .selector-class,
+._def pre .section,
+._def pre .type {
+  color: #efef8f;
+}
+
+._def pre .symbol,
+._def pre .bullet,
+._def pre .link {
+  color: #dca3a3;
+}
+
+._def pre .deletion,
+._def pre .string,
+._def pre .built_in,
+._def pre .builtin-name {
+  color: #cc9393;
+}
+
+._def pre .addition,
+._def pre .comment,
+._def pre .quote,
+._def pre .meta {
+  color: #7f9f7f;
+}
+
+
+._def pre .emphasis {
+  font-style: italic;
+}
+
+._def pre .strong {
+  font-weight: bold;
+}

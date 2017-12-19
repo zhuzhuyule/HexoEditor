@@ -1,0 +1,74 @@
+/* Base16 Atelier Seaside Light - Theme */
+/* by Bram de Haan (http://atelierbram.github.io/syntax-highlighting/atelier-schemes/seaside) */
+/* Original Base16 color scheme by Chris Kempson (https://github.com/chriskempson/base16) */
+
+/* Atelier-Seaside Comment */
+._def pre .comment,
+._def pre .quote {
+  color: #687d68;
+}
+
+/* Atelier-Seaside Red */
+._def pre .variable,
+._def pre .template-variable,
+._def pre .attribute,
+._def pre .tag,
+._def pre .name,
+._def pre .regexp,
+._def pre .link,
+._def pre .name,
+._def pre .selector-id,
+._def pre .selector-class {
+  color: #e6193c;
+}
+
+/* Atelier-Seaside Orange */
+._def pre .number,
+._def pre .meta,
+._def pre .built_in,
+._def pre .builtin-name,
+._def pre .literal,
+._def pre .type,
+._def pre .params {
+  color: #87711d;
+}
+
+/* Atelier-Seaside Green */
+._def pre .string,
+._def pre .symbol,
+._def pre .bullet {
+  color: #29a329;
+}
+
+/* Atelier-Seaside Blue */
+._def pre .title,
+._def pre .section {
+  color: #3d62f5;
+}
+
+/* Atelier-Seaside Purple */
+._def pre .keyword,
+._def pre .selector-tag {
+  color: #ad2bee;
+}
+
+._def .highlight {
+  display: block;
+  overflow-x: auto;
+  color: #5e6e5e;
+  background: #f4fbf4;
+  padding: 0.5em;
+}
+
+._def pre{
+  color: #5e6e5e;
+  background: #f4fbf4;
+}
+
+._def pre .emphasis {
+  font-style: italic;
+}
+
+._def pre .strong {
+  font-weight: bold;
+}

@@ -22,7 +22,6 @@
         <meta charset="UTF-8">
         <base href="../href.html">
         <title>HexoEditor Settings</title>
-
 		<script>
 		window.$ = window.jQuery = require("jquery");
         window.document.querySelector('html').classList.add(process.platform);
@@ -58,17 +57,17 @@
                         <div class="image"><i class="fa fa-pencil-square-o" aria-hidden="true"></i></div>
                         <div class="text l10n">Edit</div>
                     </div>
-                    <div class="item" data-tab="appearance">
-                        <div class="image"><i class="fa fa-paint-brush" aria-hidden="true"></i></div>
-                        <div class="text l10n">Appearance</div>
+                    <!--<div class="item" data-tab="appearance">-->
+                        <!--<div class="image"><i class="fa fa-paint-brush" aria-hidden="true"></i></div>-->
+                        <!--<div class="text l10n">Appearance</div>-->
+                    <!--</div>-->
+                    <div class="item" data-tab="hexo">
+                        <div class="image"><i class="fa fa-code" aria-hidden="true"></i></div>
+                        <div class="text l10n">Hexo</div>
                     </div>
                     <div class="item" data-tab="render">
                         <div class="image"><i class="fa fa-magic" aria-hidden="true"></i></div>
                         <div class="text l10n">Render</div>
-                    </div>
-                    <div class="item" data-tab="hexo">
-                        <div class="image"><i class="fa fa-code" aria-hidden="true"></i></div>
-                        <div class="text l10n">Hexo</div>
                     </div>
                 </div>
                 <div class="content">
@@ -136,93 +135,18 @@
                             </tr>
                         </table>
                     </div>
-                    <div class="panel" data-tab="appearance">
-                        <table width="80%" align="center">
-                            <tr>
-                                <td width="40%" class="l10n">Color Theme</td>
-                                <td width="60%">
-                                    <select class="settings-item" data-key="editor-theme">
-                                        <option value="base16-light">Base16 Light</option>
-                                    </select>
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
-                    <div class="panel" data-tab="render">
-                        <table width="80%" align="center">
-                            <tr>
-                                <td width="40%" class="l10n">TeX Math Expressions</td>
-                                <td width="60%">
-                                    <input type="checkbox" class="settings-item" data-key="math">
-                                </td>
-                            </tr>
-                            <tr>
-                                <td width="40%" class="l10n">UML Diagrams</td>
-                                <td width="60%">
-                                    <input type="checkbox" class="settings-item" data-key="uml-diagrams">
-                                </td>
-                            </tr>
-                            <tr>
-                                <td width="40%" class="l10n">Breaks</td>
-                                <td width="60%">
-                                    <input type="checkbox" class="settings-item" data-key="breaks">
-                                </td>
-                            </tr>
-                            <tr>
-                                <td width="40%" class="l10n">Highlight Theme</td>
-                                <td width="60%">
-                                    <select class="settings-item" data-key="highlight-theme">
-                                        <script>
-                                            fs.readdirSync(path.resolve(path.dirname(path.dirname(require.resolve('highlight.js'))), 'styles'))
-                                                .filter(s => s.endsWith('.css'))
-                                            .map(s => s.substr(0, s.length - 4))
-                                            .forEach(s => {
-                                                document.write(`<option value="${s}">${s}</option>`)
-                                            });
-                                        </script>
-                                    </select>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td width="40%" class="l10n">Render Theme</td>
-                                <td width="60%">
-                                    <select class="settings-item" data-key="render-theme" style="width: calc(100% - 49px); ">
-                                        <script>
-                                            fs.readdirSync(`${app.getAppPath()}/themes`)
-                                                .forEach(s => {
-                                                document.write(`<option value="${s}" class="builtin">${s}</option>`);
-                                            });
-
-                                            const custom = moeApp.config.get('custom-render-themes');
-                                            for (const s in custom) {
-                                                document.write(`<option value="${s}">${s}</option>`);
-                                            }
-                                        </script>
-                                    </select>
-                                    <button class="button-add-remove button-add" style="border-right: none; margin-left: -5px; "><i class="fa fa-plus" aria-hidden="true"></i></button>
-                                    <button class="button-add-remove button-remove" style="margin-left: -4px; "><i class="fa fa-minus" aria-hidden="true"></i></button>
-                                </td>
-                            </tr>
-                            <tr style="height: 75px; ">
-                                <td width="40%" class="l10n">Custom CSSs</td>
-                                <td width="60%">
-                                    <select class="settings-item" multiple size="5" id="custom-csss" style="height: 50px; width: calc(100% - 25px); font-size: 11px; ">
-                                        <script>
-                                            const a = moeApp.config.get('custom-csss');
-                                            for (const s in a) {
-                                                document.write(`<option value="${s}"${a[s].selected ? ' selected' : ''}>${s}</option>`);
-                                            }
-                                        </script>
-                                    </select>
-                                    <div style="display: inline-block; margin-left: -1px; position: absolute; ">
-                                        <button class="button-add-remove button-add" style="border-bottom: none; "><i class="fa fa-plus" aria-hidden="true"></i></button>
-                                        <br>
-                                        <button class="button-add-remove button-remove"><i class="fa fa-minus" aria-hidden="true"></i></button>
-                                    </div>
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
+                    <!--<div class="panel" data-tab="appearance">-->
+                        <!--<table width="80%" align="center">-->
+                            <!--<tr>-->
+                                <!--<td width="40%" class="l10n">Color Theme</td>-->
+                                <!--<td width="60%">-->
+                                    <!--<select class="settings-item" data-key="editor-theme">-->
+                                        <!--<option value="base16-light">Base16 Light</option>-->
+                                    <!--</select>-->
+                                <!--</td>-->
+                            <!--</tr>-->
+                        <!--</table>-->
+                    <!--</div>-->
                     <div class="panel" data-tab="hexo">
                         <table width="80%" align="center">
                             <tr>
@@ -251,12 +175,93 @@
                             <tr style="height: 60px; ">
                                 <td width="30%" class="l10n">Hexo tags</td>
                                 <td width="70%">
-                                    <select class="settings-item" multiple size="5" id="custom-tags" style="height: 120px; width: calc(100% - 25px);">
+                                    <select class="settings-item" multiple size="5" id="custom-tags" style="height: 90px; width: calc(100% - 25px);overflow: auto;">
                                         <script>
                                             const t = moeApp.config.get('hexo-tag-paths');
                                             for (var i=0,len=t.length;i<len;i++) {
                                                 s=t[i];
                                                 document.write(`<option value="${s}">${s}</option>`);
+                                            }
+                                        </script>
+                                    </select>
+                                    <div style="display: inline-block; margin-left: -1px; position: absolute; ">
+                                        <button class="button-add-remove button-add" style="border-bottom: none; "><i class="fa fa-plus" aria-hidden="true"></i></button>
+                                        <br>
+                                        <button class="button-add-remove button-remove"><i class="fa fa-minus" aria-hidden="true"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="panel" data-tab="render">
+                        <table width="80%" align="center">
+                            <tr>
+                                <td width="40%" class="l10n">TeX Math Expressions</td>
+                                <td width="60%">
+                                    <input type="checkbox" class="settings-item" data-key="math">
+                                </td>
+                            </tr>
+                            <tr>
+                                <td width="40%" class="l10n">UML Diagrams</td>
+                                <td width="60%">
+                                    <input type="checkbox" class="settings-item" data-key="uml-diagrams">
+                                </td>
+                            </tr>
+                            <tr>
+                                <td width="40%" class="l10n">Breaks</td>
+                                <td width="60%">
+                                    <input type="checkbox" class="settings-item" data-key="breaks">
+                                </td>
+                            </tr>
+                            <tr>
+                                <td width="40%" class="l10n">Render Theme</td>
+                                <td width="60%">
+                                    <select class="settings-item" data-key="render-theme" style="width: calc(100% - 50px); ">
+                                        <script>
+                                            fs.readdirSync(`${app.getAppPath()}/themes`)
+                                                .forEach(s => {
+                                                    document.write(`<option value="${s}" class="builtin">${s}</option>`);
+                                                });
+
+                                            const custom = moeApp.config.get('custom-render-themes');
+                                            for (const s in custom) {
+                                                document.write(`<option value="${s}">${s}</option>`);
+                                            }
+                                        </script>
+                                    </select>
+                                    <button class="button-add-remove button-add" style="border-right: none; margin-left: -5px; "><i class="fa fa-plus" aria-hidden="true"></i></button>
+                                    <button class="button-add-remove button-remove" style="margin-left: -4px; "><i class="fa fa-minus" aria-hidden="true"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td width="40%" class="l10n">Highlight Theme</td>
+                                <td width="60%">
+                                    <select class="settings-item" data-key="highlight-theme">
+                                        <script>
+//                                            fs.readdirSync(path.resolve(path.dirname(path.dirname(require.resolve('highlight.js'))), 'styles'))
+                                            var arr=['default','github','github-gist'];
+                                            arr.forEach(s => {
+                                                if (fs.existsSync(path.join('./views/highlightstyles/',s+'.css')))
+                                                document.write(`<option value="${s}" style="background:#f4f4f4">${s}</option>`)   });
+                                            fs.readdirSync('./views/highlightstyles/')
+                                                .filter(s => s.endsWith('.css'))
+                                                .map(s => s.substr(0, s.length - 4))
+                                                .filter(s => arr.indexOf(s) < 0)
+                                                .forEach(s => {
+                                                document.write(`<option value="${s}">${s}</option>`)
+                                            });
+                                        </script>
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr style="height: 75px; ">
+                                <td width="40%" class="l10n">Custom CSSs</td>
+                                <td width="60%">
+                                    <select class="settings-item" multiple size="5" id="custom-csss" style="height: 50px; width: calc(100% - 25px); font-size: 11px; ">
+                                        <script>
+                                            const a = moeApp.config.get('custom-csss');
+                                            for (const s in a) {
+                                                document.write(`<option value="${s}"${a[s].selected ? ' selected' : ''}>${s}</option>`);
                                             }
                                         </script>
                                     </select>

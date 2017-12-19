@@ -1,0 +1,74 @@
+/* Base16 Atelier Dune Light - Theme */
+/* by Bram de Haan (http://atelierbram.github.io/syntax-highlighting/atelier-schemes/dune) */
+/* Original Base16 color scheme by Chris Kempson (https://github.com/chriskempson/base16) */
+
+/* Atelier-Dune Comment */
+._def pre .comment,
+._def pre .quote {
+  color: #7d7a68;
+}
+
+/* Atelier-Dune Red */
+._def pre .variable,
+._def pre .template-variable,
+._def pre .attribute,
+._def pre .tag,
+._def pre .name,
+._def pre .regexp,
+._def pre .link,
+._def pre .name,
+._def pre .selector-id,
+._def pre .selector-class {
+  color: #d73737;
+}
+
+/* Atelier-Dune Orange */
+._def pre .number,
+._def pre .meta,
+._def pre .built_in,
+._def pre .builtin-name,
+._def pre .literal,
+._def pre .type,
+._def pre .params {
+  color: #b65611;
+}
+
+/* Atelier-Dune Green */
+._def pre .string,
+._def pre .symbol,
+._def pre .bullet {
+  color: #60ac39;
+}
+
+/* Atelier-Dune Blue */
+._def pre .title,
+._def pre .section {
+  color: #6684e1;
+}
+
+/* Atelier-Dune Purple */
+._def pre .keyword,
+._def pre .selector-tag {
+  color: #b854d4;
+}
+
+._def .highlight {
+  display: block;
+  overflow-x: auto;
+  color: #6e6b5e;
+  background: #fefbec;
+  padding: 0.5em;
+}
+
+._def pre{
+  color: #6e6b5e;
+  background: #fefbec;
+}
+
+._def pre .emphasis {
+  font-style: italic;
+}
+
+._def pre .strong {
+  font-weight: bold;
+}

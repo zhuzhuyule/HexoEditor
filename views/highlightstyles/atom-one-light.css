@@ -1,0 +1,101 @@
+/*
+
+Atom One Light by Daniel Gamage
+Original One Light Syntax theme from https://github.com/atom/one-light-syntax
+
+base:    #fafafa
+mono-1:  #383a42
+mono-2:  #686b77
+mono-3:  #a0a1a7
+hue-1:   #0184bb
+hue-2:   #4078f2
+hue-3:   #a626a4
+hue-4:   #50a14f
+hue-5:   #e45649
+hue-5-2: #c91243
+hue-6:   #986801
+hue-6-2: #c18401
+
+*/
+
+._def .highlight {
+  display: block;
+  overflow-x: auto;
+  padding: 0.5em;
+  color: #383a42;
+  background: #fafafa;
+}
+
+._def pre{
+  color: #383a42;
+  background: #fafafa;
+}
+
+._def pre .comment,
+._def pre .quote {
+  color: #a0a1a7;
+  font-style: italic;
+}
+
+._def pre .doctag,
+._def pre .keyword,
+._def pre .formula {
+  color: #a626a4;
+}
+
+._def pre .section,
+._def pre .name,
+._def pre .selector-tag,
+._def pre .deletion,
+._def pre .subst {
+  color: #e45649;
+}
+
+._def pre .literal {
+  color: #0184bb;
+}
+
+._def pre .string,
+._def pre .regexp,
+._def pre .addition,
+._def pre .attribute,
+._def pre .meta-string {
+  color: #50a14f;
+}
+
+._def pre .built_in,
+._def pre .class ._def pre .title {
+  color: #c18401;
+}
+
+._def pre .attr,
+._def pre .variable,
+._def pre .template-variable,
+._def pre .type,
+._def pre .selector-class,
+._def pre .selector-attr,
+._def pre .selector-pseudo,
+._def pre .number {
+  color: #986801;
+}
+
+._def pre .symbol,
+._def pre .bullet,
+._def pre .link,
+._def pre .meta,
+._def pre .selector-id,
+._def pre .title {
+  color: #4078f2;
+}
+
+._def pre .emphasis {
+  font-style: italic;
+}
+
+._def pre .strong {
+  font-weight: bold;
+}
+
+._def pre .link {
+  text-decoration: underline;
+}
