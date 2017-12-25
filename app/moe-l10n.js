@@ -164,6 +164,8 @@ const strings = {
         "Render Theme": "Render Theme",
         "Custom CSSs": "Custom CSSs",
 
+        "Show Number": "Show Line Number",
+        "Hexo Auto": "Auto Hexo Setting",
         "Hexo": "Hexo",
         "Extend Highlight": "Extend Highlight",
         "Hexo Config": "Hexo Config",
@@ -173,7 +175,6 @@ const strings = {
         "System Default": "System Default",
 
         "version": "version",
-        "Refresh": "Refresh",
 
         "Auto save": "Auto save",
         "Auto": "Auto",
@@ -272,6 +273,8 @@ const strings = {
         "Render Theme": "渲染主题",
         "Custom CSSs": "自定义 CSS",
 
+        "Show Number": "显示行号",
+        "Hexo Auto": "Hexo自动设置",
         "Hexo": "Hexo",
         "Extend Highlight": "自定义代码块",
         "Hexo Config": "Hexo配置文件",
