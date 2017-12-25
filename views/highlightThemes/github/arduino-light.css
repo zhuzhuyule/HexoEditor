@@ -17,7 +17,8 @@ Arduino® Light Theme - Stefania Mellai <s.mellai@arduino.cc>
 }
 
 ._def pre{
-  background: #434f54;
+  color: #434f54;
+  background: #FFFFFF;
 }
 
 ._def pre .keyword,

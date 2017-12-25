@@ -33,7 +33,7 @@ $(() => {
     document.querySelector('#editor textarea').innerText = w.content;
 
     var editor = CodeMirror.fromTextArea(document.querySelector('#editor textarea'), {
-        lineNumbers: false,
+        lineNumbers: !!moeApp.config.get('editor-ShowLineNumber'),
         mode: moeApp.config.get('math') ? 'gfm_math' : 'gfm',
         matchBrackets: true,
         theme: moeApp.config.get('editor-theme'),
@@ -44,6 +44,7 @@ $(() => {
             End: 'goLineRight',
             'Shift-Tab': 'indentLess'
         },
+        fixedGutter: false,
         tabSize: moeApp.config.get('tab-size'),
         indentUnit: moeApp.config.get('tab-size'),
         viewportMargin: Infinity,
@@ -127,4 +128,68 @@ $(() => {
     require('./moe-settings');
 
     w.window.show();
+
+    // $(".CodeMirror-vscrollbar").hover(
+    //     function () {
+    //         $(this).addClass('hoverScroll')
+    //     },
+    //     function () {
+    //         $(this).removeClass('hoverScroll')
+    //     }
+    // );
+
+    $("#main-container div").mousemove(function (e) {
+        // $('.scrolling').removeClass('scrolling');
+        if(e.clientX + 100 > this.offsetWidth + this.offsetLeft)
+            $(this).find('.CodeMirror-vscrollbar').addClass('hoverScroll');
+        else {
+            $(this).find('.CodeMirror-vscrollbar').removeClass('hoverScroll');
+        }
+    })
+
+    $("#main-container div").hover(
+        function (e) {
+        }       ,
+        function (e) {
+            // $('.scrolling').removeClass('scrolling');
+            $(this).find('.CodeMirror-vscrollbar').removeClass('hoverScroll');
+        }
+    )
+
+    document.querySelectorAll('.CodeMirror-vscrollbar').forEach(
+        function (item) {
+            item .addEventListener("transitionend", function (e) {
+                // if (e.propertyName == 'font-size'){
+                    $('.scrolling').removeClass('scrolling');
+                // }
+            });
+
+            item.addEventListener("scroll",function (e) {
+                if ($(this.parentElement).is(':hover'))
+                    $(this).addClass('scrolling');
+                if ($(this).css('font-size') == '14px'){
+                    $('.scrolling').removeClass('scrolling');
+                }
+            })
+        }
+    );
+
+
+    document.getElementById("container").addEventListener("click", function () {
+        var script = document.getElementById('dynamicScript');
+        if (!script) {
+            var rightpanel = document.getElementById('right-panel');
+            var scripts = rightpanel.getElementsByTagName('script');
+            if (script) {
+                rightpanel.removeChild(script);
+            }
+            script = document.createElement('script');
+            script.id = 'dynamicScript';
+            script.text = '';
+            for (var i = 0, len = scripts.length; i < len; i++) {
+                script.text += scripts[i].innerHTML;
+            }
+            rightpanel.appendChild(script);
+        }
+    }, true);
 });

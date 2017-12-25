@@ -132,7 +132,7 @@ html, body {
 
 #main.read-mode #right-panel {
     width: 100%;
-    padding-right: 4px;
+    /*padding-right: 4px;*/
 }
 
 #main.read-mode #right-panel .cover-top {
@@ -162,19 +162,19 @@ html, body {
 }
 
 #main.write-mode.write-mode-thin .CodeMirror-scroll {
-    width: calc(100% / 3 + 6px) !important;
+    width: calc(100% / 3 + var(--scrollWidth)) !important;
     padding-left: calc(100% / 3) !important;
     padding-right: calc(100% / 3) !important;
 }
 
 #main.write-mode.write-mode-medium .CodeMirror-scroll {
-    width: calc(100% / 2 + 6px) !important;
+    width: calc(100% / 2 + var(--scrollWidth)) !important;
     padding-left: calc(100% / 4) !important;
     padding-right: calc(100% / 4) !important;
 }
 
 #main.write-mode.write-mode-wide .CodeMirror-scroll {
-    width: calc((100% / 3) * 2 + 6px) !important;
+    width: calc((100% / 3) * 2 + var(--scrollWidth)) !important;
     padding-left: calc(100% / 6) !important;
     padding-right: calc(100% / 6) !important;
 }
@@ -338,7 +338,7 @@ body[settings-editor-font="sans"] #editor  * {
 }
 
 .CodeMirror-wrap, .CodeMirror pre, .CodeMirror span, .CodeMirror-vscrollbar div, .CodeMirror-measure {
-    transition: none !important;
+    /*transition: none !important;*/
 }
 
 #editor .CodeMirror {
@@ -347,11 +347,13 @@ body[settings-editor-font="sans"] #editor  * {
 }
 
 #container-wrapper {
-    width: calc(100% + 6px);
+    /*width: calc(100% + var(--scrollWidth)) !important;*/
+    width: calc(100% + var(--scrollWidth)) !important;
     height: 100%;
     overflow-y: scroll;
     overflow-x: hidden;
     outline: none;
+    position: relative;
 }
 
 #container {
@@ -370,7 +372,7 @@ body[settings-editor-font="sans"] #editor  * {
 }
 
 #main.read-mode #container-wrapper {
-    width: calc(100%);
+    width: calc(100%) !important;
 }
 
 #main.read-mode.read-mode-thin #container {
@@ -410,17 +412,22 @@ body[settings-editor-font="sans"] #editor  * {
     padding-right: 20px;
     padding-top: 35px;
     height: calc(100% - 35px - 31px);
-    width: calc(100% - 45px - 20px - 24px + 30px) !important;
+    /*width: calc(100% - 45px - 20px - 24px + 30px) !important;*/
+    width: calc(100% - 45px - 20px + var(--scrollWidth)) !important;
     transition: all 500ms ease-in-out;
 }
 
 .CodeMirror-vscrollbar {
     z-index: 1000000 !important;
+    position: absolute !important;
+    right: 0px !important;
+    bottom: 25px !important;
 }
 
+#container-wrapper .CodeMirror-vscrollbar,
 #main.write-mode .CodeMirror-vscrollbar {
-    position: fixed !important;
-    right: 4px !important;
+    position: absolute !important;
+    right: 0px !important;
     bottom: 25px !important;
 }
 
@@ -438,7 +445,11 @@ body[settings-editor-font="sans"] #editor  * {
 }
 
 .CodeMirror-lines {
-    overflow-x: hidden;
+    overflow-x: visible;
+}
+
+moemark-linenumber{
+    word-wrap: break-word !important;
 }
 
 #drag-left {
@@ -468,7 +479,7 @@ body[settings-mode=read] #drag-right, body[settings-mode=write] #drag-right {
     right: 0;
 }
 
-.notransition, .notransition *:not(.CodeMirror-cursors):not(.CodeMirror-lines) {
+.notransition, .notransition *:not(.CodeMirror-cursors):not(.CodeMirror-lines):not(.CodeMirror-vscrollbar) {
     transition: none !important;
 }
 
@@ -476,4 +487,8 @@ body[settings-mode=read] #drag-right, body[settings-mode=write] #drag-right {
     -webkit-app-region: no-drag;
     font-size: 14px;
     font-family: Roboto, Helvetica, 'Segoe UI', Arial, sans-serif;
+}
+
+.invalidFile{
+    background: red;
 }

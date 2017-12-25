@@ -474,6 +474,44 @@
   background-color: #f8f8f8;
 }
 
+
+#container .highlight  table {
+  padding: 0;
+  margin: 0;
+}
+
+#container .highlight  table th,
+#container .highlight  table td {
+  padding: 6px 13px;
+  border: 1px solid #ddd;
+}
+
+#container figure {
+  padding: 0;
+  border-radius: 3px;
+  -webkit-margin-start: 0px;
+  -webkit-margin-end: 0px;
+}
+
+#container .highlight table tr,
+#container .highlight table th,
+#container .highlight table td{
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}
+#container .highlight table pre{
+  margin: 0;
+  border-radius: 0;
+}
+
+#container .highlight table .code pre{
+  padding-left: 0px;
+  padding-right: 0px;
+}
+
+
 #container img {
   max-width: 100%;
   box-sizing: content-box;

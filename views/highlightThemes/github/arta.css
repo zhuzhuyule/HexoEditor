@@ -10,10 +10,6 @@ Author: pumbur <pumbur@pumbur.net>
   background: #222;
 }
 
-._def pre{
-  background: #222;
-}
-
 ._def .highlight,
 ._def pre .subst {
   color: #aaa;
@@ -21,6 +17,7 @@ Author: pumbur <pumbur@pumbur.net>
 
 ._def pre {
   color: #aaa;
+  background: #222;
 }
 
 ._def pre .section {

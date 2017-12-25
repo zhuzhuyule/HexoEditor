@@ -105,6 +105,12 @@
                     <div class="panel" data-tab="edit">
                         <table width="80%" align="center">
                             <tr>
+                                <td width="40%" >Show Number</td>
+                                <td width="60%">
+                                    <input class="settings-item"  type="checkbox" data-key="editor-ShowLineNumber">
+                                </td>
+                            </tr>
+                            <tr>
                                 <td width="40%" class="l10n">Font</td>
                                 <td width="60%">
                                     <select class="settings-item" data-key="editor-font">
@@ -150,9 +156,9 @@
                     <div class="panel" data-tab="hexo">
                         <table width="80%" align="center">
                             <tr>
-                                <td width="30%" class="l10n">Extend Highlight</td>
+                                <td width="30%" class="l10n">Hexo Auto</td>
                                 <td width="70%">
-                                    <input type="checkbox" class="settings-item" data-key="hexo-highlight-extend">
+                                    <input type="checkbox" class="settings-item" data-key="hexo-auto-setting">
                                 </td>
                             </tr>
                             <tr>
@@ -225,7 +231,10 @@
 
                                             const custom = moeApp.config.get('custom-render-themes');
                                             for (const s in custom) {
-                                                document.write(`<option value="${s}">${s}</option>`);
+                                                if (fs.existsSync(path.resolve( custom[s],'style.css')))
+                                                    document.write(`<option value="${s}">${s}</option>`);
+                                                else
+                                                    document.write(`<option class="invalidFile" value="${s}">${s}</option>`);
                                             }
                                         </script>
                                     </select>
@@ -237,20 +246,6 @@
                                 <td width="40%" class="l10n">Highlight Theme</td>
                                 <td width="60%">
                                     <select class="settings-item" data-key="highlight-theme">
-                                        <script>
-//                                            fs.readdirSync(path.resolve(path.dirname(path.dirname(require.resolve('highlight.js'))), 'styles'))
-                                            var arr=['default','github','github-gist'];
-                                            arr.forEach(s => {
-                                                if (fs.existsSync(path.join('./views/highlightstyles/',s+'.css')))
-                                                document.write(`<option value="${s}" style="background:#f4f4f4">${s}</option>`)   });
-                                            fs.readdirSync('./views/highlightstyles/')
-                                                .filter(s => s.endsWith('.css'))
-                                                .map(s => s.substr(0, s.length - 4))
-                                                .filter(s => arr.indexOf(s) < 0)
-                                                .forEach(s => {
-                                                document.write(`<option value="${s}">${s}</option>`)
-                                            });
-                                        </script>
                                     </select>
                                 </td>
                             </tr>

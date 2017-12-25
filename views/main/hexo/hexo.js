@@ -16,7 +16,7 @@ function Hexo() {
         renderer: new extend.Renderer(),
         tag: new extend.Tag()
     };
-    this.highlightEx = !!moeApp.config.get('hexo-highlight-extend');
+    this.highlightEx = !!this.config.highlightEx;
     this.enable = !!moeApp.config.get('hexo-config-enable');
     this.render = new Render(this);
     this.loadConfig();

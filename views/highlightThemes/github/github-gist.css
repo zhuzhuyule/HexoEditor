@@ -4,15 +4,16 @@
  */
 
 ._def .highlight {
-  display: block;
-  background: white;
+  display: block;  
   padding: 0.5em;
   color: #333333;
+  background: white;
   overflow-x: auto;
 }
 
 ._def pre {
   color: #333333;
+  background: white;
 }
 
 ._def pre .comment,

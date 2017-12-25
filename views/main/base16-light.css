@@ -67,7 +67,7 @@
 .cm-s-base16-light span.cm-math {color: #603d7b;}
 .cm-s-base16-light span.cm-math {color: #603d7b;}
 .cm-s-base16-light span.cm-formatting-math {color: #777;}
-.cm-s-base16-light span..cm-quote { color: #90a959; }
+.cm-s-base16-light span.cm-quote { color: #90a959; }
 
 /*.cm-s-base16-light .CodeMirror-activeline-background {background: #DDDCDC !important;}*/
 .cm-s-base16-light .CodeMirror-matchingbracket { text-decoration: underline; color: white !important;}

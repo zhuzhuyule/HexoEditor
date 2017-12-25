@@ -8,8 +8,13 @@ Original style from softwaremaniacs.org (c) Ivan Sagalaev <Maniac@SoftwareManiac
   display: block;
   overflow-x: auto;
   padding: 0.5em;
-  background: white;
   color: black;
+  background: white;
+}
+
+._def pre {
+  color: black;
+  background: white;
 }
 
 ._def pre .string,

@@ -14,6 +14,7 @@ var rPlaceholder = /(?:<|&lt;)\!--\uFFFC(\d+)--(?:>|&gt;)/g;
 
 global.lodash = require('lodash');
 global.ctx = global.hexo = new Hexo();
+moeApp.setHexo(hexo);
 hexo.loadTags()
 
 function Previewer() {
@@ -21,7 +22,7 @@ function Previewer() {
 
 Previewer.prototype.render = function (content, MoeMark, options) {
     var data = {
-        highlightEx: hexo.highlightEx,
+        highlightEx: hexo.config.highlightEx,
         content: content
     };
     var cache = [];
@@ -31,11 +32,18 @@ Previewer.prototype.render = function (content, MoeMark, options) {
         return '<!--' + placeholder + (cache.push(str) - 1) + '-->';
     }
 
+    function tryFilterHeader() {
+        try {
+            data.content = data.content.replace(/^---+([\w\W]+?)---+/, function () {
+                data = __.extend(data, YAML.parse(arguments[1]))
+                return '';
+            });
+        } catch (e){
+            console.log(e);
+        }
+    }
+
     function before_post_render() {
-        data.content = data.content.replace(/^---+([\w\W]+?)---+/, function () {
-            data = __.extend(data, YAML.parse(arguments[1]))
-            return '';
-        });
         hexo.execFilterSync('before_post_render', data, {context: hexo});
     }
 
@@ -68,11 +76,18 @@ Previewer.prototype.render = function (content, MoeMark, options) {
     }
 
     try {
-        before_post_render();
-        escapeTag();
-        markdownContent();
-        backTag();
-        after_post_render();
+        if (false/*moeApp.defTheme*/) {
+            escapeTag();
+            markdownContent();
+            backTag();
+        }else {
+            tryFilterHeader();
+            before_post_render();
+            escapeTag();
+            markdownContent();
+            backTag();
+            after_post_render();
+        }
     } catch (err) {
         console.log(err);
     } finally {

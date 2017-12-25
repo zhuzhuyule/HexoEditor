@@ -28,6 +28,7 @@ const MoeditorWindow = require('./moe-window'),
       MoeditorLocale = require('./moe-l10n'),
       MoeditorAbout = require('./moe-about'),
       MoeditorSettings = require('./moe-settings'),
+      fs = require('fs'),
       path = require('path');
 
 class MoeditorApplication {
@@ -185,6 +186,24 @@ class MoeditorApplication {
 
     addRecentDocument(path) {
         app.addRecentDocument(path);
+    }
+
+    getHighlightThemesDir(){
+        const currTheme = this.config.get('render-theme')
+        let themedir = 'github'
+        if (!(currTheme == 'GitHub' || currTheme == 'No Theme')){
+            themedir = currTheme.toLowerCase();
+        }
+        themedir = path.join(moeApp.Const.path+'/views/highlightThemes/',themedir);
+	    return (fs.existsSync(themedir)? themedir : '');
+    }
+
+    getHexo(){
+        return this.hexo;
+    }
+
+    setHexo(hexo){
+        this.hexo = hexo;
     }
 }
 

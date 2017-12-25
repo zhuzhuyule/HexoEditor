@@ -103,13 +103,29 @@ function previewerToEditor() {
     editorScroll.scrollTop = target;
 }
 
-var editor = $('#editor');
-$('.CodeMirror-vscrollbar').on('scroll', function(e) {
-    if (editor.is(':hover')) editorToPreviewer();
+var $editor = $('#editor');
+var $editorScroll = $('#editor .CodeMirror-vscrollbar');
+
+$editorScroll.on('scroll', function(e) {
+    if ($editor.is(':hover')) editorToPreviewer();
 });
 
-$('#container-wrapper').on('scroll', function(e) {
-    if ($(this).is(':hover')) previewerToEditor();
+
+var $previewer = $('#container-wrapper');
+var $previewerScroll = $('#right-panel .CodeMirror-vscrollbar');
+
+$previewer.on('scroll', function() {
+    if ($previewer.is(':hover') || $previewerScroll.is(':hover')) {
+        previewerToEditor();
+        if ($previewer.is(':hover'))
+            $previewerScroll[0].scrollTop = this.scrollTop;
+    }
+});
+
+$previewerScroll.on('scroll', function (e) {
+    if ($previewerScroll.is(':hover')) {
+        $previewer[0].scrollTop = this.scrollTop;
+    }
 });
 
 module.exports = editorToPreviewer;

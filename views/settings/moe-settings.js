@@ -82,6 +82,8 @@ document.addEventListener('DOMContentLoaded', () => {
         for (const x in custom) {
             const option = document.createElement('option');
             option.value = option.text = x;
+            if (fs.existsSync(path.resolve( custom[x],'style.css')))
+                option.classList.add('invalidFile');
             renderThemeSelect.appendChild(option);
         }
         renderThemeSelect.value = moeApp.config.get('render-theme');
@@ -97,6 +99,8 @@ document.addEventListener('DOMContentLoaded', () => {
         reloadHighlightSelect(renderThemeSelect.value);
     }
     setRenderThemeButtons();
+
+
     renderThemeSelect.addEventListener('change', setRenderThemeButtons);
     const dialog = require('electron').remote.dialog;
     renderThemeButtonAdd.addEventListener('click', () => {
@@ -104,7 +108,21 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!fileNames || fileNames.length === 0) return;
             const a = fileNames.filter((s) => {
                 try {
-                    return fs.readdirSync(s).includes('style.css');
+                    let files = fs.readdirSync(s);
+                    if (files.includes('style.css')){
+                        return true;
+                    } else if (files.includes('.css')){
+                        let stylecss = [];
+                        files.filter(function (file) {
+                           if ( file.endsWith('.css')){
+                               stylecss.push(fs.readFileSync(path.join(s,file)));
+                           }
+                           return false;
+                        })
+                        fs.writeFileSync(path.join(s,'style.css'),stylecss);
+                        return true;
+                    }
+                    return false;
                 } catch (e) {
                     return false;
                 }
@@ -136,40 +154,44 @@ document.addEventListener('DOMContentLoaded', () => {
     // Highlight Theme
     function reloadHighlightSelect(currTheme) {
         let highlightSelect = document.querySelector('select[data-key="highlight-theme"]');
-        const oldvar = highlightSelect.value || moeApp.config.get("highlight-theme");
-
+        const oldvar =  moeApp.config.get("highlight-theme") || highlightSelect.value;
+        let flagValid = false;
         highlightSelect.innerHTML = '';
-        if (currTheme == 'GitHub' || currTheme == 'No Theme'){
-            var arr=['default','github','github-gist'];
+        const themedir = moeApp.getHighlightThemesDir();
+        if (themedir){
+            var arr=['default','none','normal','github','github-gist'];
             arr.forEach(s => {
-                if (fs.existsSync(path.join('./views/highlightstyles/',s+'.css')))    {
+                if (fs.existsSync(path.join(themedir,s+'.css')) || s == 'none')    {
+                    if (!flagValid && s == oldvar) flagValid = true;
                     const option = document.createElement('option');
                     option.value = option.text = s;
                     option.style.background = "#f4f4f4";
                     highlightSelect.appendChild(option);
                 }
             });
-            fs.readdirSync('./views/highlightstyles/')
+            fs.readdirSync(themedir)
                 .filter(s => s.endsWith('.css'))
                 .map(s => s.substr(0, s.length - 4))
-                .filter(s => arr.indexOf(s) < 0)
+                .filter(s => (arr.indexOf(s) < 0) && ('index' !== s))
                 .forEach(s => {
+                    if (!flagValid && s == oldvar) flagValid = true;
                     const option = document.createElement('option');
                     option.value = option.text = s;
                     highlightSelect.appendChild(option);
                 });
-            if (oldvar){
+            if (flagValid && oldvar){
                 highlightSelect.value = oldvar;
             } else if (currTheme == 'GitHub') {
                 highlightSelect.value = 'github';
-            } else {
-                highlightSelect.value = moeApp.config.get("highlight-theme");
+            } else{
+                highlightSelect.value = moeApp.hexo.config.highlight_theme  || highlightSelect.children[0] && highlightSelect.children[0].value;
             }
             highlightSelect.removeAttribute('disabled');
-
         } else {
             highlightSelect.setAttribute('disabled',null);
+            ipcRenderer.send('setting-changed', { key: 'highlight-theme', val: "" });
         }
+
     }
 
     //Hexo config loading
@@ -338,4 +360,81 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log(csss);
         ipcRenderer.send('setting-changed', { key: 'custom-csss', val: csss });
     });
+
+    function newCustomeTheme(dir){
+        try {
+            let fileNames = fs.readdirSync(dir);
+            let stylecss = [];
+            fileNames.filter(function (file) {
+                if (file.endsWith('.css')) {
+                    stylecss.push(fs.readFileSync(path.resolve(dir, file)));
+                }
+                return false;
+            });
+            if (stylecss.length > 0) {
+                fs.writeFileSync(path.resolve(dir, 'style.css'), stylecss.toString());
+
+                themes[hexoTheme] = dir;
+                moeApp.config.set('custom-render-themes', themes);
+                return true;
+            }
+        } catch (e) {
+            return false;
+        }
+    }
+
+    let hexoAutoSettingButton = document.querySelector('input[data-key="hexo-auto-setting"]');
+    hexoAutoSettingButton.addEventListener('click',function (e) {
+        if (this.checked){
+            hexoConfigEnableButton.checked || hexoConfigEnableButton.click();
+            hexoConfigInput.value || hexoConfigLoadButton.click();
+            let mathCheck = document.querySelector('input[data-key="math"]');
+            !mathCheck.checked || mathCheck.click();
+
+            let umlCheck = document.querySelector('input[data-key="uml-diagrams"]');
+            !umlCheck.checked || umlCheck.click();
+
+            let breaksCheck = document.querySelector('input[data-key="breaks"]');
+            breaksCheck.checked || breaksCheck.click();
+
+
+            let hexoConfig = moeApp.getHexo().config;
+            let themes = JSON.parse(JSON.stringify(moeApp.config.get('custom-render-themes')));
+            let hexoTheme = hexoConfig.theme;
+            let isFindStyle = false;
+            if (themes[hexoTheme]){
+                if (fs.existsSync(path.resolve( themes[hexoTheme],'style.css'))) {
+                    renderThemeSelect.value = hexoTheme;
+                    reloadHighlightSelect(hexoTheme);
+                    isFindStyle = true;
+                }else {
+                    if (newCustomeTheme(themes[hexoTheme])) {
+                        isFindStyle = true;
+                    }
+                }
+            }
+            //未配置主题，自动配置
+            if (!isFindStyle){
+                let classDir = path.join(hexoConfig.__basedir,hexoConfig.public_dir,'css');
+                if (fs.lstatSync(classDir).isDirectory()){
+                    try {
+                        let fileNames = fs.readdirSync(classDir);
+                        if (fileNames.includes('style.css')){
+                            isFindStyle = true;
+                        } else {
+                            isFindStyle = newCustomeTheme(classDir);
+                        }
+                    } catch (err) {
+                    }
+                }
+
+            }
+            if (isFindStyle) {
+                themes[hexoTheme] = classDir;
+                renderThemeSelect.value = hexoTheme;
+                reloadHighlightSelect(hexoTheme);
+            }
+        }
+    })
+
 });

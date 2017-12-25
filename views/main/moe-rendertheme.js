@@ -28,6 +28,7 @@ const builtin = fs.readdirSync(path.resolve(app.getAppPath(), 'themes'));
 module.exports = {
     getCSS(forURL) {
         const theme = moeApp.config.get('render-theme');
+        moeApp.defTheme = ['GitHub','No Theme'].indexOf(theme) > -1;
         let res;
         if (builtin.includes(theme)) res = path.resolve(app.getAppPath(), 'themes', theme, 'style.css');
         else res = path.resolve(moeApp.config.get('custom-render-themes')[theme], 'style.css');

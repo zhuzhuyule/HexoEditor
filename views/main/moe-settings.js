@@ -20,11 +20,40 @@
 'use strict';
 
 const path = require('path');
+const fs = require('fs');
 const body = document.body;
 const codemirror = document.querySelector('#editor > .CodeMirror');
 
 function setEditorFont(val) {
     body.setAttribute('settings-editor-font', val);
+}
+
+function setShowLineNumber(val) {
+    const editor = document.querySelector('#editor');
+    const scrollpos = editor.querySelector('.CodeMirror-vscrollbar').scrollTop;
+    editor.querySelectorAll('.CodeMirror').forEach(function (i) {
+        editor.removeChild(i);
+    });
+    window.editor = CodeMirror.fromTextArea(editor.querySelector('textarea'), {
+        lineNumbers: val,
+        mode: moeApp.config.get('math') ? 'gfm_math' : 'gfm',
+        matchBrackets: true,
+        theme: moeApp.config.get('editor-theme'),
+        lineWrapping: true,
+        extraKeys: {
+            Enter: 'newlineAndIndentContinueMarkdownList',
+            Home: 'goLineLeft',
+            End: 'goLineRight',
+            'Shift-Tab': 'indentLess'
+        },
+        fixedGutter: false,
+        tabSize: moeApp.config.get('tab-size'),
+        indentUnit: moeApp.config.get('tab-size'),
+        viewportMargin: Infinity,
+        styleActiveLine: true,
+        showCursorWhenSelecting: true
+    });
+    editor.querySelector('.CodeMirror-vscrollbar').scrollTop = scrollpos;
 }
 
 function setEditorTheme(val) {
@@ -65,6 +94,7 @@ function setUMLDiagrams(val) {
 }
 
 function setHighlightTheme(val) {
+    const themedir = moeApp.getHighlightThemesDir();
     let link = document.getElementById('highlight-theme');
     if (!link) {
         link = document.createElement('link');
@@ -72,16 +102,33 @@ function setHighlightTheme(val) {
         link.rel = 'stylesheet';
         link.id = 'highlight-theme';
     }
-    link.href = path.join('../views/highlightstyles', `${val}.css`);
+    let file = path.join(themedir, `${val}.css`);
+    link.href = fs.existsSync(file) ? file : '';
+
+    link = document.getElementById('highlight-theme-index');
+    if (!link) {
+        link = document.createElement('link');
+        document.head.appendChild(link);
+        link.rel = 'stylesheet';
+        link.id = 'highlight-theme-index';
+    }
+    file = path.join(themedir, 'index.css');
+    link.href = fs.existsSync(file) ? file : '';
 }
 
 function setRenderTheme(val) {
     const container = document.getElementById('container');
     if (['GitHub','No Theme'].indexOf(val) > -1){
-        $(container).addClass('_def')
-    } else{
-        $(container).removeClass('_def')
+        $(container).addClass('_def');
+        $(container).removeClass('post-body');
+        moeApp.defTheme = true;
+    } else /*if ( 'post-body' == val )*/{
+        $(container).removeClass('_def');
+        $(container).addClass('post-body');
+        moeApp.defTheme = false;
     }
+    moeApp.containerClasss = container.className.replace('preview','');
+
     let link = document.getElementById('render-theme');
     if (!link) {
         link = document.createElement('link');
@@ -92,9 +139,9 @@ function setRenderTheme(val) {
     link.href = require('./moe-rendertheme').getCSS(true);
 }
 
-function setHexoHighlightExtend(val) {
-    hexo.highlightEx = val;
-    window.updatePreview(true);
+function setHexoAutoSetting(val) {
+    // hexo.highlightEx = val;
+    // window.updatePreview(true);
 };
 
 function setHexoConfigEnable(val) {
@@ -136,10 +183,10 @@ setEditorFont(moeApp.config.get('editor-font'));
 setEditorTheme(moeApp.config.get('editor-theme'));
 setEditorFontSize(moeApp.config.get('editor-font-size'));
 setEditorLineHeight(moeApp.config.get('editor-line-height'));
-setHighlightTheme(moeApp.config.get('highlight-theme'));
 setRenderTheme(moeApp.config.get('render-theme'));
+setHighlightTheme(moeApp.config.get('highlight-theme'));
 setCustomCSSs(moeApp.config.get('custom-csss'));
-setHexoHighlightExtend(moeApp.config.get('hexo-highlight-extend'));
+setHexoAutoSetting(moeApp.config.get('hexo-auto-setting'));
 setHexoConfigEnable(moeApp.config.get('hexo-config-enable'));
 setHexoConfig(moeApp.config.get('hexo-config'));
 setHexoTagPaths(moeApp.config.get('hexo-tag-paths'));
@@ -148,6 +195,8 @@ const ipcRenderer = require('electron').ipcRenderer;
 ipcRenderer.on('setting-changed', (e, arg) => {
     if (arg.key === 'editor-font') {
         setEditorFont(arg.val);
+    } else if (arg.key === 'editor-ShowLineNumber') {
+        setShowLineNumber(arg.val);
     } else if (arg.key === 'editor-theme') {
         setEditorTheme(arg.val);
     } else if (arg.key === 'editor-font-size') {
@@ -164,8 +213,8 @@ ipcRenderer.on('setting-changed', (e, arg) => {
         setRenderTheme(arg.val);
     } else if (arg.key === 'tab-size') {
         setTabSize(arg.val);
-    } else if (arg.key === 'hexo-highlight-extend') {
-        setHexoHighlightExtend(arg.val);
+    } else if (arg.key === 'hexo-auto-setting') {
+        setHexoAutoSetting(arg.val);
     } else if (arg.key === 'hexo-config-enable') {
         setHexoConfigEnable(arg.val);
     } else if (arg.key === 'hexo-config') {

@@ -20,6 +20,7 @@
 'use strict'
 
 const MoeditorFile = require('../../app/moe-file');
+const marked = require('./moe-marked');
 const path = require('path');
 
 function render(s, type, cb) {
@@ -47,23 +48,21 @@ function render(s, type, cb) {
         cb(rendered.html(), haveMath, haveCode);
     }
 
-    MoeMark(s, {
-        mathRenderer: (s, display) => {
-            haveMath = true;
-            mathCnt++, mathID++;
-            var id = 'math-' + mathID;
-            var res = '<span id="' + id + '"></span>'
-            MoeditorMathRenderer.renderForExport(type, s, display, (res, id) => {
-                math[id] = res;
-                if (!--mathCnt && !rendering) finish();
-            }, mathID);
-            return res;
-        }
-    }, (err, val) => {
-        rendered = jQuery(jQuery.parseHTML('<span>' + val + '</span>'));
-        rendering = false;
-        if (!mathCnt) finish();
-    });
+    function mathRenderer(s, display){
+        haveMath = true;
+        mathCnt++, mathID++;
+        var id = 'math-' + mathID;
+        var res = '<span id="' + id + '"></span>'
+        MoeditorMathRenderer.renderForExport(type, s, display, (res, id) => {
+            math[id] = res;
+            if (!--mathCnt && !rendering) finish();
+        }, mathID);
+        return res;
+    }
+    var val = marked(s,{mathRenderer: mathRenderer});
+    rendered = jQuery(jQuery.parseHTML('<span>' + val + '</span>'));
+    rendering = false;
+    if (!mathCnt) finish();
 }
 
 function html(cb) {
@@ -79,8 +78,11 @@ function html(cb) {
         if (haveCode) {
             const styleHLJS = doc.createElement('style');
             // styleHLJS.innerHTML = MoeditorFile.read(path.resolve(path.dirname(path.dirname(require.resolve('highlight.js'))), `styles/${moeApp.config.get('highlight-theme')}.css`), '').toString();
-            styleHLJS.innerHTML = MoeditorFile.read(path.join('../views/highlightstyles', `${moeApp.config.get('highlight-theme')}.css`), '').toString();
-            head.appendChild(styleHLJS);
+            const themedir = moeApp.getHighlightThemesDir();
+            if (themedir){
+                styleHLJS.innerHTML = MoeditorFile.read(path.join(themedir, `${moeApp.config.get('highlight-theme')}.css`), '').toString();
+                head.appendChild(styleHLJS);
+            }
         }
         const customCSSs = moeApp.config.get('custom-csss');
         if (Object.getOwnPropertyNames(customCSSs).length !== 0) for (let x in customCSSs) if (customCSSs[x].selected) {
@@ -90,7 +92,7 @@ function html(cb) {
         }
         const body = doc.querySelector('body');
         body.id = 'container';
-        body.className = 'export export-html';
+        body.className = 'export export-html ' +  moeApp.containerClasss;
         body.innerHTML = res;
         cb('<!doctype html>\n<html>\n' + doc.querySelector('html').innerHTML + '\n</html>');
     });
@@ -109,8 +111,11 @@ function pdf(cb) {
         head.appendChild(link);
         if (haveCode) {
             const styleHLJS = doc.createElement('style');
-            styleHLJS.innerHTML = MoeditorFile.read(path.join('../views/highlightstyles', `${moeApp.config.get('highlight-theme')}.css`), '').toString();
-            head.appendChild(styleHLJS);
+            const themedir = moeApp.getHighlightThemesDir();
+            if (themedir) {
+                styleHLJS.innerHTML = MoeditorFile.read(path.join(themedir, `${moeApp.config.get('highlight-theme')}.css`), '').toString();
+                head.appendChild(styleHLJS);
+            }
         }
         if (haveMath) {
             const styleMathJax = doc.createElement('style');
@@ -126,7 +131,7 @@ function pdf(cb) {
         }
         const body = doc.querySelector('body');
         body.id = 'container';
-        body.className = 'export export-pdf';
+        body.className = 'export export-pdf ' + moeApp.containerClasss;
         body.innerHTML = res + ' \
 <script> \
     const ipcRenderer = require(\'electron\').ipcRenderer; \

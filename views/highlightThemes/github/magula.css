@@ -14,13 +14,14 @@ Music: Aphex Twin / Xtal
   background-color: #f4f4f4;
 }
 
-._def pre {
-  color: #f4f4f4;
-}
-
 ._def .highlight,
 ._def pre .subst {
   color: black;
+}
+
+._def pre {
+  color: black;
+  background-color: #f4f4f4;
 }
 
 ._def pre .string,

@@ -40,7 +40,7 @@ module.exports = {
     'render-theme': 'GitHub',
     'custom-render-themes': {},
     'custom-csss': {},
-    'hexo-highlight-extend': false,
+    'hexo-auto-setting': false,
     'hexo-config-enable': false,
     'hexo-config': '',
     'hexo-tag-paths': []

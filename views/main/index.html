@@ -162,6 +162,9 @@
                 </div>
 
                 <div id="right-panel">
+                    <div class="CodeMirror-vscrollbar" cm-not-content="true" style="display: block; ">
+                        <div style="min-width: 1px;"></div>
+                    </div>
                     <div id="container-wrapper" tabindex="-1">
                         <div id="container" class="preview post-body"></div>
                     </div>
@@ -184,22 +187,6 @@
                 </div>
                 <div id="cover-bottom-right">
                     <script type="text/javascript">
-                        function startScript(){
-                            var rightpanel = document.getElementById('right-panel');
-                            var scripts = rightpanel.getElementsByTagName('script');
-                            var script = document.getElementById('dynamicScript');
-                            if (script){
-                                rightpanel.removeChild(script);
-                            }
-                            script = document.createElement('script');
-                            script.id = 'dynamicScript';
-                            script.text = '';
-                            for( var i = 0, len = scripts.length; i< len; i++){
-                                script.text += scripts[i].innerHTML;
-                            }
-                            rightpanel.appendChild(script);
-                        }
-
                         function clickItem(index){
                             var modeMenu = document.getElementById('popup-menu-mode');
                             var modeMenuItems = modeMenu.getElementsByTagName('li');
@@ -207,9 +194,6 @@
                         }
                     </script>
 
-                    <div class="button-bottom l10n-title"  title="Restart Script" onclick="startScript()">
-                        <i class="fa fa-play" aria-hidden="true"></i>
-                    </div>
                     <!--<div class="button-bottom l10n-title" id="button-bottom-focus" title="Toggle focus mode">-->
                     <!--<i class="fa fa-dot-circle-o" aria-hidden="true"></i>-->
                     <!--</div>-->

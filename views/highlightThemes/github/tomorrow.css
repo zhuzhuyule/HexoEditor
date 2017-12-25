@@ -58,13 +58,14 @@
 ._def .highlight {
   display: block;
   overflow-x: auto;
-  background: white;
   color: #4d4d4c;
+  background: white;
   padding: 0.5em;
 }
 
 ._def pre {
   color: #4d4d4c;
+  background: white;
 }
 
 ._def pre .emphasis {
