@@ -24,36 +24,27 @@ const fs = require('fs');
 const body = document.body;
 const codemirror = document.querySelector('#editor > .CodeMirror');
 
+function tryRun(callback, val){
+    try{
+        callback(val)
+    } catch (e){
+        console.log(e)
+    }
+}
+
 function setEditorFont(val) {
     body.setAttribute('settings-editor-font', val);
 }
 
 function setShowLineNumber(val) {
-    const editor = document.querySelector('#editor');
-    const scrollpos = editor.querySelector('.CodeMirror-vscrollbar').scrollTop;
-    editor.querySelectorAll('.CodeMirror').forEach(function (i) {
-        editor.removeChild(i);
-    });
-    window.editor = CodeMirror.fromTextArea(editor.querySelector('textarea'), {
-        lineNumbers: val,
-        mode: moeApp.config.get('math') ? 'gfm_math' : 'gfm',
-        matchBrackets: true,
-        theme: moeApp.config.get('editor-theme'),
-        lineWrapping: true,
-        extraKeys: {
-            Enter: 'newlineAndIndentContinueMarkdownList',
-            Home: 'goLineLeft',
-            End: 'goLineRight',
-            'Shift-Tab': 'indentLess'
-        },
-        fixedGutter: false,
-        tabSize: moeApp.config.get('tab-size'),
-        indentUnit: moeApp.config.get('tab-size'),
-        viewportMargin: Infinity,
-        styleActiveLine: true,
-        showCursorWhenSelecting: true
-    });
-    editor.querySelector('.CodeMirror-vscrollbar').scrollTop = scrollpos;
+    let editor = document.querySelector('#editor');
+    if (val){
+        editor.classList.remove('nogutter');
+        editor.classList.add('gutter');
+    } else {
+        editor.classList.remove('gutter')
+        editor.classList.add('nogutter')
+    }
 }
 
 function setEditorTheme(val) {
@@ -64,6 +55,15 @@ function setEditorTheme(val) {
         }
     }
     codemirror.classList.add('cm-s-' + val);
+
+    // let link = document.getElementById('editor-theme');
+    // if (!link) {
+    //     link = document.createElement('link');
+    //     document.head.appendChild(link);
+    //     link.rel = 'stylesheet';
+    //     link.id = 'editor-theme';
+    // }
+    // link.href = path.resolve(path.dirname(path.dirname(require.resolve('codemirror'))), 'theme', val+'.css');
 }
 
 function setEditorFontSize(val) {
@@ -169,7 +169,6 @@ function setTabSize(val) {
 function setCustomCSSs(val) {
     let a = document.getElementsByClassName('link-custom-csss');
     if (a.length !== 0) for (let e of a) e.parentNode.removeChild(e);
-    console.log(val);
     if (Object.getOwnPropertyNames(val).length !== 0) for (let x in val) if (val[x].selected) {
         let link = document.createElement('link');
         link.href = val[x].fileName;
@@ -179,49 +178,63 @@ function setCustomCSSs(val) {
     }
 }
 
-setEditorFont(moeApp.config.get('editor-font'));
-setEditorTheme(moeApp.config.get('editor-theme'));
-setEditorFontSize(moeApp.config.get('editor-font-size'));
-setEditorLineHeight(moeApp.config.get('editor-line-height'));
-setRenderTheme(moeApp.config.get('render-theme'));
-setHighlightTheme(moeApp.config.get('highlight-theme'));
-setCustomCSSs(moeApp.config.get('custom-csss'));
-setHexoAutoSetting(moeApp.config.get('hexo-auto-setting'));
-setHexoConfigEnable(moeApp.config.get('hexo-config-enable'));
-setHexoConfig(moeApp.config.get('hexo-config'));
-setHexoTagPaths(moeApp.config.get('hexo-tag-paths'));
+
+tryRun(setEditorFont, moeApp.config.get('editor-font'));
+tryRun(setShowLineNumber, !!moeApp.config.get('editor-ShowLineNumber'));
+tryRun(setEditorTheme, moeApp.config.get('editor-theme'));
+tryRun(setEditorFontSize, moeApp.config.get('editor-font-size'));
+tryRun(setEditorLineHeight, moeApp.config.get('editor-line-height'));
+tryRun(setRenderTheme, moeApp.config.get('render-theme'));
+tryRun(setHighlightTheme, moeApp.config.get('highlight-theme'));
+tryRun(setCustomCSSs, moeApp.config.get('custom-csss'));
+tryRun(setHexoAutoSetting, moeApp.config.get('hexo-auto-setting'));
+tryRun(setHexoConfigEnable, moeApp.config.get('hexo-config-enable'));
+tryRun(setHexoConfig, moeApp.config.get('hexo-config'));
+tryRun(setHexoTagPaths, moeApp.config.get('hexo-tag-paths'));
+// setEditorFont(moeApp.config.get('editor-font'));
+// setShowLineNumber(!!moeApp.config.get('editor-ShowLineNumber'));
+// setEditorTheme(moeApp.config.get('editor-theme'));
+// setEditorFontSize(moeApp.config.get('editor-font-size'));
+// setEditorLineHeight(moeApp.config.get('editor-line-height'));
+// setRenderTheme(moeApp.config.get('render-theme'));
+// setHighlightTheme(moeApp.config.get('highlight-theme'));
+// setCustomCSSs(moeApp.config.get('custom-csss'));
+// setHexoAutoSetting(moeApp.config.get('hexo-auto-setting'));
+// setHexoConfigEnable(moeApp.config.get('hexo-config-enable'));
+// setHexoConfig(moeApp.config.get('hexo-config'));
+// setHexoTagPaths(moeApp.config.get('hexo-tag-paths'));
 
 const ipcRenderer = require('electron').ipcRenderer;
 ipcRenderer.on('setting-changed', (e, arg) => {
     if (arg.key === 'editor-font') {
-        setEditorFont(arg.val);
+        tryRun(setEditorFont, arg.val);
     } else if (arg.key === 'editor-ShowLineNumber') {
-        setShowLineNumber(arg.val);
+        tryRun(setShowLineNumber, arg.val);
     } else if (arg.key === 'editor-theme') {
-        setEditorTheme(arg.val);
+        tryRun(setEditorTheme, arg.val);
     } else if (arg.key === 'editor-font-size') {
-        setEditorFontSize(arg.val);
+        tryRun(setEditorFontSize, arg.val);
     } else if (arg.key === 'editor-line-height') {
-        setEditorLineHeight(arg.val);
+        tryRun(setEditorLineHeight, arg.val);
     } else if (arg.key === 'math') {
-        setMath(arg.val);
+        tryRun(setMath, arg.val);
     } else if (arg.key === 'uml-diagrams') {
-        setUMLDiagrams(arg.val);
+        tryRun(setUMLDiagrams, arg.val);
     } else if (arg.key === 'highlight-theme') {
-        setHighlightTheme(arg.val);
+        tryRun(setHighlightTheme, arg.val);
     } else if (arg.key === 'render-theme') {
-        setRenderTheme(arg.val);
+        tryRun(setRenderTheme, arg.val);
     } else if (arg.key === 'tab-size') {
-        setTabSize(arg.val);
+        tryRun(setTabSize, arg.val);
     } else if (arg.key === 'hexo-auto-setting') {
-        setHexoAutoSetting(arg.val);
+        tryRun(setHexoAutoSetting, arg.val);
     } else if (arg.key === 'hexo-config-enable') {
-        setHexoConfigEnable(arg.val);
+        tryRun(setHexoConfigEnable, arg.val);
     } else if (arg.key === 'hexo-config') {
-        setHexoConfig(arg.val);
+        tryRun(setHexoConfig, arg.val);
     } else if (arg.key === 'hexo-tag-paths') {
-        setHexoTagPaths(arg.val);
+        tryRun(setHexoTagPaths, arg.val);
     } else if (arg.key === 'custom-csss') {
-        setCustomCSSs(arg.val);
+        tryRun(setCustomCSSs, arg.val);
     }
 });

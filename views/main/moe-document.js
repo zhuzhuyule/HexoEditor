@@ -33,7 +33,7 @@ $(() => {
     document.querySelector('#editor textarea').innerText = w.content;
 
     var editor = CodeMirror.fromTextArea(document.querySelector('#editor textarea'), {
-        lineNumbers: !!moeApp.config.get('editor-ShowLineNumber'),
+        lineNumbers: true,
         mode: moeApp.config.get('math') ? 'gfm_math' : 'gfm',
         matchBrackets: true,
         theme: moeApp.config.get('editor-theme'),
@@ -192,4 +192,9 @@ $(() => {
             rightpanel.appendChild(script);
         }
     }, true);
+
+
+    window.addEventListener('resize',function(){
+        $('#right-panel .CodeMirror-vscrollbar div').height(document.getElementById('container-wrapper').scrollHeight);
+    })
 });

@@ -18,6 +18,7 @@
  */
 
 #file-tree {
+    display: none;
     width: 250px;
     margin-left: -250px;
     height: calc(100% - 45px);

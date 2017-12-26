@@ -24,7 +24,10 @@ const {BrowserWindow, ipcMain} = require('electron');
 var aboutWindow;
 
 function showAboutWindow() {
-    if (typeof aboutWindow !== 'undefined') return;
+    if (typeof aboutWindow !== 'undefined') {
+        aboutWindow.focus();
+        return;
+    }
     const debug = (moeApp.flag.debug | moeApp.config.get('debug')) != 0;
     var conf = {
         icon: Const.path + "/icons/HexoEditor.ico",
@@ -50,6 +53,14 @@ function showAboutWindow() {
     })
 }
 
+
+function  closeWindow() {
+    if (typeof aboutWindow !== 'undefined')
+        aboutWindow.close()
+}
+
 ipcMain.on('show-about-window', showAboutWindow);
+ipcMain.on('close-all-window', closeWindow);
+
 
 module.exports = showAboutWindow;

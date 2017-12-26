@@ -207,4 +207,6 @@ class MoeditorApplication {
     }
 }
 
+MoeditorApplication.count = 0;
+
 module.exports = MoeditorApplication;

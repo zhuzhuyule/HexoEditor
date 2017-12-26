@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
         for (const x in custom) {
             const option = document.createElement('option');
             option.value = option.text = x;
-            if (fs.existsSync(path.resolve( custom[x],'style.css')))
+            if (fs.existsSync(path.resolve( custom[x],'main.css')))
                 option.classList.add('invalidFile');
             renderThemeSelect.appendChild(option);
         }
@@ -109,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const a = fileNames.filter((s) => {
                 try {
                     let files = fs.readdirSync(s);
-                    if (files.includes('style.css')){
+                    if (files.includes('main.css')){
                         return true;
                     } else if (files.includes('.css')){
                         let stylecss = [];
@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
                            }
                            return false;
                         })
-                        fs.writeFileSync(path.join(s,'style.css'),stylecss);
+                        fs.writeFileSync(path.join(s,'main.css'),stylecss);
                         return true;
                     }
                     return false;
@@ -372,7 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return false;
             });
             if (stylecss.length > 0) {
-                fs.writeFileSync(path.resolve(dir, 'style.css'), stylecss.toString());
+                fs.writeFileSync(path.resolve(dir, 'main.css'), stylecss.toString());
 
                 themes[hexoTheme] = dir;
                 moeApp.config.set('custom-render-themes', themes);
@@ -403,7 +403,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let hexoTheme = hexoConfig.theme;
             let isFindStyle = false;
             if (themes[hexoTheme]){
-                if (fs.existsSync(path.resolve( themes[hexoTheme],'style.css'))) {
+                if (fs.existsSync(path.resolve( themes[hexoTheme],'main.css'))) {
                     renderThemeSelect.value = hexoTheme;
                     reloadHighlightSelect(hexoTheme);
                     isFindStyle = true;
@@ -414,12 +414,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             //未配置主题，自动配置
+            let classDir = path.join(hexoConfig.__basedir,hexoConfig.public_dir,'css');
             if (!isFindStyle){
-                let classDir = path.join(hexoConfig.__basedir,hexoConfig.public_dir,'css');
                 if (fs.lstatSync(classDir).isDirectory()){
                     try {
                         let fileNames = fs.readdirSync(classDir);
-                        if (fileNames.includes('style.css')){
+                        if (fileNames.includes('main.css')){
                             isFindStyle = true;
                         } else {
                             isFindStyle = newCustomeTheme(classDir);
@@ -427,7 +427,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     } catch (err) {
                     }
                 }
-
             }
             if (isFindStyle) {
                 themes[hexoTheme] = classDir;

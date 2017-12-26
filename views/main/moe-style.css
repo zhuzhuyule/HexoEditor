@@ -18,6 +18,18 @@
  *  along with Moeditor. If not, see <http://www.gnu.org/licenses/>.
  */
 
+
+.notransition, .notransition *:not(.CodeMirror-cursors):not(.CodeMirror-lines):not(.CodeMirror-sizer):not(.CodeMirror-vscrollbar) {
+    transition: none !important;
+}
+
+/* Specail Transition Class  */
+
+.CodeMirror-sizer {
+    transition: none !important;
+    transition: margin-left .5s !important;
+}
+
 html, body {
     margin: 0;
     padding: 0;
@@ -38,7 +50,7 @@ html, body {
     cursor: default;
     z-index: 1;
     position: absolute;
-    border-right: 1px solid #ccc;
+    /*border-right: 1px solid #ccc;*/
 }
 
 #side-menu #logo {
@@ -101,8 +113,9 @@ html, body {
     position: fixed;
     left: 0;
     top: 0;
-    width: 100%;
-    height: 100%;
+    width: calc(100% - 2px);
+    height: calc(100% - 2px);
+    border: 1px solid rgba(128, 128, 128, 0.3);
 }
 
 #main-container {
@@ -479,10 +492,6 @@ body[settings-mode=read] #drag-right, body[settings-mode=write] #drag-right {
     right: 0;
 }
 
-.notransition, .notransition *:not(.CodeMirror-cursors):not(.CodeMirror-lines):not(.CodeMirror-vscrollbar) {
-    transition: none !important;
-}
-
 .biu-instance {
     -webkit-app-region: no-drag;
     font-size: 14px;
@@ -491,4 +500,50 @@ body[settings-mode=read] #drag-right, body[settings-mode=write] #drag-right {
 
 .invalidFile{
     background: red;
+}
+
+/*.CodeMirror-linenumber.CodeMirror-gutter-elt {*/
+    /*!* border-right: 1px solid #cfeacf; *!*/
+    /*color: #a3a3a3;*/
+    /*background: #e8e8e8;*/
+    /*box-shadow: 2px 1px 1px 0px #bbb;*/
+    /*margin-left: -3px;*/
+    /*padding-right: 4px;*/
+/*}*/
+
+
+.CodeMirror-gutter-wrapper {
+    display: none;
+}
+
+
+#editor.nogutter .CodeMirror-sizer {
+    margin-left: 0 !important;
+}
+
+#editor.gutter .CodeMirror-gutter-wrapper {
+    display: block;
+    position: absolute;
+    z-index: 4;
+    background: none !important;
+    border: none !important;
+}
+
+#editor.gutter .CodeMirror-code {
+    box-shadow: inset 3px -2px 3px #ddd;
+    padding-bottom: 3px;
+}
+
+#editor.gutter .CodeMirror-code::after {
+    content: "";
+    position: relative;
+    bottom: -3px;
+    height: 4px;
+    width: 100%;
+    background-color: whitesmoke;
+    display: block;
+}
+
+div#cover-bottom {
+    line-height: 1 !important;
 }

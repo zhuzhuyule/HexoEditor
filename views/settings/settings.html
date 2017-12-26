@@ -147,7 +147,14 @@
                                 <!--<td width="40%" class="l10n">Color Theme</td>-->
                                 <!--<td width="60%">-->
                                     <!--<select class="settings-item" data-key="editor-theme">-->
-                                        <!--<option value="base16-light">Base16 Light</option>-->
+                                            <!--<script>-->
+                                                <!--fs.readdirSync(path.resolve(path.dirname(path.dirname(require.resolve('codemirror'))), 'theme'))-->
+                                                    <!--.filter(s => s.endsWith('.css'))-->
+                                                    <!--.map(s => s.substr(0, s.length - 4))-->
+                                                    <!--.forEach(s => {-->
+                                                        <!--document.write(`<option value="${s}">${s}</option>`)-->
+                                                    <!--});-->
+                                            <!--</script>-->
                                     <!--</select>-->
                                 <!--</td>-->
                             <!--</tr>-->
@@ -231,7 +238,7 @@
 
                                             const custom = moeApp.config.get('custom-render-themes');
                                             for (const s in custom) {
-                                                if (fs.existsSync(path.resolve( custom[s],'style.css')))
+                                                if (fs.existsSync(path.resolve( custom[s],'main.css')))
                                                     document.write(`<option value="${s}">${s}</option>`);
                                                 else
                                                     document.write(`<option class="invalidFile" value="${s}">${s}</option>`);
