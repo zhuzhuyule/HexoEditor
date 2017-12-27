@@ -30,6 +30,13 @@ module.exports = (cb) => {
                     }
                 },
                 {
+                    localize() { this.label = 'New Hexo'; },
+                    accelerator: 'Command + H',
+                    click(item, w) {
+                        cb.fileNewHexo(w);
+                    }
+                },
+                {
                     localize() { this.label = __('Open') + '...'; },
                     accelerator: 'Command + O',
                     click(item, w) {

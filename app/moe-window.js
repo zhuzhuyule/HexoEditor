@@ -68,7 +68,7 @@ class MoeditorWindow {
 
     registerEvents() {
         this.window.on('close', (e) => {
-            if (this.changed) {
+            if (moeApp.windows.length && this.changed) {
                 const choice = dialog.showMessageBox(
                     this.window,
                     {
@@ -84,14 +84,14 @@ class MoeditorWindow {
                         e.preventDefault();
                 } else if (choice == 2) {
                     e.preventDefault() ;
-                }else {
-
                 }
             }
             const index = moeApp.windows.indexOf(this);
             if (index !== -1) moeApp.windows.splice(index, 1);
 
-            if ( !moeApp.windows.length) app.quit()
+            if ( !moeApp.windows.length) {
+                app.quit()
+            }
         });
     }
 }

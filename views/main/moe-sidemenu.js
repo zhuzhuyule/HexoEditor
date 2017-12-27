@@ -66,6 +66,10 @@ document.addEventListener('DOMContentLoaded', () => {
         MoeditorAction.openNew();
     });
 
+    sideMenu.querySelector('li[data-action=newhexo]').itemClicked = (() => {
+        MoeditorAction.openNewHexo();
+    });
+
     sideMenu.querySelector('li[data-action=open]').itemClicked = (() => {
         MoeditorAction.open(w.window);
     });

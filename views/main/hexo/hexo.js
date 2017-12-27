@@ -1,13 +1,15 @@
 'use strict';
 
-const extend = require('./extend');
-const Render = require('./render');
 const path = require('path');
 const loadfile = require('./loadconfig');
 const loaddir = require('./load_dir');
 const defConfig = require('./default_config');
 
 function Hexo() {
+    const extend = require('./extend');
+    const Render = require('./render');
+
+    this.isLoadedTag = false;
     this.config = $.extend({},defConfig);
     this.extend = {
         deployer: new extend.Deployer(),
@@ -20,6 +22,7 @@ function Hexo() {
     this.enable = !!moeApp.config.get('hexo-config-enable');
     this.render = new Render(this);
     this.loadConfig();
+    moeApp.config.set('hexo-root-dir',this.config.__basedir);
 }
 
 Hexo.prototype.init = function() {
@@ -63,6 +66,7 @@ Hexo.prototype.loadConfig = function () {
 }
 
 Hexo.prototype.loadTags = function () {
+    this.isLoadedTag = true;
     this.init();
     let paths = moeApp.config.get('hexo-tag-paths');
     if (!(paths instanceof Array))

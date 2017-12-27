@@ -57,43 +57,47 @@ module.exports = (cm, force, cb) => {
         var rendered = null;
 
         rendered = document.createElement('span');
-        rendered.innerHTML = marked(content);
-        MoeditorMathRenderer.renderMany(math, (math) => {
-            for (let id in math) rendered.querySelector('#' + id).innerHTML = math[id].res;
+        marked(content,markEnd);
 
-            let imgs = rendered.querySelectorAll('img') || [];
-            for (let img of imgs) {
-                let src = img.getAttribute('src');
-                if (url.parse(src).protocol === null) {
-                    if (!path.isAbsolute(src)) src = path.resolve(w.directory, src);
-                    src = url.resolve('file://', src);
+        function markEnd(value){
+            rendered.innerHTML = value;
+            MoeditorMathRenderer.renderMany(math, (math) => {
+                for (let id in math) rendered.querySelector('#' + id).innerHTML = math[id].res;
+
+                let imgs = rendered.querySelectorAll('img') || [];
+                for (let img of imgs) {
+                    let src = img.getAttribute('src');
+                    if (url.parse(src).protocol === null) {
+                        if (!path.isAbsolute(src)) src = path.resolve(w.directory, src);
+                        src = url.resolve('file://', src);
+                    }
+                    img.setAttribute('src', src);
                 }
-                img.setAttribute('src', src);
-            }
 
-            var set = new Set();
-            let lineNumbers = rendered.querySelectorAll('moemark-linenumber') || [];
-            for (let elem of lineNumbers) {
-                set.add(parseInt(elem.getAttribute('i')));
-            }
+                var set = new Set();
+                let lineNumbers = rendered.querySelectorAll('moemark-linenumber') || [];
+                for (let elem of lineNumbers) {
+                    set.add(parseInt(elem.getAttribute('i')));
+                }
 
-            window.lineNumbers = (Array.from(set)).sort((a, b) => {
-                return a - b;
+                window.lineNumbers = (Array.from(set)).sort((a, b) => {
+                    return a - b;
+                });
+                window.scrollMap = undefined;
+
+                document.getElementById('container').innerHTML = rendered.innerHTML;
+                SVGFixer(document.getElementById('container'));
+                $('#right-panel .CodeMirror-vscrollbar div').height(document.getElementById('container-wrapper').scrollHeight);
+
+                if (!window.xyz) window.xyz = rendered.innerHTML;
+
+                cb();
+
+                updatePreviewRunning = false;
+                if (updatePreview) setTimeout(updateAsync, 0);
             });
-            window.scrollMap = undefined;
-
-            document.getElementById('container').innerHTML = rendered.innerHTML;
-            SVGFixer(document.getElementById('container'));
             $('#right-panel .CodeMirror-vscrollbar div').height(document.getElementById('container-wrapper').scrollHeight);
-
-            if (!window.xyz) window.xyz = rendered.innerHTML;
-
-            cb();
-
-            updatePreviewRunning = false;
-            if (updatePreview) setTimeout(updateAsync, 0);
-        });
-        $('#right-panel .CodeMirror-vscrollbar div').height(document.getElementById('container-wrapper').scrollHeight);
+        }
     }
     updatePreview = true;
 

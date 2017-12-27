@@ -106,6 +106,9 @@ class MoeditorApplication {
                 fileNew: (w) => {
                     MoeditorAction.openNew();
                 },
+                fileNewHexo: (w) => {
+                    MoeditorAction.openNew();
+                },
                 fileOpen: (w) => {
                     MoeditorAction.open();
                 },

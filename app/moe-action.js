@@ -21,17 +21,61 @@
 'use strict';
 
 const {dialog} = require('electron'),
-      MoeditorFile = require('./moe-file');
+    MoeditorFile = require('./moe-file'),
+    moment = require('moment'),
+    fs = require('fs'),
+    path = require('path');
+
+let lastDir = '';
 
 class MoeditorAction {
     static openNew() {
         moeApp.open();
     }
+    static openNewHexo() {
+        try {
+            let hexoDir = moeApp.config.get('hexo-root-dir');
+            let templateFile = path.resolve(hexoDir,'scaffolds','post.md');
+            let content = '' +
+                '---\n' +
+                'title: {{ title }}\n' +
+                'date: {{ date }}\n' +
+                'categories: \n' +
+                'tags: \n'
+                '---';
+            let nowDate = moment().format('YYYY-MM-DD HH:mm:ss');
+            if (fs.existsSync(templateFile)){
+                content = fs.readFileSync(templateFile).toString()
+                    .replace(/title:\s+\{\{[^\}]+\}\}/,'title: '+ nowDate.replace(/[-: ]/g,''))
+                    .replace(/date:\s+/,'date: '+  nowDate)
+                    .replace(/\{\{[^\}]+\}\}/g,'');
+            }
+            let fileDir = path.resolve(hexoDir,'source','_posts');
+
+            if (fs.statSync(fileDir).isDirectory()){
+                lastDir = fileDir;
+                let fileName = path.resolve(fileDir,nowDate.replace(/[-: ]/g,'')+'.md');
+                MoeditorFile.write(fileName, content);
+                if (fs.existsSync(fileName)){
+                    moeApp.addRecentDocument(fileName);
+                    moeApp.open(fileName);
+                } else {
+                    moeApp.open();
+                }
+            }else {
+                moeApp.open();
+            }
+        } catch (e) {
+            moeApp.open();
+        }
+    }
 
     static open() {
+        console.log('open',lastDir);
         const files = dialog.showOpenDialog(
             {
-                properties: ['openFile', 'multiSelections'],
+                defaultPath: lastDir,
+                properties: ['openFile'/*, 'multiSelections'*/],
                 filters: [
                     { name: __("Markdown Documents"), extensions: [ 'md', 'mkd', 'markdown' ] },
                     { name: __("All Files"), extensions: [ '*' ] }
@@ -40,8 +84,12 @@ class MoeditorAction {
         );
 
         if (typeof files == 'undefined') return;
-
-        for (var file of files) {
+        // for (var file of files) {
+        //     app.addRecentDocument(file);
+        //     moeApp.open(file);
+        // }
+        if (files[0]) {
+            lastDir = path.dirname(files[0]);
             app.addRecentDocument(file);
             moeApp.open(file);
         }
@@ -68,7 +116,6 @@ class MoeditorAction {
                 return false;
             }
         }
-
         return true;
     }
 
@@ -78,6 +125,7 @@ class MoeditorAction {
 
         const fileName = dialog.showSaveDialog(w,
             {
+                defaultPath: lastDir,
                 filters: [
                     { name: __("Markdown Documents"), extensions: ['md', 'mkd', 'markdown' ] },
                     { name: __("All Files"), extensions: [ '*' ] }
@@ -85,6 +133,8 @@ class MoeditorAction {
             }
         );
         if (typeof fileName == 'undefined') return false;
+        lastDir = path.dirname(fileName);
+
         try {
             MoeditorFile.write(fileName, w.moeditorWindow.content);
             w.moeditorWindow.fileContent = w.moeditorWindow.content;
@@ -108,12 +158,15 @@ class MoeditorAction {
 
         const fileName = dialog.showSaveDialog(w,
             {
+                defaultPath: lastDir,
                 filters: [
                     { name: __("HTML Documents"), extensions: ['html', 'htm'] },
                 ]
             }
         );
         if (typeof fileName == 'undefined') return;
+        lastDir = path.dirname(fileName);
+
         f((s) => {
             try {
                 w.moeditorWindow.window.webContents.send('pop-message', { type: 'info', content: __('Exporting as HTML, please wait ...') });
@@ -133,12 +186,15 @@ class MoeditorAction {
 
         const fileName = dialog.showSaveDialog(w,
             {
+                defaultPath: lastDir,
                 filters: [
                     { name: __("PDF Documents"), extensions: ['pdf'] },
                 ]
             }
         );
         if (typeof fileName == 'undefined') return;
+        lastDir = path.dirname(fileName);
+
         f((s) => {
             let errorHandler = (e) => {
                 w.moeditorWindow.window.webContents.send('pop-message', { type: 'error', content: __('Can\'t export as PDF') + ', ' + e.toString() });

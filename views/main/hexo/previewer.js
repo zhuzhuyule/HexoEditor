@@ -3,6 +3,7 @@
 const YAML = require('yamljs');
 const Hexo = require('./hexo');
 const __ = require('lodash');
+const Promise = require('bluebird');
 
 var rEscapeContent = /<escape(?:[^>]*)>([\s\S]*?)<\/escape>/g;
 var rSwigVar = /\{\{[\s\S]*?\}\}/g;
@@ -15,12 +16,13 @@ var rPlaceholder = /(?:<|&lt;)\!--\uFFFC(\d+)--(?:>|&gt;)/g;
 global.lodash = require('lodash');
 global.ctx = global.hexo = new Hexo();
 moeApp.setHexo(hexo);
-hexo.loadTags()
 
 function Previewer() {
 }
 
-Previewer.prototype.render = function (content, MoeMark, options) {
+Previewer.prototype.render = function (content, MoeMark, options, callback) {
+    hexo.isLoadedTag || hexo.loadTags();
+
     var data = {
         highlightEx: hexo.config.highlightEx,
         content: content
@@ -33,22 +35,18 @@ Previewer.prototype.render = function (content, MoeMark, options) {
     }
 
     function tryFilterHeader() {
-        try {
             data.content = data.content.replace(/^---+([\w\W]+?)---+/, function () {
                 data = __.extend(data, YAML.parse(arguments[1]))
                 return '';
             });
-        } catch (e){
-            console.log(e);
-        }
     }
 
     function before_post_render() {
-        hexo.execFilterSync('before_post_render', data, {context: hexo});
+            hexo.execFilterSync('before_post_render', data, {context: hexo});
     }
 
     function escapeTag() {
-        data.content = data.content
+        data.content = data.content.toString()
             .replace(rEscapeContent, escapeContent)
             .replace(rSwigFullBlock, escapeContent)
             .replace(rSwigBlock, escapeContent)
@@ -57,9 +55,9 @@ Previewer.prototype.render = function (content, MoeMark, options) {
     }
 
     function markdownContent() {
-        MoeMark(data.content, options, function (err, content) {
-            data.content = content;
-        });
+            MoeMark(data.content, options, function (err, content) {
+                data.content = content;
+            });
     }
 
     function backTag() {
@@ -72,26 +70,28 @@ Previewer.prototype.render = function (content, MoeMark, options) {
     }
 
     function after_post_render() {
-        hexo.execFilter('after_post_render', data, {context: hexo});
+            hexo.execFilter('after_post_render', data, {context: hexo});
     }
 
-    try {
-        if (false/*moeApp.defTheme*/) {
-            escapeTag();
-            markdownContent();
-            backTag();
-        }else {
-            tryFilterHeader();
-            before_post_render();
-            escapeTag();
-            markdownContent();
-            backTag();
-            after_post_render();
-        }
-    } catch (err) {
-        console.log(err);
-    } finally {
-        return data.content;
+    if (moeApp.defTheme) {
+        Promise.resolve()
+            .then(escapeTag).catch(console.log)
+            .then(markdownContent, markdownContent).catch(console.log)
+            .then(backTag).catch(console.log)
+            .then(function () {
+                callback(data.content)
+            })
+    } else {
+        Promise.resolve()
+            .then(tryFilterHeader).catch(console.log)
+            .then(before_post_render).catch(console.log)
+            .then(escapeTag).catch(console.log)
+            .then(markdownContent, markdownContent).catch(console.log)
+            .then(backTag).catch(console.log)
+            .then(after_post_render).catch(console.log)
+            .then(function () {
+                callback(data.content)
+            })
     }
 
 };

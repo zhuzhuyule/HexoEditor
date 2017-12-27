@@ -36,7 +36,7 @@ MoeMark.setOptions({
 
 var previewer = new Previewer;
 
-module.exports = (content,option) => {
+module.exports = (content,option,callback) => {
         MoeMark.setOptions({
             math: moeApp.config.get('math'),
             umlchart: moeApp.config.get('uml-diagrams'),
@@ -45,6 +45,9 @@ module.exports = (content,option) => {
         });
 
         var mathCnt = 0, mathID = 0, math = new Array();
+
+        if (typeof option === 'function')
+            callback = option;
 
         if (!option || !option.mathRenderer) {
             option = {};
@@ -61,5 +64,5 @@ module.exports = (content,option) => {
                 }
             }
         }
-        return previewer.render(content, MoeMark, option);
+        return previewer.render(content, MoeMark, option,callback);
 }
