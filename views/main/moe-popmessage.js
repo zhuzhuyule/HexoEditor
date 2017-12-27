@@ -37,4 +37,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 1000);
         }
     });
+
+    ipcRenderer.on('refresh-editor', function () {
+        let w  = window.w;
+        if (w.fileName !== '') {
+            document.getElementsByTagName('title')[0].innerText = 'Moeditor - ' + require('path').basename(w.fileName);
+        }
+        document.querySelector('#editor textarea').innerText = w.content;
+        window.editor.setValue(w.content);
+        window.updatePreview(true);
+    })
 });

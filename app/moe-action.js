@@ -71,7 +71,6 @@ class MoeditorAction {
     }
 
     static open() {
-        console.log('open',lastDir);
         const files = dialog.showOpenDialog(
             {
                 defaultPath: lastDir,
@@ -88,10 +87,28 @@ class MoeditorAction {
         //     app.addRecentDocument(file);
         //     moeApp.open(file);
         // }
-        if (files[0]) {
-            lastDir = path.dirname(files[0]);
-            app.addRecentDocument(file);
-            moeApp.open(file);
+        let filename = files[0];
+        if (filename) {
+            let w = require('electron').BrowserWindow.getFocusedWindow();
+            lastDir = path.dirname(filename);
+
+            if (typeof w.moeditorWindow == 'undefined' || w.moeditorWindow.changed ) {
+                app.addRecentDocument(filename);
+                moeApp.open(filename);
+            } else {
+                try {
+                    w.moeditorWindow.fileName = filename;
+                    w.moeditorWindow.directory = lastDir;
+                    w.moeditorWindow.fileContent = w.moeditorWindow.content = MoeditorFile.read(filename).toString();
+                    w.moeditorWindow.changed = false;
+                    w.moeditorWindow.window.setDocumentEdited(false);
+                    w.moeditorWindow.window.setRepresentedFilename(w.moeditorWindow.fileName);
+                    w.moeditorWindow.window.webContents.send('refresh-editor', {});
+                    moeApp.addRecentDocument(filename);
+                } catch (e) {
+
+                }
+            }
         }
     }
 
