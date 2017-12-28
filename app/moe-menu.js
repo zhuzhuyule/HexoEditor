@@ -24,21 +24,21 @@ module.exports = (cb) => {
             submenu: [
                 {
                     localize() { this.label = __('New'); },
-                    accelerator: 'Command + N',
+                    accelerator: 'CmdOrCtrl+N',
                     click(item, w) {
                         cb.fileNew(w);
                     }
                 },
                 {
                     localize() { this.label = __('New Post'); },
-                    accelerator: 'Command + H',
+                    accelerator: 'CmdOrCtrl+H',
                     click(item, w) {
                         cb.fileNewHexo(w);
                     }
                 },
                 {
                     localize() { this.label = __('Open') + '...'; },
-                    accelerator: 'Command + O',
+                    accelerator: 'CmdOrCtrl+O',
                     click(item, w) {
                         cb.fileOpen(w);
                     }
@@ -48,13 +48,13 @@ module.exports = (cb) => {
                 },
                 {
                     localize() { this.label = __('Save'); },
-                    accelerator: 'Command + S',
+                    accelerator: 'CmdOrCtrl+S',
                     click(item, w) {
                         cb.fileSave(w);
                     }
                 },{
                     localize() { this.label = __('Save as'); },
-                    accelerator: 'Command + Option + S',
+                    accelerator: 'CmdOrCtrl+Shift+S',
                     click(item, w) {
                         cb.fileSaveAs(w);
                     }
@@ -65,13 +65,13 @@ module.exports = (cb) => {
                     submenu: [
                         {
                             localize() { this.label = 'HTML...'; },
-                            accelerator: 'Command + Option + E',
+                            accelerator: 'CmdOrCtrl+Shift+E',
                             click(item, w) {
                                 cb.fileExportHTML(w);
                             }
                         }, {
                             localize() { this.label = 'PDF...'; },
-                            accelerator: 'Command + Option + P',
+                            accelerator: 'CmdOrCtrl+Shift+P',
                             click(item, w) {
                                 cb.fileExportPDF(w);
                             }
@@ -122,21 +122,21 @@ module.exports = (cb) => {
                     submenu: [
                         {
                             localize() { this.label = __('Read Mode'); },
-                            accelerator: 'Command + Option + R',
+                            accelerator: 'CmdOrCtrl+Shift+R',
                             click(item, focusedWindow) {
                                 if (focusedWindow) cb.modeToRead(focusedWindow);
                             }
                         },
                         {
                             localize() { this.label = __('Write Mode'); },
-                            accelerator: 'Command + Option + G',
+                            accelerator: 'CmdOrCtrl+Shift+G',
                             click(item, focusedWindow) {
                                 if (focusedWindow) cb.modeToWrite(focusedWindow);
                             }
                         },
                         {
                             localize() { this.label = __('Preview Mode'); },
-                            // accelerator: 'Command + Option + P', // It's been used for `Export PDF`.
+                            // accelerator: 'CmdOrCtrl+Shift+P', // It's been used for `Export PDF`.
                             click(item, focusedWindow) {
                                 if (focusedWindow) cb.modeToPreview(focusedWindow);
                             }
@@ -154,7 +154,7 @@ module.exports = (cb) => {
                 },
                 {
                     localize() { this.label = __('Toggle Developer Tools'); },
-                    accelerator: process.platform === 'darwin' ? 'Alt+Command+I' : 'Ctrl+Shift+I',
+                    accelerator: process.platform === 'darwin' ? 'Alt+CmdOrCtrl+I' : 'Ctrl+Shift+I',
                     click(item, focusedWindow) {
                         if (focusedWindow)
                         focusedWindow.webContents.toggleDevTools();
@@ -168,7 +168,7 @@ module.exports = (cb) => {
             submenu: [
                 {
                     localize() { this.label = __('Close'); },
-                    accelerator: 'CmdOrCtrl+W',
+                    // accelerator: 'CmdOrCtrl+W',
                     role: 'close'
                 },
                 {
@@ -217,7 +217,7 @@ module.exports = (cb) => {
                 },
                 {
                     localize() { this.label = __('Preference') + '...'; },
-                    accelerator: 'Command + ,',
+                    accelerator: 'CmdOrCtrl+,',
                     click() {
                         cb.settings();
                     }

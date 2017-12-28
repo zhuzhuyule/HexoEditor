@@ -80,6 +80,8 @@ document.addEventListener('DOMContentLoaded', () => {
         for (const it of modeMenuItems) it.getElementsByClassName('fa')[0].style.opacity = (it.attributes['data-name'].value === m) ? '1' : '0';
 
         window.editMode = m;
+        if (window.updatePreview)
+            window.updatePreview(true);
         moeApp.config.set('edit-mode', m);
         document.getElementById('main').classList.remove('notransition');
         setTimeout(() => {
@@ -99,15 +101,29 @@ document.addEventListener('DOMContentLoaded', () => {
     })
 
     require('electron').ipcRenderer.on('change-edit-mode', (e, arg) => {
-        if (arg === 'read' || arg === 'write') setMode(moeApp.config.get('edit-mode-' + arg));
-        else setMode('preview');
+        if (arg === 'read' || arg === 'write')
+            setMode(moeApp.config.get('edit-mode-' + arg));
+        else if (arg === 'change'){
+            if(document.querySelector('#main.write-mode'))
+                setMode(moeApp.config.get('edit-mode-read'));
+            else
+                setMode(moeApp.config.get('edit-mode-write'));
+        }else if (arg === 'changepreview'){
+            if(document.querySelector('#main.write-mode'))
+                setMode('preview');
+            else if(document.querySelector('#main.read-mode'))
+                setMode(moeApp.config.get('edit-mode-write'));
+            else
+                setMode(moeApp.config.get('edit-mode-read'));
+        } else
+            setMode('preview');
     });
 
     editor.addEventListener('transitionend', (e) => {
         if (e.target === editor && e.propertyName === 'width') window.editor.refresh();
     });
 
-    rightPanel.addEventListener('transitionend', (e) => {
-        if (e.target === rightPanel && (window.editMode.startsWith('read') || window.editMode.startsWith('preview'))) window.updatePreview(true);
-    });
+    // rightPanel.addEventListener('transitionend', (e) => {
+    //     if (e.target === rightPanel && (window.editMode.startsWith('read') || window.editMode.startsWith('preview'))) window.updatePreview(true);
+    // });
 });

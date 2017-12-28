@@ -144,34 +144,53 @@ class MoeditorApplication {
     }
 
     registerShortcuts() {
-        shortcut.register('Ctrl + N', () => {
+        shortcut.register('CmdOrCtrl + N', () => {
             MoeditorAction.openNew();
         });
 
-        shortcut.register('Ctrl + O', () => {
+        shortcut.register('CmdOrCtrl + H', () => {
+            MoeditorAction.openNewHexo();
+        });
+
+        shortcut.register('CmdOrCtrl + O', () => {
             MoeditorAction.open();
         });
 
-        shortcut.register('Ctrl + S', () => {
+        shortcut.register('CmdOrCtrl + S', () => {
             MoeditorAction.save();
         });
 
-        shortcut.register('Ctrl + Shift + S', () => {
+        shortcut.register('CmdOrCtrl + Shift + S', () => {
             MoeditorAction.saveAs();
         });
 
-        shortcut.register('Ctrl + Shift + R', () => {
+        shortcut.register('CmdOrCtrl + R', () => {
             let w = require('electron').BrowserWindow.getFocusedWindow();
             if (w) w.webContents.send('change-edit-mode', 'read');
         });
 
-        shortcut.register('Ctrl + Shift + G', () => {
+        shortcut.register('CmdOrCtrl + W', () => {
             let w = require('electron').BrowserWindow.getFocusedWindow();
             if (w) w.webContents.send('change-edit-mode', 'write');
         });
 
+        shortcut.register('CmdOrCtrl + P', () => {
+            let w = require('electron').BrowserWindow.getFocusedWindow();
+            if (w) w.webContents.send('change-edit-mode', 'changepreview');
+        });
+
+        shortcut.register('CmdOrCtrl + Shift + P', () => {
+            let w = require('electron').BrowserWindow.getFocusedWindow();
+            if (w) w.webContents.send('change-edit-mode', 'change');
+        });
+
+        shortcut.register('CmdOrCtrl + Alt + Shift + R', () => {
+            let w = require('electron').BrowserWindow.getFocusedWindow();
+            w.reload();
+        });
+
         /*
-        shortcut.register('Ctrl + Shift + P', () => {
+        shortcut.register('CmdOrCtrl + Shift + P', () => {
             let w = require('electron').BrowserWindow.getFocusedWindow();
             if (w) w.webContents.send('change-edit-mode', 'preview');
         });

@@ -80,7 +80,7 @@ class MoeditorAction {
                 MoeditorFile.write(fileName, content);
                 if (fs.existsSync(fileName)) {
                     let w = require('electron').BrowserWindow.getFocusedWindow();
-                    if (typeof w.moeditorWindow == 'undefined' || w.moeditorWindow.changed) {
+                    if (typeof w.moeditorWindow == 'undefined' || w.moeditorWindow.changed || w.moeditorWindow.content) {
                         app.addRecentDocument(fileName);
                         moeApp.open(fileName);
                     } else {

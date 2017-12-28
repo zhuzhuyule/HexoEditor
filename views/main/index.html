@@ -117,11 +117,11 @@
         <div id="side-menu">
             <div id="logo">HexoEditor</div>
             <ul>
-                <li data-action="new" class="l10n">New</li>
-                <li data-action="newhexo" class="l10n">New Post</li>
-                <li data-action="open" class="l10n">Open</li>
-                <li data-action="save" class="l10n">Save</li>
-                <li data-action="save-as" class="l10n">Save as</li>
+                <li data-action="new" class="l10n" title="Ctrl+N">New</li>
+                <li data-action="newhexo" class="l10n" title="Ctrl+H">New Post</li>
+                <li data-action="open" class="l10n" title="Ctrl+O">Open</li>
+                <li data-action="save" class="l10n" title="Ctrl+S">Save</li>
+                <li data-action="save-as" class="l10n" title="Ctrl+Shift+S">Save as</li>
                 <li class="break"></li>
                 <li data-action="export-as-html" class="l10n">Export as HTML</li>
                 <li data-action="export-as-pdf" class="l10n">Export as PDF</li>
@@ -191,7 +191,6 @@
                             var modeMenu = document.getElementById('popup-menu-mode');
                             var modeMenuItems = modeMenu.getElementsByTagName('li');
                             modeMenuItems[index].click();
-                            window.updatePreview(true);
                         }
                     </script>
 
@@ -199,13 +198,13 @@
                     <!--<i class="fa fa-dot-circle-o" aria-hidden="true"></i>-->
                     <!--</div>-->
 
-                    <div class="button-bottom l10n-title"  title="Write Mode" onclick="clickItem(0)">
+                    <div class="button-bottom l10n-title"  title="Write Mode" exdata="(Ctrl+W)" onclick="clickItem(0)">
                         <i class="fa fa-pencil" aria-hidden="true"></i>
                     </div>
-                    <div class="button-bottom l10n-title"  title="Preview Mode" onclick="clickItem(6)">
+                    <div class="button-bottom l10n-title"  title="Preview Mode" exdata="(Ctrl+P)" onclick="clickItem(6)">
                         <i class="fa fa-pencil-square-o" aria-hidden="true"></i>
                     </div>
-                    <div class="button-bottom l10n-title"  title="Read Mode" onclick="clickItem(3)">
+                    <div class="button-bottom l10n-title"  title="Read Mode" exdata="(Ctrl+R)" onclick="clickItem(3)">
                         <i class="fa fa-eye" aria-hidden="true"></i>
                     </div>
                     <div class="button-bottom l10n-title" id="button-bottom-mode" title="Edit mode">

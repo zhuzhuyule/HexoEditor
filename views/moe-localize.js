@@ -54,7 +54,8 @@ function localize() {
             e.setAttribute('data-origin-title', title);
         }
 
-        title = __(title);
+        let exdata = e.getAttribute('exdata');
+        title = __(title)+(exdata ? exdata : "");
 
         e.setAttribute('title', title);
     }
