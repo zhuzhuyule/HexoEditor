@@ -32,19 +32,26 @@ function tryRun(callback, val){
     }
 }
 
+
 function setEditorFont(val) {
     body.setAttribute('settings-editor-font', val);
+}
+
+function setScrollTogether(val) {
+    moeApp.config.set('scroll-Together',val);
+    window.scrollTogether = val;
 }
 
 function setShowLineNumber(val) {
     let editor = document.querySelector('#editor');
     if (val){
-        editor.classList.remove('nogutter');
         editor.classList.add('gutter');
     } else {
         editor.classList.remove('gutter')
-        editor.classList.add('nogutter')
     }
+
+    window.editor.setOption('lineNumbers', !!val);
+    window.editor.refresh();
 }
 
 function setEditorTheme(val) {
@@ -181,6 +188,7 @@ function setCustomCSSs(val) {
 
 tryRun(setEditorFont, moeApp.config.get('editor-font'));
 tryRun(setShowLineNumber, !!moeApp.config.get('editor-ShowLineNumber'));
+tryRun(setScrollTogether, moeApp.config.get('scroll-Together'));
 tryRun(setEditorTheme, moeApp.config.get('editor-theme'));
 tryRun(setEditorFontSize, moeApp.config.get('editor-font-size'));
 tryRun(setEditorLineHeight, moeApp.config.get('editor-line-height'));
@@ -210,6 +218,8 @@ ipcRenderer.on('setting-changed', (e, arg) => {
         tryRun(setEditorFont, arg.val);
     } else if (arg.key === 'editor-ShowLineNumber') {
         tryRun(setShowLineNumber, arg.val);
+    } else if (arg.key === 'scroll-Together') {
+        tryRun(setScrollTogether, arg.val);
     } else if (arg.key === 'editor-theme') {
         tryRun(setEditorTheme, arg.val);
     } else if (arg.key === 'editor-font-size') {

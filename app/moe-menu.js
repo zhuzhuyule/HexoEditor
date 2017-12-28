@@ -30,7 +30,7 @@ module.exports = (cb) => {
                     }
                 },
                 {
-                    localize() { this.label = 'New Hexo'; },
+                    localize() { this.label = __('New Post'); },
                     accelerator: 'Command + H',
                     click(item, w) {
                         cb.fileNewHexo(w);

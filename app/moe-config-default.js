@@ -40,6 +40,7 @@ module.exports = {
     'render-theme': 'GitHub',
     'custom-render-themes': {},
     'custom-csss': {},
+    'editor-ShowLineNumber': false,
     'hexo-auto-setting': false,
     'hexo-config-enable': false,
     'hexo-config': '',

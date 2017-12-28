@@ -30,43 +30,77 @@ let lastDir = '';
 
 class MoeditorAction {
     static openNew() {
-        moeApp.open();
+        let windows = require('electron').BrowserWindow.getAllWindows();
+        let w, i;
+        for (i = windows.length - 1; i > -1; i--) {
+            w = windows[i];
+            if (w.moeditorWindow && !w.moeditorWindow.changed) {
+                w.focus();
+                break;
+            }
+        }
+        if (i < 0)
+            moeApp.open();
     }
+
     static openNewHexo() {
+        let notOpened = false;
         try {
             let hexoDir = moeApp.config.get('hexo-root-dir');
-            let templateFile = path.resolve(hexoDir,'scaffolds','post.md');
+            let templateFile = path.resolve(hexoDir, 'scaffolds', 'post.md');
             let content = '' +
                 '---\n' +
                 'title: {{ title }}\n' +
                 'date: {{ date }}\n' +
                 'categories: \n' +
-                'tags: \n'
+                'tags: \n' +
                 '---';
-            let nowDate = moment().format('YYYY-MM-DD HH:mm:ss');
-            if (fs.existsSync(templateFile)){
-                content = fs.readFileSync(templateFile).toString()
-                    .replace(/title:\s+\{\{[^\}]+\}\}/,'title: '+ nowDate.replace(/[-: ]/g,''))
-                    .replace(/date:\s+/,'date: '+  nowDate)
-                    .replace(/\{\{[^\}]+\}\}/g,'');
-            }
-            let fileDir = path.resolve(hexoDir,'source','_posts');
 
-            if (fs.statSync(fileDir).isDirectory()){
-                lastDir = fileDir;
-                let fileName = path.resolve(fileDir,nowDate.replace(/[-: ]/g,'')+'.md');
-                MoeditorFile.write(fileName, content);
-                if (fs.existsSync(fileName)){
-                    moeApp.addRecentDocument(fileName);
-                    moeApp.open(fileName);
-                } else {
-                    moeApp.open();
+            let fileDir = path.resolve(hexoDir, 'source', '_posts');
+            if (fs.statSync(fileDir).isDirectory()) {
+                let nowDate, fileName, count = 0;
+                do {
+                    nowDate = moment().format('YYYY-MM-DD HH:mm:ss');
+                    if (count > 0)
+                        nowDate = nowDate + count;
+                    count += 1;
+                    fileName = path.resolve(fileDir, nowDate.replace(/[-: ]/g, '') + '.md');
+                    if (count > 50) {
+                        break;
+                    }
+                } while (fs.existsSync(fileName))
+                if (fs.existsSync(templateFile)) {
+                    content = fs.readFileSync(templateFile).toString()
+                        .replace(/title:\s+\{\{[^\}]+\}\}/, 'title: ' + nowDate.replace(/[-: ]/g, ''))
+                        .replace(/date:\s+/, 'date: ' + nowDate)
+                        .replace(/\{\{[^\}]+\}\}/g, '');
                 }
-            }else {
-                moeApp.open();
+
+                lastDir = fileDir;
+                MoeditorFile.write(fileName, content);
+                if (fs.existsSync(fileName)) {
+                    let w = require('electron').BrowserWindow.getFocusedWindow();
+                    if (typeof w.moeditorWindow == 'undefined' || w.moeditorWindow.changed) {
+                        app.addRecentDocument(fileName);
+                        moeApp.open(fileName);
+                    } else {
+                        w.moeditorWindow.fileName = fileName;
+                        w.moeditorWindow.directory = lastDir;
+                        w.moeditorWindow.fileContent = w.moeditorWindow.content = MoeditorFile.read(fileName).toString();
+                        w.moeditorWindow.changed = false;
+                        w.moeditorWindow.window.setDocumentEdited(false);
+                        w.moeditorWindow.window.setRepresentedFilename(w.moeditorWindow.fileName);
+                        w.moeditorWindow.window.webContents.send('refresh-editor', {});
+                        app.addRecentDocument(fileName);
+                    }
+                    notOpened = false;
+                }
             }
         } catch (e) {
-            moeApp.open();
+            console.log(e)
+        } finally {
+            if (notOpened)
+                moeApp.open();
         }
     }
 
@@ -76,38 +110,44 @@ class MoeditorAction {
                 defaultPath: lastDir,
                 properties: ['openFile'/*, 'multiSelections'*/],
                 filters: [
-                    { name: __("Markdown Documents"), extensions: [ 'md', 'mkd', 'markdown' ] },
-                    { name: __("All Files"), extensions: [ '*' ] }
+                    {name: __("Markdown Documents"), extensions: ['md', 'mkd', 'markdown']},
+                    {name: __("All Files"), extensions: ['*']}
                 ]
             }
         );
 
         if (typeof files == 'undefined') return;
-        // for (var file of files) {
-        //     app.addRecentDocument(file);
-        //     moeApp.open(file);
-        // }
         let filename = files[0];
         if (filename) {
-            let w = require('electron').BrowserWindow.getFocusedWindow();
-            lastDir = path.dirname(filename);
-
-            if (typeof w.moeditorWindow == 'undefined' || w.moeditorWindow.changed ) {
+            let windows = require('electron').BrowserWindow.getAllWindows();
+            let w, i;
+            for (i = windows.length - 1; i > -1; i--) {
+                w = windows[i];
+                if (w.moeditorWindow) {
+                    if (w.moeditorWindow.fileName == filename) {
+                        w.focus();
+                        break;
+                    } else if (w.moeditorWindow.fileName == '' && !w.moeditorWindow.changed) {
+                        try {
+                            w.moeditorWindow.fileName = filename;
+                            w.moeditorWindow.directory = lastDir;
+                            w.moeditorWindow.fileContent = w.moeditorWindow.content = MoeditorFile.read(filename).toString();
+                            w.moeditorWindow.changed = false;
+                            w.moeditorWindow.window.setDocumentEdited(false);
+                            w.moeditorWindow.window.setRepresentedFilename(w.moeditorWindow.fileName);
+                            w.moeditorWindow.window.webContents.send('refresh-editor', {});
+                            app.addRecentDocument(filename);
+                            w.focus();
+                            break;
+                        } catch (e) {
+                            console.log(e);
+                        }
+                    }
+                }
+            }
+            if (i < 0) {
                 app.addRecentDocument(filename);
                 moeApp.open(filename);
-            } else {
-                try {
-                    w.moeditorWindow.fileName = filename;
-                    w.moeditorWindow.directory = lastDir;
-                    w.moeditorWindow.fileContent = w.moeditorWindow.content = MoeditorFile.read(filename).toString();
-                    w.moeditorWindow.changed = false;
-                    w.moeditorWindow.window.setDocumentEdited(false);
-                    w.moeditorWindow.window.setRepresentedFilename(w.moeditorWindow.fileName);
-                    w.moeditorWindow.window.webContents.send('refresh-editor', {});
-                    moeApp.addRecentDocument(filename);
-                } catch (e) {
-
-                }
             }
         }
     }
@@ -125,10 +165,16 @@ class MoeditorAction {
                 w.moeditorWindow.changed = false;
                 w.moeditorWindow.window.setDocumentEdited(false);
                 w.moeditorWindow.window.setRepresentedFilename(w.moeditorWindow.fileName);
-                w.moeditorWindow.window.webContents.send('pop-message', { type: 'success', content: __('Saved successfully.') });
+                w.moeditorWindow.window.webContents.send('pop-message', {
+                    type: 'success',
+                    content: __('Saved successfully.')
+                });
                 moeApp.addRecentDocument(w.moeditorWindow.fileName);
             } catch (e) {
-                w.moeditorWindow.window.webContents.send('pop-message', { type: 'error', content: __('Can\'t save file') + ', ' + e.toString() });
+                w.moeditorWindow.window.webContents.send('pop-message', {
+                    type: 'error',
+                    content: __('Can\'t save file') + ', ' + e.toString()
+                });
                 console.log('Can\'t save file: ' + e.toString());
                 return false;
             }
@@ -144,8 +190,8 @@ class MoeditorAction {
             {
                 defaultPath: lastDir,
                 filters: [
-                    { name: __("Markdown Documents"), extensions: ['md', 'mkd', 'markdown' ] },
-                    { name: __("All Files"), extensions: [ '*' ] }
+                    {name: __("Markdown Documents"), extensions: ['md', 'mkd', 'markdown']},
+                    {name: __("All Files"), extensions: ['*']}
                 ]
             }
         );
@@ -160,10 +206,16 @@ class MoeditorAction {
             moeApp.addRecentDocument(fileName);
             w.moeditorWindow.window.setDocumentEdited(false);
             w.moeditorWindow.window.setRepresentedFilename(fileName);
-            w.moeditorWindow.window.webContents.send('pop-message', { type: 'success', content: __('Saved successfully.') });
+            w.moeditorWindow.window.webContents.send('pop-message', {
+                type: 'success',
+                content: __('Saved successfully.')
+            });
             w.moeditorWindow.window.webContents.send('set-title', fileName);
         } catch (e) {
-            w.moeditorWindow.window.webContents.send('pop-message', { type: 'error', content: __('Can\'t save file') + ', ' + e.toString() });
+            w.moeditorWindow.window.webContents.send('pop-message', {
+                type: 'error',
+                content: __('Can\'t save file') + ', ' + e.toString()
+            });
             console.log('Can\'t save file: ' + e.toString());
             return false;
         }
@@ -177,7 +229,7 @@ class MoeditorAction {
             {
                 defaultPath: lastDir,
                 filters: [
-                    { name: __("HTML Documents"), extensions: ['html', 'htm'] },
+                    {name: __("HTML Documents"), extensions: ['html', 'htm']},
                 ]
             }
         );
@@ -186,12 +238,18 @@ class MoeditorAction {
 
         f((s) => {
             try {
-                w.moeditorWindow.window.webContents.send('pop-message', { type: 'info', content: __('Exporting as HTML, please wait ...') });
+                w.moeditorWindow.window.webContents.send('pop-message', {
+                    type: 'info',
+                    content: __('Exporting as HTML, please wait ...')
+                });
                 MoeditorFile.write(fileName, s);
                 const {shell} = require('electron');
                 shell.openItem(fileName);
             } catch (e) {
-                w.moeditorWindow.window.webContents.send('pop-message', { type: 'error', content: __('Can\'t export as HTML') + ', ' + e.toString() });
+                w.moeditorWindow.window.webContents.send('pop-message', {
+                    type: 'error',
+                    content: __('Can\'t export as HTML') + ', ' + e.toString()
+                });
                 console.log('Can\'t export as HTML: ' + e.toString());
             }
         });
@@ -205,7 +263,7 @@ class MoeditorAction {
             {
                 defaultPath: lastDir,
                 filters: [
-                    { name: __("PDF Documents"), extensions: ['pdf'] },
+                    {name: __("PDF Documents"), extensions: ['pdf']},
                 ]
             }
         );
@@ -214,13 +272,19 @@ class MoeditorAction {
 
         f((s) => {
             let errorHandler = (e) => {
-                w.moeditorWindow.window.webContents.send('pop-message', { type: 'error', content: __('Can\'t export as PDF') + ', ' + e.toString() });
+                w.moeditorWindow.window.webContents.send('pop-message', {
+                    type: 'error',
+                    content: __('Can\'t export as PDF') + ', ' + e.toString()
+                });
                 console.log('Can\'t export as PDF: ' + e.toString());
             }
             try {
-                w.moeditorWindow.window.webContents.send('pop-message', { type: 'info', content: __('Exporting as PDF, please wait ...') });
+                w.moeditorWindow.window.webContents.send('pop-message', {
+                    type: 'info',
+                    content: __('Exporting as PDF, please wait ...')
+                });
                 const exportPDF = require('./moe-pdf');
-                exportPDF({ s: s, path: fileName }, errorHandler);
+                exportPDF({s: s, path: fileName}, errorHandler);
             } catch (e) {
                 errorHandler(e);
             }

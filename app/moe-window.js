@@ -82,10 +82,13 @@ class MoeditorWindow {
                 if (choice == 0) {
                     if (!MoeditorAction.save(this.window))
                         e.preventDefault();
+                        return;
                 } else if (choice == 2) {
-                    e.preventDefault() ;
+                    e.preventDefault();
+                    return;
                 }
             }
+
             const index = moeApp.windows.indexOf(this);
             if (index !== -1) moeApp.windows.splice(index, 1);
 

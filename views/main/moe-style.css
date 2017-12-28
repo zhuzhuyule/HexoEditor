@@ -75,8 +75,8 @@ html, body {
 #side-menu li {
     font-family: Roboto, Helvetica, 'Segoe UI', Arial, sans-serif;;
     list-style-type: none;
-    height: 50px;
-    line-height: 50px;
+    height: 40px;
+    line-height: 40px;
     padding-left: 30px;
     text-align: left;
     vertical-align: middle;
@@ -512,16 +512,46 @@ body[settings-mode=read] #drag-right, body[settings-mode=write] #drag-right {
 /*}*/
 
 
+/*.CodeMirror-gutter-wrapper {*/
+    /*display: none;*/
+/*}*/
+
+
+/*#editor.nogutter .CodeMirror-sizer {*/
+    /*margin-left: 0 !important;*/
+/*}*/
+
+/*#editor.gutter .CodeMirror-gutter-wrapper {*/
+    /*display: block;*/
+    /*position: absolute;*/
+    /*z-index: 4;*/
+    /*background: none !important;*/
+    /*border: none !important;*/
+/*}*/
+
+/*#editor.gutter .CodeMirror-code {*/
+    /*box-shadow: inset 3px -2px 3px #ddd;*/
+    /*padding-bottom: 3px;*/
+/*}*/
+
+/*#editor.gutter .CodeMirror-code::after {*/
+    /*content: "";*/
+    /*position: relative;*/
+    /*bottom: -3px;*/
+    /*height: 4px;*/
+    /*width: 100%;*/
+    /*background-color: whitesmoke;*/
+    /*display: block;*/
+/*}*/
+
+
+
 .CodeMirror-gutter-wrapper {
     display: none;
 }
 
 
-#editor.nogutter .CodeMirror-sizer {
-    margin-left: 0 !important;
-}
-
-#editor.gutter .CodeMirror-gutter-wrapper {
+#editor .CodeMirror-gutter-wrapper {
     display: block;
     position: absolute;
     z-index: 4;

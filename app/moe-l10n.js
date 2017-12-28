@@ -103,6 +103,7 @@ const strings = {
         "_name": "English",
 
         "New": "New",
+        "New Post": "New Post",
         "Open": "Open",
         "Save": "Save",
         "Save as": "Save as",
@@ -164,7 +165,11 @@ const strings = {
         "Render Theme": "Render Theme",
         "Custom CSSs": "Custom CSSs",
 
+
+        "Def Show Number": "Default Show Line Number",
         "Show Number": "Show Line Number",
+        "Scroll Sync": "Scroll Sync",
+        "File Rename": "File Rename",
         "Hexo Auto": "Auto Hexo Setting",
         "Hexo": "Hexo",
         "Extend Highlight": "Extend Highlight",
@@ -213,6 +218,7 @@ const strings = {
         "_name": "简体中文",
 
         "New": "新建",
+        "New Post": "新建Post",
         "Open": "打开",
         "Save": "保存",
         "Save as": "另存为",
@@ -273,7 +279,10 @@ const strings = {
         "Render Theme": "渲染主题",
         "Custom CSSs": "自定义 CSS",
 
+        "Def Show Number": "默认显示行号",
         "Show Number": "显示行号",
+        "Scroll Sync": "同步滚动",
+        "File Rename": "同步文件名",
         "Hexo Auto": "Hexo自动设置",
         "Hexo": "Hexo",
         "Extend Highlight": "自定义代码块",

@@ -101,7 +101,6 @@
         <script type="text/javascript" src="main/moe-mode.js"></script>
         <script type="text/javascript" src="main/moe-export.js"></script>
         <script type="text/javascript" src="main/moe-popmessage.js"></script>
-        <script type="text/javascript" src="main/moe-watchfile.js"></script>
         <script type="text/javascript" src="main/moe-contextmenu.js"></script>
 
         <script type="text/javascript" src="moe-localize.js"></script>
@@ -119,7 +118,7 @@
             <div id="logo">HexoEditor</div>
             <ul>
                 <li data-action="new" class="l10n">New</li>
-                <li data-action="newhexo" >New Hexo</li>
+                <li data-action="newhexo" class="l10n">New Post</li>
                 <li data-action="open" class="l10n">Open</li>
                 <li data-action="save" class="l10n">Save</li>
                 <li data-action="save-as" class="l10n">Save as</li>
@@ -179,12 +178,12 @@
                     <div class="button-bottom l10n-title" id="button-bottom-menu" title="Menu">
                         <i class="fa fa-bars" aria-hidden="true"></i>
                     </div>
-                    <div class="button-bottom l10n-title"  title="Refresh" onclick="location.reload(true)">
-                        <i class="fa fa-refresh" aria-hidden="true"></i>
-                    </div>
-                    <!--div class="button-bottom l10n-title" id="button-bottom-file-tree" title="Directory">
-                        <i class="fa fa-folder-o" aria-hidden="true"></i>
-                    </div-->
+                    <!--<div class="button-bottom l10n-title"  title="Refresh" onclick="location.reload(true)">-->
+                        <!--<i class="fa fa-refresh" aria-hidden="true"></i>-->
+                    <!--</div>-->
+                    <!--<div class="button-bottom l10n-title" id="button-bottom-file-tree" title="Directory">-->
+                        <!--<i class="fa fa-folder-o" aria-hidden="true"></i>-->
+                    <!--</div>-->
                 </div>
                 <div id="cover-bottom-right">
                     <script type="text/javascript">
@@ -192,6 +191,7 @@
                             var modeMenu = document.getElementById('popup-menu-mode');
                             var modeMenuItems = modeMenu.getElementsByTagName('li');
                             modeMenuItems[index].click();
+                            window.updatePreview(true);
                         }
                     </script>
 

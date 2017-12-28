@@ -79,6 +79,39 @@ document.addEventListener('DOMContentLoaded', () => {
                             sel.addRange(rg);
                         }
                     }
+                },
+                {
+                    type: 'separator'
+                },
+                {
+                    label: __('File Rename'),
+                    visible: !moeApp.defTheme,
+                    click(item, w) {
+                        window.changeFileName(true);
+                    }
+                },
+                {
+                    label: __('Show Number'),
+                    type: 'checkbox',
+                    checked: window.editor.getOption('lineNumbers'),
+                    click(item, w) {
+                        let editor = document.querySelector('#editor');
+                        if (item.checked){
+                            editor.classList.add('gutter');
+                        } else {
+                            editor.classList.remove('gutter')
+                        }
+                        window.editor.setOption('lineNumbers', item.checked);
+                        window.editor.refresh();
+                    }
+                },
+                {
+                    label: __('Scroll Sync'),
+                    type: 'checkbox',
+                    checked: window.scrollTogether,
+                    click(item, w) {
+                        window.scrollTogether = !window.scrollTogether;
+                    }
                 }
             ];
             Menu.buildFromTemplate(template).popup(remote.getCurrentWindow());

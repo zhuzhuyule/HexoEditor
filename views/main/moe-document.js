@@ -24,16 +24,26 @@ window.moeApp = app.moeApp;
 window.w = moeApp.newWindow;
 require('electron-titlebar');
 
+let gSavedContent;
+let gTitle;
+let gIsChangeFile = false;
+
 $(() => {
+    const fs = require('fs');
+    const path = require('path');
+    const dialog = require('electron').remote.dialog;
+    const YMAL = require('yamljs');
+
+
     const MoeditorPreview = require('./moe-preview');
 
     if (w.fileName !== '') {
-        document.getElementsByTagName('title')[0].innerText = 'Moeditor - ' + require('path').basename(w.fileName);
+        document.getElementsByTagName('title')[0].innerText = 'Moeditor - ' + path.basename(w.fileName);
     }
     document.querySelector('#editor textarea').innerText = w.content;
 
     var editor = CodeMirror.fromTextArea(document.querySelector('#editor textarea'), {
-        lineNumbers: true,
+        lineNumbers: false,
         mode: moeApp.config.get('math') ? 'gfm_math' : 'gfm',
         matchBrackets: true,
         theme: moeApp.config.get('editor-theme'),
@@ -62,8 +72,79 @@ $(() => {
         });
     };
 
+    window.changeFileName = (force)=> {
+        if( gIsChangeFile && !force) return;
+
+        let title,fileNameNew;
+        let filename = path.basename(w.fileName,path.extname(w.fileName));
+
+        w.content.replace(/^---+([\w\W]+?)---+/, function () {
+            title = YMAL.parse(arguments[1]).title;
+            return '';
+        });
+
+        if (!gTitle) {
+            if (filename == title) {
+                gTitle = title;
+                gIsChangeFile = false;
+                return;
+            }
+        }
+
+        if (!force && !gIsChangeFile && title === gTitle) {
+            return
+        }
+
+        try {
+            filename = title.toString().replace(/[ \\\/:\*\?"<>\|]+/g,'-');
+            let dir = path.dirname(w.fileName);
+            let ext = path.extname(w.fileName);
+            let count = -1;
+            do {
+                count++;
+                fileNameNew = filename + (count > 0 ? count:'');
+                fileNameNew = path.resolve(dir, fileNameNew + ext);
+                if (w.fileName == fileNameNew || count > 50) {
+                    return;
+                }
+            } while (fs.existsSync(fileNameNew))
+
+            fs.renameSync(w.fileName,fileNameNew);
+            gIsChangeFile = true;
+            w.fileName = fileNameNew;
+            w.window.setRepresentedFilename(fileNameNew);
+            app.addRecentDocument(fileNameNew);
+            document.getElementsByTagName('title')[0].innerText = 'Moeditor - ' + path.basename(fileNameNew);
+        } catch (e) {
+            console.log(e);
+        }
+    }
+
+    window.autoSave = ()=> {
+        const option = moeApp.config.get('auto-save');
+        if (option === 'disabled') return;
+        if (w.content === gSavedContent) return;
+
+        fs.writeFile(w.fileName, w.content, (err) => {
+            if (err) {
+                w.changed = true;
+                w.window.setDocumentEdited(true);
+                return;
+            }
+            gSavedContent = w.content;
+            w.changed = false;
+            w.window.setDocumentEdited(false);
+        });
+    }
+
     editor.on('change', (editor, obj) => {
         window.updatePreview(false)
+    });
+
+    editor.on('blur',() => {
+        if (w.fileName === '') return;
+        window.changeFileName(false);
+        window.autoSave();
     });
 
     setTimeout(() => {
@@ -71,7 +152,6 @@ $(() => {
     }, 0);
 
     window.editor = editor;
-
     // workaround for the .button is still :hover after maximize window
     $('#cover-bottom .button-bottom').mouseover(function() {
         $(this).addClass('hover');
@@ -122,7 +202,7 @@ $(() => {
     // });
 
     require('electron').ipcRenderer.on('set-title', (e, fileName) => {
-        document.getElementsByTagName('title')[0].innerText = 'Moeditor - ' + require('path').basename(fileName);
+        document.getElementsByTagName('title')[0].innerText = 'Moeditor - ' + path.basename(fileName);
     });
 
     require('./moe-settings');
@@ -197,4 +277,47 @@ $(() => {
     window.addEventListener('resize',function(){
         $('#right-panel .CodeMirror-vscrollbar div').height(document.getElementById('container-wrapper').scrollHeight);
     })
+
+
+    window.onfocus = (e) => {
+        if (w.fileName === '') return;
+        fs.readFile(w.fileName, (err, res) => {
+            if (err) {
+                w.changed = true;
+                w.window.setDocumentEdited(true);
+                return;
+            }
+            let s = res.toString();
+            if (s !== w.fileContent) {
+                const option = moeApp.config.get('auto-reload');
+                let flag = false;
+                if (option === 'auto') flag = true;
+                else if (option === 'never') flag = false;
+                else {
+                    flag = dialog.showMessageBox(
+                        w.window,
+                        {
+                            type: 'question',
+                            buttons: [__("Yes"), __("No")],
+                            title: __("Confirm"),
+                            message: __("File changed by another program, reload?")
+                        }
+                    ) === 0;
+                }
+
+                w.fileContent = w.content = s;
+
+                if (!flag) {
+                    w.changed = true;
+                    w.window.setDocumentEdited(true);
+                    return;
+                }
+
+                window.editor.setValue(s);
+                w.changed = false;
+                w.window.setDocumentEdited(false);
+                window.updatePreview(true);
+            }
+        });
+    };
 });

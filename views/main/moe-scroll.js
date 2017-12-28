@@ -76,7 +76,7 @@ function checkScrollToBottom(self, other) {
 }
 
 function editorToPreviewer() {
-    if (window.editMode !== 'preview') {
+    if (!window.scrollTogether || window.editMode !== 'preview') {
         window.scrollMap = undefined;
         return;
     }
@@ -90,7 +90,7 @@ function editorToPreviewer() {
 }
 
 function previewerToEditor() {
-    if (window.editMode !== 'preview') {
+    if (!window.scrollTogether || window.editMode !== 'preview') {
         window.scrollMap = undefined;
         return;
     }
