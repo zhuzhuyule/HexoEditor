@@ -14,7 +14,7 @@
     "productName": "HexoEditor",
     "asar": true,
     "nsis": {
-      "artifactName": "${productName}-x64.${ext}",
+      "artifactName": "${productName}${version}-x64.${ext}",
       "runAfterFinish": false,
       "deleteAppDataOnUninstall": true,
       "allowToChangeInstallationDirectory": true,
