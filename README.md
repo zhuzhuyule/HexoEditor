@@ -12,6 +12,8 @@ Built with Electron.
 Inherit [Moeditor](https://github.com/Moeditor/Moeditor), I want to fix it appropriate to Hexo Blog !
 
 Click here go to **[Download](https://github.com/zhuzhuyule/HexoEditor/releases)** page !
+
+[中文.doc](doc/zh/README.md)
 # QQ Group:
 - Name：HexoEditor        
 - QQID：602883087   
