@@ -20,12 +20,13 @@ Click here go to **[Download](https://github.com/zhuzhuyule/HexoEditor/releases)
   * Use Hexo `_config.yml` support
     * highlight setting
     * theme tag support
-  * Quick New Post in hexo source (v1.1.8)
-  * Quick Modify File Name (In Hexo Post Edit)  (v1.1.8)
-  * Shortcut Support   (v1.1.8)
-  * Editor Line number Show/Hide  (v1.1.8)
-  * Auto Show/Hide Scroll  (v1.1.8)
-  * Scorll Together/None  (v1.1.8)
+  * --------- v1.1.8 (2017-12-29) ---------
+  * Quick New Post in hexo source 
+  * Quick Modify File Name (In Hexo Post Edit)  
+  * Shortcut Support
+  * Editor Line number Show/Hide
+  * Auto Show/Hide Scroll
+  * Scorll Together/None
 * HexoEditor (Inherit [Moeditor](https://github.com/Moeditor/Moeditor))
   * GitHub Flavored Markdown
   * TeX math expressions
@@ -50,11 +51,14 @@ Click here go to **[Download](https://github.com/zhuzhuyule/HexoEditor/releases)
 ![Moeditor About](screenshots/about.png)
 
 # Gif Screenshots
-![Moeditor About](screenshots/gif-tag.gif)
+![Moeditor tag](screenshots/gif-tag.gif)
 
-![Moeditor About](screenshots/gif-mode.gif)
+![Moeditor Mode](screenshots/gif-mode.gif)
 
-![Moeditor About](screenshots/gif-hexo.gif)
+![Moeditor New Post](screenshots/gif-newpost.gif)
+
+![Moeditor Hexo](screenshots/gif-hexo.gif)
+
 # Plan To Do
 - [ ] Add Toc
 - [ ] Add Hexo Title Header setting
@@ -116,9 +120,6 @@ The domain `moeditor.org` is sponsored by [Showfom](https://ttt.tt/).
 > ./node_modules/codemirror/src/display/selection.js (line: `56`)
 
 ```js 
-var rightSide = Math.max(display.sizerWidth, displayWidth(cm) - display.sizer.offsetLeft) - padding.right;
-```
-↓
-```js 
+//var rightSide = Math.max(display.sizerWidth, displayWidth(cm) - display.sizer.offsetLeft) - padding.right;
 var rightSide = display.lineDiv.offsetWidth - padding.right;
 ```
