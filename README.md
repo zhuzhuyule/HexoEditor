@@ -5,6 +5,12 @@ Built with Electron.
 
 Inherit [Moeditor](https://github.com/Moeditor/Moeditor), I want to fix it appropriate to Hexo Blog!
 
+# QQ Group:
+- Name：HexoEditor        
+- QQID：602883087   
+- PASS：HexoEditor           
+- Data：2017-12-29  
+
 # Features
 * HexoEditor 
   * Hexo Post Preview same as in Browser
@@ -13,6 +19,12 @@ Inherit [Moeditor](https://github.com/Moeditor/Moeditor), I want to fix it appro
   * Use Hexo `_config.yml` support
     * highlight setting
     * theme tag support
+  * Quick New Post in hexo source (v1.1.8)
+  * Quick Modify File Name (In Hexo Post Edit)  (v1.1.8)
+  * Shortcut Support   (v1.1.8)
+  * Editor Line number Show/Hide  (v1.1.8)
+  * Auto Show/Hide Scroll  (v1.1.8)
+  * Scorll Together/None  (v1.1.8)
 * HexoEditor (Inherit [Moeditor](https://github.com/Moeditor/Moeditor))
   * GitHub Flavored Markdown
   * TeX math expressions
@@ -97,6 +109,8 @@ The domain `moeditor.org` is sponsored by [Showfom](https://ttt.tt/).
 # Tips
 1. modify codemirror file :
 > ./node_modules/codemirror/lib/codemirror.js (line: `3104`)
+
+
 > ./node_modules/codemirror/src/display/selection.js (line: `56`)
 ```js 
 var rightSide = Math.max(display.sizerWidth, displayWidth(cm) - display.sizer.offsetLeft) - padding.right;
