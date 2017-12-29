@@ -1,10 +1,11 @@
 # HexoEditor
-This is markdown editor for Hexo.
+This is markdown editor for Hexo.  
 
 Built with Electron.
 
-Inherit [Moeditor](https://github.com/Moeditor/Moeditor), I want to fix it appropriate to Hexo Blog!
+Inherit [Moeditor](https://github.com/Moeditor/Moeditor), I want to fix it appropriate to Hexo Blog !
 
+Click here go to **[Download](https://github.com/zhuzhuyule/HexoEditor/releases)** page !
 # QQ Group:
 - Name：HexoEditor        
 - QQID：602883087   
@@ -108,14 +109,16 @@ The domain `moeditor.org` is sponsored by [Showfom](https://ttt.tt/).
 
 # Tips
 1. modify codemirror file :
+
 > ./node_modules/codemirror/lib/codemirror.js (line: `3104`)
 
 
 > ./node_modules/codemirror/src/display/selection.js (line: `56`)
+
 ```js 
 var rightSide = Math.max(display.sizerWidth, displayWidth(cm) - display.sizer.offsetLeft) - padding.right;
 ```
-
+↓
 ```js 
 var rightSide = display.lineDiv.offsetWidth - padding.right;
 ```
