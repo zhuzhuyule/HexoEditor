@@ -50,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             ipcRenderer.send('setting-changed', { key: 'locale', val: selectLocale.value });
         });
+        document.querySelector("#hexo-auto-setting").value = '<i class="fa fa-hand-pointer-o" aria-hidden="true"></i>';
         require('electron').remote.getCurrentWindow().show();
     });
 
@@ -383,9 +384,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    let hexoAutoSettingButton = document.querySelector('input[data-key="hexo-auto-setting"]');
+    let hexoAutoSettingButton = document.querySelector('#hexo-auto-setting');
     hexoAutoSettingButton.addEventListener('click',function (e) {
-        if (this.checked){
             hexoConfigEnableButton.checked || hexoConfigEnableButton.click();
             hexoConfigInput.value || hexoConfigLoadButton.click();
             let mathCheck = document.querySelector('input[data-key="math"]');
@@ -433,7 +433,5 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderThemeSelect.value = hexoTheme;
                 reloadHighlightSelect(hexoTheme);
             }
-        }
     })
-
 });

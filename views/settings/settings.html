@@ -165,7 +165,7 @@
                             <tr>
                                 <td width="30%" class="l10n">Hexo Auto</td>
                                 <td width="70%">
-                                    <input type="checkbox" class="settings-item" data-key="hexo-auto-setting">
+                                    <div id="hexo-auto-setting" style="width: 50px"><i class="fa fa-magic fa-flip-horizontal" aria-hidden="true"></i></div>
                                 </td>
                             </tr>
                             <tr>
@@ -192,7 +192,7 @@
                                         <script>
                                             const t = moeApp.config.get('hexo-tag-paths');
                                             for (var i=0,len=t.length;i<len;i++) {
-                                                s=t[i];
+                                                let s=t[i];
                                                 document.write(`<option value="${s}">${s}</option>`);
                                             }
                                         </script>

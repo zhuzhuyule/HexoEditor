@@ -95,8 +95,9 @@ The `Raleway` font is licensed under the OFL open font license.
 The domain `moeditor.org` is sponsored by [Showfom](https://ttt.tt/).
 
 # Tips
-1. modify codemirror file : (line: `3104`)
-> ./node_modules/codemirror/lib/codemirror.js
+1. modify codemirror file :
+> ./node_modules/codemirror/lib/codemirror.js (line: `3104`)
+> ./node_modules/codemirror/src/display/selection.js (line: `56`)
 ```js 
 var rightSide = Math.max(display.sizerWidth, displayWidth(cm) - display.sizer.offsetLeft) - padding.right;
 ```
