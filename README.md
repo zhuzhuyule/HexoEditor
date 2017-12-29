@@ -1,7 +1,5 @@
-[![Join the chat at https://gitter.im/zhuzhuyule/Lobby](https://badges.gitter.im/hexo-theme-tomotoes/Lobby.svg)](https://gitter.im/zhuzhuyule/Lobby?utm_source=share-link&utm_medium=link&utm_campaign=share-link)
-
-[![Document|ZH](https://camo.githubusercontent.com/f6977a970c4eaf235fb3b115069c08634611611c/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f646f63756d656e742d434e2d677265656e2e7376673f7374796c653d666c61742d737175617265)](doc/zh/README.md)
-
+[![Join the chat at https://gitter.im/zhuzhuyule/Lobby](https://badges.gitter.im/hexo-theme-tomotoes/Lobby.svg)](https://gitter.im/zhuzhuyule/Lobby?utm_source=share-link&utm_medium=link&utm_campaign=share-link) 
+[![Document|ZH](https://camo.githubusercontent.com/f6977a970c4eaf235fb3b115069c08634611611c/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f646f63756d656e742d434e2d677265656e2e7376673f7374796c653d666c61742d737175617265)](doc/zh/README.md) 
 [![License](https://img.shields.io/cocoapods/l/AFNetworking.svg)](https://zhuzhuyule.com)
 
 # HexoEditor
