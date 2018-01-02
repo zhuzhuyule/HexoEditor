@@ -1,8 +1,9 @@
-[![Join the chat at https://gitter.im/zhuzhuyule/Lobby](https://badges.gitter.im/hexo-theme-tomotoes/Lobby.svg)](https://gitter.im/zhuzhuyule/Lobby?utm_source=share-link&utm_medium=link&utm_campaign=share-link)
-
-[![Document|ZH](https://camo.githubusercontent.com/f6977a970c4eaf235fb3b115069c08634611611c/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f646f63756d656e742d434e2d677265656e2e7376673f7374796c653d666c61742d737175617265)](doc/zh/README.md)
-
-[![License](https://img.shields.io/cocoapods/l/AFNetworking.svg)](https://zhuzhuyule.com)
+[![Join the chat](https://badges.gitter.im/hexo-theme-tomotoes/Lobby.svg)](https://gitter.im/zhuzhuyule/Lobby) 
+[![中文](https://img.shields.io/badge/document-%E4%B8%AD%E6%96%87-blue.svg)](doc/zh/README.md) 
+[![EN](https://img.shields.io/badge/document-EN-blue.svg)](doc/zh/README.md) 
+[![license](https://img.shields.io/badge/license-GPL3.0-brightgreen.svg)](https://github.com/zhuzhuyule/HexoEditor/blob/master/LICENSE) 
+[![Download](https://img.shields.io/badge/download-page-lightgrey.svg)](https://github.com/zhuzhuyule/HexoEditor/releases) 
+[![Conda](https://img.shields.io/conda/pn/conda-forge/python.svg)](https://github.com/zhuzhuyule/HexoEditor/releases)
 
 # HexoEditor
 This is markdown editor for Hexo.  
@@ -11,9 +12,6 @@ Built with Electron.
 
 Inherit [Moeditor](https://github.com/Moeditor/Moeditor), I want to fix it appropriate to Hexo Blog !
 
-Click here go to **[Download](https://github.com/zhuzhuyule/HexoEditor/releases)** page !
-
-[中文.doc](doc/zh/README.md)
 # QQ Group:
 - Name：HexoEditor        
 - QQID：602883087   
