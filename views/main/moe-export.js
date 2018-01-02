@@ -59,10 +59,14 @@ function render(s, type, cb) {
         }, mathID);
         return res;
     }
-    var val = marked(s,{mathRenderer: mathRenderer});
-    rendered = jQuery(jQuery.parseHTML('<span>' + val + '</span>'));
-    rendering = false;
-    if (!mathCnt) finish();
+
+    function callback(val) {
+        rendered = jQuery(jQuery.parseHTML('<span>' + val + '</span>'));
+        rendering = false;
+        if (!mathCnt) finish();
+    }
+
+    marked(s,{mathRenderer: mathRenderer},callback);
 }
 
 function html(cb) {
