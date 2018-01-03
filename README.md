@@ -4,14 +4,14 @@
 [![Conda](https://img.shields.io/conda/pn/conda-forge/python.svg)](https://github.com/zhuzhuyule/HexoEditor/releases)
 
 <div align="right">:triangular_flag_on_post:Language:
-:cn:
-<a title="English" href="doc/en/">:us:</a></div>
+:cn:中文
+<a title="English" href="doc/en/README.md">:us:English</a></div>
 
 # <div align="center"><a title="Go to homepage" href="#"><img align="center" width="56" height="56" src="icons/HexoEditor.svg"></a>  HexoEditor</div>
 
 这是一款为 Hexo 做了优化的 Markdown 编辑器。  
 
-使用 Electron 做框架。
+使用 Electron 做框架。 
 
 修改自 [Moeditor](https://github.com/Moeditor/Moeditor), 我只是为了让他更好的去为 Hexo 下的博客更好的去书写内容。
 
@@ -19,7 +19,7 @@
 #### 如果你有时间，有兴趣，有精力，欢迎加入我们共同完善软件功能。
 
 # QQ群:
-- 群名：HexoEditor        
+- 群名：HexoEditor
 - 群ID：602883087   
 - 验证：HexoEditor           
 - 建立日期：2017-12-29  

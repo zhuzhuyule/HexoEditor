@@ -4,10 +4,10 @@
 [![Conda](https://img.shields.io/conda/pn/conda-forge/python.svg)](https://github.com/zhuzhuyule/HexoEditor/releases)
 
 <div align="right">:triangular_flag_on_post:Language:
-<a title="中文" href="https://github.com/zhuzhuyule/HexoEditor/README.md">:cn:</a>
-:us:</div>
+<a title="中文" href="https://github.com/zhuzhuyule/HexoEditor/README.md">:cn:中文</a>
+:us:English</div>
 
-# <div align="center"><a title="Go to homepage" href="#"><img align="center" width="56" height="56" src="https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/icons/HexoEditor.svg"></a>  HexoEditor</div>
+# <div align="center"><a title="Go to homepage" href="#"><img align="center" width="56" height="56" src="https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/icons/HexoEditor.svg?sanitize=true"></a>  HexoEditor</div>
 
 
 This is markdown editor for Hexo.  
