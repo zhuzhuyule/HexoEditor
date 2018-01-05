@@ -1,20 +1,19 @@
-[![Join the chat](https://badges.gitter.im/hexo-theme-tomotoes/Lobby.svg)](https://gitter.im/zhuzhuyule/Lobby) 
-[![license](https://img.shields.io/badge/license-GPL3.0-brightgreen.svg)](https://github.com/zhuzhuyule/HexoEditor/blob/master/LICENSE) 
-[![Download](https://img.shields.io/badge/download-page-blue.svg)](https://github.com/zhuzhuyule/HexoEditor/releases) 
-[![Conda](https://img.shields.io/conda/pn/conda-forge/python.svg)](https://github.com/zhuzhuyule/HexoEditor/releases)
-
-<div align="right">:triangular_flag_on_post:Language:
-<a title="中文" href="doc/cn/README.md">:cn:中文</a>
-  :us:English</div>
+<div align="right">Language: :us:
+<a title="Chinese" href="doc/cn/README.md">:cn:</a>
+<a title="Russian" href="doc/ru/README.md">:ru:</a></div>
 
 # <div align="center"><a title="Go to homepage" href="#"><img align="center" width="56" height="56" src="https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/icons/HexoEditor.svg?sanitize=true"></a>  HexoEditor</div>
 
+[![Join the chat](https://badges.gitter.im/hexo-theme-tomotoes/Lobby.svg)](https://gitter.im/zhuzhuyule/Lobby)
+[![license](https://img.shields.io/badge/license-GPL3.0-brightgreen.svg)](https://github.com/zhuzhuyule/HexoEditor/blob/master/LICENSE)
+[![Download](https://img.shields.io/badge/download-page-blue.svg)](https://github.com/zhuzhuyule/HexoEditor/releases)
+[![Conda](https://img.shields.io/conda/pn/conda-forge/python.svg)](https://github.com/zhuzhuyule/HexoEditor/releases)
 
-This is markdown editor for Hexo.  
+This is markdown editor for Hexo.
 
 Built with Electron.
 
-Inherit [Moeditor](https://github.com/Moeditor/Moeditor), I want to fix it appropriate to Hexo Blog !
+Inherit [Moeditor](https://github.com/Moeditor/Moeditor), I want to fix it appropriate to Hexo Blog!
 
 #### if you have good ideas, please comment [Here](https://github.com/zhuzhuyule/HexoEditor/issues/2)
 #### if you have time, and interest, and energy, welcome join us !
@@ -135,3 +134,7 @@ The `Raleway` font is licensed under the OFL open font license.
 //var rightSide = Math.max(display.sizerWidth, displayWidth(cm) - display.sizer.offsetLeft) - padding.right;
 var rightSide = display.lineDiv.offsetWidth - padding.right;
 ```
+
+# Compatibility
+
+* :triangular_flag_on_post: <a href="https://github.com/theme-next/hexo-theme-next" target="_blank">NexT theme</a>
