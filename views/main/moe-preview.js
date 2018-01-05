@@ -67,7 +67,7 @@ module.exports = (cm, force, cb) => {
                 let imgs = rendered.querySelectorAll('img') || [];
                 for (let img of imgs) {
                     let src = img.getAttribute('src');
-                    if (url.parse(src).protocol === null) {
+                    if (src && (url.parse(src).protocol === null)) {
                         if (!path.isAbsolute(src)) src = path.resolve(w.directory, src);
                         src = url.resolve('file://', src);
                     }
