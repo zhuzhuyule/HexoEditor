@@ -116,12 +116,12 @@ HexoEditor распространяется под **GPL v3** лицензией
 
 
 # Примечания
-1. modify codemirror file :
+1. Редактируем файл `codemirror.js`:
 
-> ./node_modules/codemirror/lib/codemirror.js (line: `3104`)
+> ./node_modules/codemirror/lib/codemirror.js (линия: `3104`)
 
 
-> ./node_modules/codemirror/src/display/selection.js (line: `56`)
+> ./node_modules/codemirror/src/display/selection.js (линия: `56`)
 
 ```js 
 //var rightSide = Math.max(display.sizerWidth, displayWidth(cm) - display.sizer.offsetLeft) - padding.right;
