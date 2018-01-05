@@ -1,17 +1,17 @@
-[![Join the chat](https://badges.gitter.im/hexo-theme-tomotoes/Lobby.svg)](https://gitter.im/zhuzhuyule/Lobby) 
-[![license](https://img.shields.io/badge/license-GPL3.0-brightgreen.svg)](https://github.com/zhuzhuyule/HexoEditor/blob/master/LICENSE) 
-[![Download](https://img.shields.io/badge/download-page-blue.svg)](https://github.com/zhuzhuyule/HexoEditor/releases) 
-[![Conda](https://img.shields.io/conda/pn/conda-forge/python.svg)](https://github.com/zhuzhuyule/HexoEditor/releases)
-
-<div align="right">:triangular_flag_on_post:Language:
-:cn:中文
-<a title="English" href="https://github.com/zhuzhuyule/HexoEditor/blob/master/doc/cn/README.md">:us:English</a></div>
+<div align="right">:triangular_flag_on_post: Language:
+<a title="English" href="https://github.com/zhuzhuyule/HexoEditor/blob/master/README.md">:us:English</a>
+:cn:中文</div>
 
 # <div align="center"><a title="Go to homepage" href="#"><img align="center" width="56" height="56" src="https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/icons/HexoEditor.svg?sanitize=true"></a>  HexoEditor</div>
 
-这是一款为 Hexo 做了优化的 Markdown 编辑器。  
+[![Join the chat](https://badges.gitter.im/hexo-theme-tomotoes/Lobby.svg)](https://gitter.im/zhuzhuyule/Lobby)
+[![license](https://img.shields.io/badge/license-GPL3.0-brightgreen.svg)](https://github.com/zhuzhuyule/HexoEditor/blob/master/LICENSE)
+[![Download](https://img.shields.io/badge/download-page-blue.svg)](https://github.com/zhuzhuyule/HexoEditor/releases)
+[![Conda](https://img.shields.io/conda/pn/conda-forge/python.svg)](https://github.com/zhuzhuyule/HexoEditor/releases)
 
-使用 Electron 做框架。 
+这是一款为 Hexo 做了优化的 Markdown 编辑器。
+
+使用 Electron 做框架
 
 修改自 [Moeditor](https://github.com/Moeditor/Moeditor), 我只是为了让他更好的去为 Hexo 下的博客更好的去书写内容。
 
@@ -20,9 +20,9 @@
 
 # QQ群:
 - 群名：HexoEditor
-- 群ID：602883087   
-- 验证：HexoEditor           
-- 建立日期：2017-12-29  
+- 群ID：602883087
+- 验证：HexoEditor
+- 建立日期：2017-12-29
 
 # 功能
 * HexoEditor 
@@ -111,8 +111,6 @@ linux  : ~/.config/configstore/HexoEditor.json
 mac    : ~/.config/configstore/HexoEditor.json( 待确认)
 ```
 
-
-
 # 本地化
 HexoEditor将自动识别系统语言并使用对应语言包。
 
@@ -141,3 +139,7 @@ HexoEditor 使用许可证为 **GPL v3** 许可.
 //var rightSide = Math.max(display.sizerWidth, displayWidth(cm) - display.sizer.offsetLeft) - padding.right;
 var rightSide = display.lineDiv.offsetWidth - padding.right;
 ```
+
+# 兼容性
+
+* :triangular_flag_on_post: <a href="https://github.com/theme-next/hexo-theme-next" target="_blank">NexT theme</a>
