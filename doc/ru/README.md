@@ -1,5 +1,5 @@
 <div align="right">Язык: <a title="Английский" href="../../README.md">:us:</a>
-<a title="Китайский" href="../../docs/cn/README.md">:cn:</a>
+<a title="Китайский" href="../../doc/cn/README.md">:cn:</a>
 :ru:</div>
 
 # <div align="center"><a title="Перейти на сайт" href="#"><img align="center" width="56" height="56" src="https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/icons/HexoEditor.svg?sanitize=true"></a>  HexoEditor</div>

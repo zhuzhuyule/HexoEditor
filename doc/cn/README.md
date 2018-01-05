@@ -1,6 +1,6 @@
 <div align="right">语言: <a title="英语" href="../../README.md">:us:</a>
 :cn:
-<a title="俄语" href="../../docs/ru/README.md">:ru:</a></div>
+<a title="俄语" href="../../doc/ru/README.md">:ru:</a></div>
 
 # <div align="center"><a title="Go to homepage" href="#"><img align="center" width="56" height="56" src="https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/icons/HexoEditor.svg?sanitize=true"></a>  HexoEditor</div>
 
