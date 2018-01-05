@@ -1,6 +1,6 @@
-<div align="right">:triangular_flag_on_post: Language:
-:us:English
-<a title="中文" href="doc/cn/README.md">:cn:中文</a></div>
+<div align="right">Language: :us:
+<a title="Chinese" href="doc/cn/README.md">:cn:</a>
+<a title="Russian" href="doc/ru/README.md">:ru:</a></div>
 
 # <div align="center"><a title="Go to homepage" href="#"><img align="center" width="56" height="56" src="https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/icons/HexoEditor.svg?sanitize=true"></a>  HexoEditor</div>
 
