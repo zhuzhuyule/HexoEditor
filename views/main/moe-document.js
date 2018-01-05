@@ -300,6 +300,7 @@ $(() => {
                             type: 'question',
                             buttons: [__("Yes"), __("No")],
                             title: __("Confirm"),
+                            cancelId: -1,
                             message: __("File changed by another program, reload?")
                         }
                     ) === 0;

@@ -75,6 +75,7 @@ class MoeditorWindow {
                         type: 'question',
                         buttons: [__("Yes"), __("No"), __("Cancel")],
                         title: __("Confirm"),
+                        cancelId: -1,
                         message: __("Save changes to file?")
                     }
                 );
@@ -83,7 +84,7 @@ class MoeditorWindow {
                     if (!MoeditorAction.save(this.window))
                         e.preventDefault();
                         return;
-                } else if (choice == 2) {
+                } else if (choice == 2 || choice == -1) {
                     e.preventDefault();
                     return;
                 }

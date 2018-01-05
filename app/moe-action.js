@@ -157,7 +157,7 @@ class MoeditorAction {
         if (typeof w.moeditorWindow == 'undefined') return false;
 
         if (typeof w.moeditorWindow.fileName == 'undefined' || w.moeditorWindow.fileName == '') {
-            MoeditorAction.saveAs(w);
+            return MoeditorAction.saveAs(w);
         } else {
             try {
                 MoeditorFile.write(w.moeditorWindow.fileName, w.moeditorWindow.content);
@@ -170,6 +170,7 @@ class MoeditorAction {
                     content: __('Saved successfully.')
                 });
                 moeApp.addRecentDocument(w.moeditorWindow.fileName);
+                return true;
             } catch (e) {
                 w.moeditorWindow.window.webContents.send('pop-message', {
                     type: 'error',
@@ -179,7 +180,7 @@ class MoeditorAction {
                 return false;
             }
         }
-        return true;
+        return false;
     }
 
     static saveAs(w) {
@@ -211,6 +212,7 @@ class MoeditorAction {
                 content: __('Saved successfully.')
             });
             w.moeditorWindow.window.webContents.send('set-title', fileName);
+            return true;
         } catch (e) {
             w.moeditorWindow.window.webContents.send('pop-message', {
                 type: 'error',
