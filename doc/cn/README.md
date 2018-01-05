@@ -1,6 +1,6 @@
-<div align="right">:triangular_flag_on_post: Language:
-<a title="English" href="https://github.com/zhuzhuyule/HexoEditor/blob/master/README.md">:us:English</a>
-:cn:中文</div>
+<div align="right">语言: <a title="英语" href="../../README.md">:us:</a>
+:cn:
+<a title="俄语" href="../../docs/ru/README.md">:ru:</a></div>
 
 # <div align="center"><a title="Go to homepage" href="#"><img align="center" width="56" height="56" src="https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/icons/HexoEditor.svg?sanitize=true"></a>  HexoEditor</div>
 
