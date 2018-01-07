@@ -133,6 +133,9 @@ document.addEventListener('DOMContentLoaded', () => {
             moeApp.config.set('custom-render-themes', themes);
             console.log(themes);
             reloadRenderThemeSelect();
+            if (a.length > 0){
+                renderThemeSelect.value = path.basename(s);
+            }
         });
     });
     renderThemeButtonRemove.addEventListener('click', () => {
@@ -416,7 +419,7 @@ document.addEventListener('DOMContentLoaded', () => {
             //未配置主题，自动配置
             let classDir = path.join(hexoConfig.__basedir,hexoConfig.public_dir,'css');
             if (!isFindStyle){
-                if (fs.lstatSync(classDir).isDirectory()){
+                if ( fs.existsSync(classDir) && fs.lstatSync(classDir).isDirectory()){
                     try {
                         let fileNames = fs.readdirSync(classDir);
                         if (fileNames.includes('main.css')){
@@ -430,7 +433,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (isFindStyle) {
                 themes[hexoTheme] = classDir;
+                moeApp.config.set('custom-render-themes', themes);
+                reloadRenderThemeSelect();
+
                 renderThemeSelect.value = hexoTheme;
+                const key = renderThemeSelect.getAttribute('data-key');
+                moeApp.config.set(key, hexoTheme);
+                if (!renderThemeSelect.classList.contains('dont-notify'))
+                    ipcRenderer.send('setting-changed', { key: key, val: hexoTheme });
+
                 reloadHighlightSelect(hexoTheme);
             }
     })
