@@ -1,12 +1,17 @@
 {
-  "name": "hexoeditor",
-  "version": "1.1.8",
+  "name": "HexoEditor",
+  "version": "1.1.10",
   "description": "This is markdown editor for Hexo.",
   "main": "app/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
+    "dist:lin": "electron-builder --linux --x64 --ia32",
+    "dist:mac": "export CSC_IDENTITY_AUTO_DISCOVERY=false && electron-builder --mac --x64",
+    "dist:win": "electron-builder --win --x64 --ia32",
+    "dist:win64": "electron-builder --win --x64",
+    "dist:win32": "electron-builder --win --ia32",
     "start": "electron ."
   },
   "build": {
@@ -14,7 +19,7 @@
     "productName": "HexoEditor",
     "asar": true,
     "nsis": {
-      "artifactName": "${productName}${version}-x64.${ext}",
+      "artifactName": "${name}_${version}_${os}${arch}.${ext}",
       "runAfterFinish": false,
       "deleteAppDataOnUninstall": true,
       "allowToChangeInstallationDirectory": true,
@@ -29,18 +34,14 @@
     },
     "linux": {
       "target": [
+        "tar.gz",
         "appImage",
         "deb"
-      ] ,
-      "icon": "icons/HexoEditor.ico"
+      ],
+      "icon": "icons/"
     },
     "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": ["x64" ]
-        }
-      ],
+      "target": "nsis",
       "icon": "icons/HexoEditor.ico"
     }
   },
@@ -97,6 +98,6 @@
     "yamljs": "^0.3.0"
   },
   "devDependencies": {
-    "electron": "^1.7.9"
+    "electron": "^1.8.1"
   }
 }
