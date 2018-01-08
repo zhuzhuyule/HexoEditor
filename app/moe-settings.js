@@ -25,6 +25,8 @@ let settingsWindow;
 
 function showSettingsWindow() {
     if (typeof settingsWindow !== 'undefined') {
+        if (settingsWindow.isMinimized())
+            settingsWindow.restore();
         settingsWindow.focus();
         return;
     }

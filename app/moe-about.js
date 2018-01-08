@@ -25,6 +25,8 @@ var aboutWindow;
 
 function showAboutWindow() {
     if (typeof aboutWindow !== 'undefined') {
+        if (aboutWindow.isMinimized())
+            aboutWindow.restore();
         aboutWindow.focus();
         return;
     }
