@@ -125,7 +125,7 @@ function setHighlightTheme(val) {
 
 function setRenderTheme(val) {
     const container = document.getElementById('container');
-    if (['GitHub','No Theme'].indexOf(val) > -1){
+    if (['*GitHub','*No Theme'].indexOf(val) > -1){
         $(container).addClass('_def');
         $(container).removeClass('post-body');
         moeApp.defTheme = true;
@@ -185,6 +185,11 @@ function setCustomCSSs(val) {
     }
 }
 
+// just use to v1.1.8 ---> v1.1.10
+let tmpTheme = moeApp.config.get('render-theme');
+if (['GitHub','No Theme','next'].indexOf(tmpTheme) > -1){
+    moeApp.config.set('render-theme', '*'+tmpTheme)
+}
 
 tryRun(setEditorFont, moeApp.config.get('editor-font'));
 tryRun(setShowLineNumber, !!moeApp.config.get('editor-ShowLineNumber'));

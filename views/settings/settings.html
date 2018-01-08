@@ -233,7 +233,7 @@
                                         <script>
                                             fs.readdirSync(`${app.getAppPath()}/themes`)
                                                 .forEach(s => {
-                                                    document.write(`<option value="${s}" class="builtin">${s}</option>`);
+                                                    document.write(`<option value="\*${s}" class="builtin">*${s}</option>`);
                                                 });
 
                                             const custom = moeApp.config.get('custom-render-themes');

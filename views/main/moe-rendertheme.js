@@ -19,19 +19,21 @@
 
 'use strict'
 
-const fs = require('fs');
 const path = require('path');
 const url = require('url');
 
-const builtin = fs.readdirSync(path.resolve(app.getAppPath(), 'themes'));
 
 module.exports = {
     getCSS(forURL) {
         const theme = moeApp.config.get('render-theme');
-        moeApp.defTheme = ['GitHub','No Theme'].indexOf(theme) > -1;
+        moeApp.defTheme = ['*GitHub','*No Theme'].indexOf(theme) > -1;
+
         let res;
-        if (builtin.includes(theme)) res = path.resolve(app.getAppPath(), 'themes', theme, 'main.css');
-        else res = path.resolve(moeApp.config.get('custom-render-themes')[theme], 'main.css');
+        if (theme.startsWith('*')) {
+            res = path.resolve(app.getAppPath(), 'themes', theme.slice(1), 'main.css');
+        }
+        else
+            res = path.resolve(moeApp.config.get('custom-render-themes')[theme], 'main.css');
         if (forURL) res = url.resolve('file://', res);
         return res;
     }

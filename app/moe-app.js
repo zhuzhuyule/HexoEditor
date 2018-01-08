@@ -213,8 +213,11 @@ class MoeditorApplication {
     getHighlightThemesDir(){
         const currTheme = this.config.get('render-theme')
         let themedir = 'github'
-        if (!(currTheme == 'GitHub' || currTheme == 'No Theme')){
-            themedir = currTheme.toLowerCase();
+        if (!(currTheme == '*GitHub' || currTheme == '*No Theme')){
+            if (currTheme.startsWith('*'))
+                themedir = currTheme.slice(1).toLowerCase();
+            else
+                themedir = currTheme.toLowerCase();
         }
         themedir = path.join(moeApp.Const.path+'/views/highlightThemes/',themedir);
 	    return (fs.existsSync(themedir)? themedir : '');

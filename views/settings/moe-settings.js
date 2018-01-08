@@ -77,18 +77,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Custom render themes
     let renderThemeSelect = document.querySelector('select[data-key="render-theme"]');
+
+    function setCurrentTheme(currTheme, changeConfig){
+        if (!currTheme){
+            currTheme = moeApp.config.get('render-theme');
+        } else {
+            if (changeConfig)
+                moeApp.config.set("render-theme", currTheme);
+        }
+        renderThemeSelect.value = currTheme;
+        ipcRenderer.send('setting-changed', { key: "render-theme", val: currTheme });
+    }
+
     function reloadRenderThemeSelect() {
         renderThemeSelect.querySelectorAll('option:not(.builtin)').forEach((a) => renderThemeSelect.removeChild(a));
         const custom = moeApp.config.get('custom-render-themes');
-        for (const x in custom) {
+        for (const item in custom) {
             const option = document.createElement('option');
-            option.value = option.text = x;
-            if (fs.existsSync(path.resolve( custom[x],'main.css')))
+            option.value = option.text = item;
+            if (!fs.existsSync(path.resolve( custom[item],'main.css')))
                 option.classList.add('invalidFile');
             renderThemeSelect.appendChild(option);
         }
-        renderThemeSelect.value = moeApp.config.get('render-theme');
+        setCurrentTheme();
     }
+
     let renderThemeButtonAdd = document.querySelector('select[data-key="render-theme"] ~ button.button-add');
     let renderThemeButtonRemove = document.querySelector('select[data-key="render-theme"] ~ button.button-remove');
     function setRenderThemeButtons() {
@@ -132,10 +145,10 @@ document.addEventListener('DOMContentLoaded', () => {
             for (const s of a) themes[path.basename(s)] = s;
             moeApp.config.set('custom-render-themes', themes);
             console.log(themes);
-            reloadRenderThemeSelect();
             if (a.length > 0){
-                renderThemeSelect.value = path.basename(s);
+                moeApp.config.set('render-theme', path.basename(a[0]));
             }
+            reloadRenderThemeSelect();
         });
     });
     renderThemeButtonRemove.addEventListener('click', () => {
@@ -144,15 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
         let themes = JSON.parse(JSON.stringify(moeApp.config.get('custom-render-themes')));
         themes[option.value] = undefined;
         moeApp.config.set('custom-render-themes', themes);
+        moeApp.config.set('render-theme', '*GitHub');
         reloadRenderThemeSelect();
-
-        // Reset to default
-        moeApp.config.set('render-theme', 'GitHub');
-        renderThemeSelect.value = 'GitHub';
-
-        let e = document.createEvent('HTMLEvents');
-        e.initEvent('change', false, true);
-        renderThemeSelect.dispatchEvent(e);
     });
 
     // Highlight Theme
@@ -367,7 +373,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function newCustomeTheme(dir){
         try {
+            if ( !fs.existsSync(dir ))
+                return false;
             let fileNames = fs.readdirSync(dir);
+            if (fileNames.includes('main.css') )
+                return true;
             let stylecss = [];
             fileNames.filter(function (file) {
                 if (file.endsWith('.css')) {
@@ -377,9 +387,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             if (stylecss.length > 0) {
                 fs.writeFileSync(path.resolve(dir, 'main.css'), stylecss.toString());
-
-                themes[hexoTheme] = dir;
-                moeApp.config.set('custom-render-themes', themes);
                 return true;
             }
         } catch (e) {
@@ -400,49 +407,46 @@ document.addEventListener('DOMContentLoaded', () => {
             let breaksCheck = document.querySelector('input[data-key="breaks"]');
             breaksCheck.checked || breaksCheck.click();
 
-
             let hexoConfig = moeApp.getHexo().config;
             let themes = JSON.parse(JSON.stringify(moeApp.config.get('custom-render-themes')));
             let hexoTheme = hexoConfig.theme;
             let isFindStyle = false;
+
             if (themes[hexoTheme]){
-                if (fs.existsSync(path.resolve( themes[hexoTheme],'main.css'))) {
-                    renderThemeSelect.value = hexoTheme;
-                    reloadHighlightSelect(hexoTheme);
-                    isFindStyle = true;
-                }else {
-                    if (newCustomeTheme(themes[hexoTheme])) {
-                        isFindStyle = true;
-                    }
-                }
+                    isFindStyle = newCustomeTheme(themes[hexoTheme])
             }
             //未配置主题，自动配置
             let classDir = path.join(hexoConfig.__basedir,hexoConfig.public_dir,'css');
             if (!isFindStyle){
                 if ( fs.existsSync(classDir) && fs.lstatSync(classDir).isDirectory()){
-                    try {
-                        let fileNames = fs.readdirSync(classDir);
-                        if (fileNames.includes('main.css')){
-                            isFindStyle = true;
-                        } else {
-                            isFindStyle = newCustomeTheme(classDir);
-                        }
-                    } catch (err) {
-                    }
+                    isFindStyle = newCustomeTheme(classDir);
                 }
             }
             if (isFindStyle) {
+                for (let item in themes){
+                    if (themes.hasOwnProperty(item) && themes[item] == classDir) {
+                            delete themes[item];
+                    }
+                }
+
                 themes[hexoTheme] = classDir;
                 moeApp.config.set('custom-render-themes', themes);
-                reloadRenderThemeSelect();
+                moeApp.config.set("render-theme", hexoTheme);
 
-                renderThemeSelect.value = hexoTheme;
-                const key = renderThemeSelect.getAttribute('data-key');
-                moeApp.config.set(key, hexoTheme);
-                if (!renderThemeSelect.classList.contains('dont-notify'))
-                    ipcRenderer.send('setting-changed', { key: key, val: hexoTheme });
-
+                reloadRenderThemeSelect(hexoTheme);
                 reloadHighlightSelect(hexoTheme);
+            } else {
+                dialog.showMessageBox(
+                    window.w,
+                    {
+                        type: 'warning',
+                        title: __('Waring'),
+                        message: __("WaringNoFile"),
+                        detail: __("WaringNoFileDetail1") + classDir +  __("WaringNoFileDetail2")
+                    } ,
+                    function (res) {
+                    }
+                )
             }
     })
 });

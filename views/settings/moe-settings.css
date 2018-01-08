@@ -127,3 +127,11 @@ html.darwin input {
     padding-left: 7px;
     border-radius: 5px;
 }
+
+option.builtin{
+    background-color: #eee;
+}
+
+option.invalidFile {
+    color: red;
+}

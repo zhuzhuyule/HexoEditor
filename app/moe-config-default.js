@@ -37,7 +37,7 @@ module.exports = {
     'auto-reload': 'auto',
     'auto-save': 'disabled',
     'highlight-theme': 'github',
-    'render-theme': 'GitHub',
+    'render-theme': '*GitHub',
     'custom-render-themes': {},
     'custom-csss': {},
     'editor-ShowLineNumber': false,

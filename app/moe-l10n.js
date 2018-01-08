@@ -176,6 +176,11 @@ const strings = {
         "Hexo Config": "Hexo Config",
         "Hexo tags": "Tag Templates",
 
+        "Waring": "Waring",
+        "WaringNoFile": "No CSS files found !",
+        "WaringNoFileDetail1": 'Please check the directory: \n"',
+        "WaringNoFileDetail2": '"\n\nIf you were used Hexo,\nyou can try open Hexo\'s directory and execute command \n"hexo -g" to solve.',
+
         "Default": "Default",
         "System Default": "System Default",
 
@@ -289,6 +294,10 @@ const strings = {
         "Hexo Config": "Hexo配置文件",
         "Hexo tags": "Tag模板目录",
 
+        "Waring": "警告",
+        "WaringNoFile": "没有发现CSS文件!",
+        "WaringNoFileDetail1": '请检查如下路径: \n"',
+        "WaringNoFileDetail2": '"\n\n如果你使用Hexo框架，\n可尝试在Hexo项目目录下运行命令"hexo -g"来解决。',
 
         "Default": "默认",
         "System Default": "系统默认",
