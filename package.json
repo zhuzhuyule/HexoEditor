@@ -7,11 +7,13 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
-    "dist:lin": "electron-builder --linux --x64 --ia32",
+    "dist:l": "electron-builder --linux --ia32 --x64",
+    "dist:l32": "electron-builder --linux --x64",
+    "dist:l64": "electron-builder --linux --ia32",
+    "dist:w": "electron-builder --win --ia32 --x64",
+    "dist:w32": "electron-builder --win --ia32",
+    "dist:w64": "electron-builder --win --x64",
     "dist:mac": "export CSC_IDENTITY_AUTO_DISCOVERY=false && electron-builder --mac --x64",
-    "dist:win": "electron-builder --win --x64 --ia32",
-    "dist:win64": "electron-builder --win --x64",
-    "dist:win32": "electron-builder --win --ia32",
     "start": "electron ."
   },
   "build": {
