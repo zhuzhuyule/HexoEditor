@@ -82,18 +82,28 @@
 - [ ] 多标签编辑显示
 
 # 安装
-```bash
-npm install
+```c
+//如果使用 Windows:
+npm config set prefix "C:\Program Files\nodejs\npm_global"
+npm config set cache "C:\Program Files\nodejs\npm_cache" 
+
+//如果使用 Linux\Mac:
+npm config set prefix "~/nodejs/npm_global"
+npm config set cache "~/nodejs/npm_cache" 
+
+//在中国，中国，中国，你应该设置淘宝镜像来加速下载。
+npm config set registry "https://registry.npm.taobao.org"
+npm config set electron_mirror "https://npm.taobao.org/mirrors/electron/"
+
+git clone https://github.com/zhuzhuyule/HexoEditor.git
+npm instal -g elctron@1.8.1
+npm instal
 npm start
 ```
+这里是 [详细安装方式](https://github.com/zhuzhuyule/HexoEditor/blob/master/doc/en/Building.md)
 
 国内，如果想要提高下载速度，请使用 `cnpm` 来代替 `npm`，命令如下 。
 
-```bash
-npm install cnpm -g --registry=https://registry.npm.taobao.org
-cnpm install
-cnpm start
-```
 # 调试模式
 这里有三种方法打开 [Chrome开发者工具](https://developer.chrome.com/devtools).
 
