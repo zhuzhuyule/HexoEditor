@@ -1,6 +1,6 @@
 ## Building
 ### Summary 
-```
+```c
 //is use Windows:
 npm config set prefix "C:\Program Files\nodejs\npm_global"
 npm config set cache "C:\Program Files\nodejs\npm_cache" 
@@ -65,6 +65,19 @@ npm config set prefix "~/nodejs/npm_global"
 npm config set cache "~/nodejs/npm_cache"  
 ```
 [淘宝 NPM 镜像](https://npm.taobao.org) help you speed up where you are in China !
+
+You can find `.npmrc` from setting path or default path:
+- Windows : `%HOMEPATH%/`
+- Linux/Unix/Mac: `~/`  
+
+
+set content this:
+```c
+registry=https://registry.npm.taobao.org
+sass_binary_site=https://npm.taobao.org/mirrors/node-sass/
+phantomjs_cdnurl=http://npm.taobao.org/mirrors/phantomjs
+ELECTRON_MIRROR=http://npm.taobao.org/mirrors/electron/
+```
 #### 4.Git Clone
 ```sql
 git clone https://github.com/zhuzhuyule/HexoEditor.git
