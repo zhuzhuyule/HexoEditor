@@ -82,7 +82,7 @@ Inherit [Moeditor](https://github.com/Moeditor/Moeditor), I want to fix it appro
 
 # Building
 ```c
-//is use Windows:
+//if use Windows:
 npm config set prefix "C:\Program Files\nodejs\npm_global"
 npm config set cache "C:\Program Files\nodejs\npm_cache" 
 
@@ -90,7 +90,7 @@ npm config set cache "C:\Program Files\nodejs\npm_cache"
 npm config set prefix "~/nodejs/npm_global"
 npm config set cache "~/nodejs/npm_cache" 
 
-//If In China China China, you can set mirror to speed up !
+//If In China, China, China, you can set mirror to speed up !
 npm config set registry "https://registry.npm.taobao.org"
 npm config set electron_mirror "https://npm.taobao.org/mirrors/electron/"
 
