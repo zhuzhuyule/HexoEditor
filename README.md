@@ -99,7 +99,7 @@ npm instal -g elctron@1.8.1
 npm instal
 npm start
 ```
-This is (Detail Method](https://github.com/zhuzhuyule/HexoEditor/blob/master/doc/en/Building.md)
+This is [Detail Method](https://github.com/zhuzhuyule/HexoEditor/blob/master/doc/en/Building.md)
 
 # Debugging
 There's three ways to open the [Chromium Developer Tools](https://developer.chrome.com/devtools).
