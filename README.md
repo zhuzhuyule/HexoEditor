@@ -81,7 +81,7 @@ Inherit [Moeditor](https://github.com/Moeditor/Moeditor), I want to fix it appro
 - [ ] Add multi-editing in tabs
 
 # Building
-```
+```c
 //is use Windows:
 npm config set prefix "C:\Program Files\nodejs\npm_global"
 npm config set cache "C:\Program Files\nodejs\npm_cache" 
