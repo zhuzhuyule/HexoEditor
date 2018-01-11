@@ -81,11 +81,25 @@
 - [ ] Добавить мульти-редактирование во вкладках
 
 # Компилирование
-```bash
-npm install
+```c
+//is use Windows:
+npm config set prefix "C:\Program Files\nodejs\npm_global"
+npm config set cache "C:\Program Files\nodejs\npm_cache" 
+
+//if use Linux\Mac:
+npm config set prefix "~/nodejs/npm_global"
+npm config set cache "~/nodejs/npm_cache" 
+
+//If In China China China, you can set mirror to speed up !
+npm config set registry "https://registry.npm.taobao.org"
+npm config set electron_mirror "https://npm.taobao.org/mirrors/electron/"
+
+git clone https://github.com/zhuzhuyule/HexoEditor.git
+npm instal -g elctron@1.8.1
+npm instal
 npm start
 ```
-
+This is [Detail Method](https://github.com/zhuzhuyule/HexoEditor/blob/master/doc/en/Building.md)
 # Отладка
 Открываем [Chromium Developer Tools](https://developer.chrome.com/devtools) и далее есть 3 способа:
 
