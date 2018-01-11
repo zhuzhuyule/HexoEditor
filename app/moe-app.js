@@ -37,11 +37,11 @@ class MoeditorApplication {
         this.newWindow = null;
 	}
 
-	open(fileName) {
+	open(fileName,defName) {
         if (typeof fileName === 'undefined') {
-            this.windows.push(new MoeditorWindow(process.cwd()));
+            this.windows.push(new MoeditorWindow(process.cwd(),defName));
         } else {
-            this.windows.push(new MoeditorWindow(fileName));
+            this.windows.push(new MoeditorWindow(fileName,defName));
         }
 	}
 
@@ -188,6 +188,12 @@ class MoeditorApplication {
             let w = require('electron').BrowserWindow.getFocusedWindow();
             w.reload();
         });
+
+        shortcut.register('CmdOrCtrl + Alt + Shift + F12', () => {
+            let w = require('electron').BrowserWindow.getFocusedWindow();
+            w.webContents.openDevTools();
+        });
+
 
         /*
         shortcut.register('CmdOrCtrl + Shift + P', () => {

@@ -68,7 +68,7 @@ class MoeditorAction {
                     if (count > 50) {
                         break;
                     }
-                } while (fs.existsSync(fileName))
+                } while (fs.existsSync(fileName));
                 if (fs.existsSync(templateFile)) {
                     content = fs.readFileSync(templateFile).toString()
                         .replace(/title:\s+\{\{[^\}]+\}\}/, 'title: ' + nowDate.replace(/[-: ]/g, ''))
@@ -82,8 +82,9 @@ class MoeditorAction {
                     let w = require('electron').BrowserWindow.getFocusedWindow();
                     if (typeof w.moeditorWindow == 'undefined' || w.moeditorWindow.changed || w.moeditorWindow.content) {
                         app.addRecentDocument(fileName);
-                        moeApp.open(fileName);
+                        moeApp.open(fileName,fileName);
                     } else {
+                        w.moeditorWindow.defName = fileName;
                         w.moeditorWindow.fileName = fileName;
                         w.moeditorWindow.directory = lastDir;
                         w.moeditorWindow.fileContent = w.moeditorWindow.content = MoeditorFile.read(fileName).toString();
@@ -161,6 +162,7 @@ class MoeditorAction {
         } else {
             try {
                 MoeditorFile.write(w.moeditorWindow.fileName, w.moeditorWindow.content);
+                w.moeditorWindow.isSaved = true;
                 w.moeditorWindow.fileContent = w.moeditorWindow.content;
                 w.moeditorWindow.changed = false;
                 w.moeditorWindow.window.setDocumentEdited(false);
@@ -201,6 +203,7 @@ class MoeditorAction {
 
         try {
             MoeditorFile.write(fileName, w.moeditorWindow.content);
+            w.moeditorWindow.isSaved = true;
             w.moeditorWindow.fileContent = w.moeditorWindow.content;
             w.moeditorWindow.fileName = fileName;
             w.moeditorWindow.changed = false;

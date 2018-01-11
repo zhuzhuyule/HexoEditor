@@ -26,7 +26,7 @@ const BrowserWindow = require('electron').BrowserWindow,
       MoeditorFile = require('./moe-file');
 
 class MoeditorWindow {
-	constructor(path) {
+	constructor(path,defName) {
         moeApp.newWindow = this;
 
         if (MoeditorFile.isDirectory(path)) {
@@ -39,7 +39,9 @@ class MoeditorWindow {
             this.fileContent = this.content = MoeditorFile.read(path).toString();
         }
 
-        this.changed = false;
+        this.defName = defName;
+        this.isSaved = (path !== defName);
+        this.changed = path === defName;
         const debug = (moeApp.flag.debug | moeApp.config.get('debug')) != 0;
         var conf = {
             icon: Const.path + "/icons/HexoEditor.ico",
@@ -87,6 +89,10 @@ class MoeditorWindow {
                 } else if (choice == 2 || choice == -1) {
                     e.preventDefault();
                     return;
+                } else{
+                    var fs = require('fs');
+                    if (!this.isSaved && fs.existsSync(this.fileName))
+                        fs.unlinkSync(this.fileName);
                 }
             }
 

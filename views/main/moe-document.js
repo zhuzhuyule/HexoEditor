@@ -25,8 +25,6 @@ window.w = moeApp.newWindow;
 require('electron-titlebar');
 
 let gSavedContent;
-let gTitle;
-let gIsChangeFile = false;
 
 $(() => {
     const fs = require('fs');
@@ -73,7 +71,7 @@ $(() => {
     };
 
     window.changeFileName = (force)=> {
-        if( gIsChangeFile && !force) return;
+        if( !force && w.defName !== w.fileName ) return;
 
         let title,fileNameNew;
         let filename = path.basename(w.fileName,path.extname(w.fileName));
@@ -83,15 +81,9 @@ $(() => {
             return '';
         });
 
-        if (!gTitle) {
-            if (filename == title) {
-                gTitle = title;
-                gIsChangeFile = false;
-                return;
-            }
-        }
-
-        if (!force && !gIsChangeFile && title === gTitle) {
+        if (filename===title ) {
+            if (force)
+                w.isSaved = true;
             return
         }
 
@@ -110,11 +102,24 @@ $(() => {
             } while (fs.existsSync(fileNameNew))
 
             fs.renameSync(w.fileName,fileNameNew);
-            gIsChangeFile = true;
             w.fileName = fileNameNew;
             w.window.setRepresentedFilename(fileNameNew);
-            app.addRecentDocument(fileNameNew);
             document.getElementsByTagName('title')[0].innerText = 'Moeditor - ' + path.basename(fileNameNew);
+
+            if(force){
+                fs.writeFile(w.fileName, w.content, (err) => {
+                    if (err) {
+                        w.changed = true;
+                        w.window.setDocumentEdited(true);
+                        return;
+                    }
+                    w.isSaved = true;
+                    w.changed = false;
+                    w.window.setDocumentEdited(false);
+                    app.addRecentDocument(fileNameNew);
+                    gSavedContent = w.content;
+                });
+            }
         } catch (e) {
             console.log(e);
         }
@@ -131,7 +136,7 @@ $(() => {
                 w.window.setDocumentEdited(true);
                 return;
             }
-            gSavedContent = w.content;
+            w.isSaved = true;
             w.changed = false;
             w.window.setDocumentEdited(false);
         });
