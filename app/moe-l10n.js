@@ -182,7 +182,7 @@ const strings = {
         "HEXOClean": "Clean Cache",
         "HEXOGenerate": "Generate file",
         "HEXODeploy": "Deploy web",
-        "HEXOKillPort": "Kill",
+        "HEXOKillPort": "Kill Port Thread",
 
         "ban": "Cancle",
         "stop": "Stop",
