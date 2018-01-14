@@ -26,6 +26,7 @@ const MoeditorWindow = require('./moe-window'),
       MoeditorFile = require('./moe-file'),
       shortcut = require('electron-localshortcut'),
       MoeditorLocale = require('./moe-l10n'),
+      MoeditorShell = require('./moe-shell'),
       MoeditorAbout = require('./moe-about'),
       MoeditorSettings = require('./moe-settings'),
       fs = require('fs'),
@@ -55,6 +56,7 @@ class MoeditorApplication {
         this.Const = Const;
 
         this.locale = new MoeditorLocale();
+        this.shellServer = new MoeditorShell();
         global.__ = str => this.locale.get(str);
 
         this.flag = new Object();
@@ -107,7 +109,7 @@ class MoeditorApplication {
                     MoeditorAction.openNew();
                 },
                 fileNewHexo: (w) => {
-                    MoeditorAction.openNew();
+                    MoeditorAction.openNewHexo();
                 },
                 fileOpen: (w) => {
                     MoeditorAction.open();

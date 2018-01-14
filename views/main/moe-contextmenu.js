@@ -19,6 +19,8 @@
 
 'use strict'
 
+let shellServer = moeApp.shellServer;
+
 document.addEventListener('DOMContentLoaded', () => {
     const remote = require('electron').remote;
     const {Menu, MenuItem} = remote;
@@ -84,19 +86,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     type: 'separator'
                 },
                 {
-                    label: __('File Rename'),
-                    visible: !moeApp.defTheme,
-                    click(item, w) {
-                        window.changeFileName(true);
-                    }
-                },
-                {
                     label: __('Show Number'),
                     type: 'checkbox',
                     checked: window.editor.getOption('lineNumbers'),
                     click(item, w) {
                         let editor = document.querySelector('#editor');
-                        if (item.checked){
+                        if (item.checked) {
                             editor.classList.add('gutter');
                         } else {
                             editor.classList.remove('gutter')
@@ -112,6 +107,73 @@ document.addEventListener('DOMContentLoaded', () => {
                     click(item, w) {
                         window.scrollTogether = !window.scrollTogether;
                     }
+                },
+                {
+                    type: 'separator',
+                    visible: !moeApp.defTheme,
+                },
+                {
+                    label: "HEXO",
+                    visible: !moeApp.defTheme,
+                    enabled: !shellServer.processRunning(),
+                    click(item, w) {
+                        const shell = require('electron').shell
+                        shell.showItemInFolder(path.join(hexo.config.__basedir, '*'))
+                    },
+                    submenu: [
+                        {
+                            label: __('File Rename'),
+                            click(item, w) {
+                                window.changeFileName(true);
+                            }
+                        },
+                        {
+                            label: __('HEXOOpenPath'),
+                            click(item, w) {
+                                const shell = require('electron').shell
+                                shell.showItemInFolder(path.join(hexo.config.__basedir, '*'))
+                            }
+                        },
+                        {
+                            label: __('HEXOQuickPublish'),
+                            click(item, w) {
+                                shellServer.generalAndDeploy();
+                            }
+                        },
+                        {
+                            type: 'separator'
+                        },
+                        {
+                            label: __('HEXOServer'),
+                            click(item, w) {
+                                shellServer.server();
+                            }
+                        },
+                        {
+                            label: __('HEXOClean'),
+                            click(item, w) {
+                                shellServer.clean();
+                            }
+                        },
+                        {
+                            label: __('HEXOGenerate'),
+                            click(item, w) {
+                                shellServer.general();
+                            }
+                        },
+                        {
+                            label: __('HEXODeploy'),
+                            click(item, w) {
+                                shellServer.deploy();
+                            }
+                        },
+                        {
+                            label: __('HEXOKillPort'),
+                            click(item, w) {
+                                shellServer.stopServerForce();
+                            }
+                        }
+                    ]
                 }
             ];
             Menu.buildFromTemplate(template).popup(remote.getCurrentWindow());

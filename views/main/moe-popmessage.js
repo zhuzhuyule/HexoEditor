@@ -38,6 +38,32 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    let oldbiu = null;
+    ipcRenderer.on('pop-message-shell',(e,arg)=>{
+        if (oldbiu && oldbiu != null) oldbiu.hide();
+        oldbiu = biu(arg.content, {
+            type: 'webConsole biu-' + arg.type,
+            autoHide: !!arg.autoHide,
+            pop: true,
+            align: arg.align || 'left',
+            closeButton: '<i class="fa fa-' + (arg.btnTip||"close") + '" aria-hidden="true" title=' + __(arg.btnTip||"Close") + '></i>'
+        });
+        oldbiu.closeButton.addEventListener('click', function () {
+            process.nextTick(moeApp.shellServer.kill);
+        });
+
+        if (!drags)
+            drags = document.getElementsByClassName('drag');
+        // workaround for #electron/electron/6970
+        for (let drag of drags) {
+            drag.style.width = '0';
+            drag.offsetHeight;
+            setTimeout(() => {
+                drag.style.width = ''
+            }, 1000);
+        }
+    })  ;
+
     ipcRenderer.on('refresh-editor', function () {
         let w  = window.w;
         if (w.fileName !== '') {

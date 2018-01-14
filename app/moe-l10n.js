@@ -176,6 +176,25 @@ const strings = {
         "Hexo Config": "Hexo Config",
         "Hexo tags": "Tag Templates",
 
+        "HEXOOpenPath": "Open Work Path",
+        "HEXOQuickPublish": "Quick Deploy",
+        "HEXOServer": "Start Server",
+        "HEXOClean": "Clean Cache",
+        "HEXOGenerate": "Generate file",
+        "HEXODeploy": "Deploy web",
+        "HEXOKillPort": "Kill",
+
+        "ban": "Cancle",
+        "stop": "Stop",
+        "close": "Close",
+        "check": "Confirm",
+        "ServerStart": "Service Started And Continue... ",
+        "Executing": "Operation Executing...",
+        "Operation Execution Timeout": "Operation Execution Timeout !",
+        "Operation Finished": "Operation Finished !",
+        "Operation Canceled": "Operation Canceled !",
+        "PortOccupied": "[ %s:%s ] Port is occupied, please change other IP or Port.",
+
         "Waring": "Waring",
         "WaringNoFile": "No CSS files found !",
         "WaringNoFileDetail1": 'Please check the directory: \n"',
@@ -188,8 +207,6 @@ const strings = {
 
         "Auto save": "Auto save",
         "Auto": "Auto",
-        "On Blur": "On Blur",
-        "Disabled": "Disabled",
         "Prompt": "Prompt",
         "Never": "Never",
 
@@ -294,6 +311,25 @@ const strings = {
         "Hexo Config": "Hexo配置文件",
         "Hexo tags": "Tag模板目录",
 
+        "HEXOOpenPath": "打开项目",
+        "HEXOQuickPublish": "一键部署",
+        "HEXOServer": "启动服务器",
+        "HEXOClean": "清除缓存文件",
+        "HEXOGenerate": "生成静态文件",
+        "HEXODeploy": "部署网站",
+        "HEXOKillPort": "结束占用进程",
+
+        "ban": "取消",
+        "stop": "停止",
+        "close": "关闭",
+        "check": "确认",
+        "ServerStart": "服务已启动...",
+        "Executing": "操作执行中...",
+        "Operation Execution Timeout": "操作执行超时！",
+        "Operation Finished": "操作完成！",
+        "Operation Canceled": "取消操作！",
+        "PortOccupied": "[ %s:%s ] 端口占用, 请更换IP地址或端口。",
+
         "Waring": "警告",
         "WaringNoFile": "没有发现CSS文件!",
         "WaringNoFileDetail1": '请检查如下路径: \n"',
@@ -307,10 +343,9 @@ const strings = {
 
         "Auto save": "自动保存",
         "Auto": "自动",
-        "On Blur": "询问",
-        "Disabled": "从不",
         "Prompt": "询问",
         "Never": "从不",
+
 
         "Undo": "撤销",
         "Redo": "重做",

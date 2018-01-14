@@ -34,7 +34,7 @@ class MoeditorAction {
         let w, i;
         for (i = windows.length - 1; i > -1; i--) {
             w = windows[i];
-            if (w.moeditorWindow && !w.moeditorWindow.changed) {
+            if (w.moeditorWindow && w.moeditorWindow.content.length < 1 &&!w.moeditorWindow.changed) {
                 w.focus();
                 break;
             }

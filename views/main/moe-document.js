@@ -32,7 +32,6 @@ $(() => {
     const dialog = require('electron').remote.dialog;
     const YMAL = require('yamljs');
 
-
     const MoeditorPreview = require('./moe-preview');
 
     if (w.fileName !== '') {
@@ -127,19 +126,18 @@ $(() => {
 
     window.autoSave = ()=> {
         const option = moeApp.config.get('auto-save');
-        if (option === 'disabled') return;
-        if (w.content === gSavedContent) return;
-
-        fs.writeFile(w.fileName, w.content, (err) => {
-            if (err) {
-                w.changed = true;
-                w.window.setDocumentEdited(true);
-                return;
-            }
-            w.isSaved = true;
-            w.changed = false;
-            w.window.setDocumentEdited(false);
-        });
+        if (option === 'auto' && w.content !== gSavedContent) {
+            fs.writeFile(w.fileName, w.content, (err) => {
+                if (err) {
+                    w.changed = true;
+                    w.window.setDocumentEdited(true);
+                    return;
+                }
+                w.isSaved = true;
+                w.changed = false;
+                w.window.setDocumentEdited(false);
+            });
+        }
     }
 
     editor.on('change', (editor, obj) => {

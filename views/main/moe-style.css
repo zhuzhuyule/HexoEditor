@@ -493,9 +493,21 @@ body[settings-mode=read] #drag-right, body[settings-mode=write] #drag-right {
 }
 
 .biu-instance {
+    line-height: 2;
     -webkit-app-region: no-drag;
     font-size: 14px;
     font-family: Roboto, Helvetica, 'Segoe UI', Arial, sans-serif;
+}
+
+.biu-instance.biu-webConsole{
+    -webkit-app-region: drag;
+    padding: 0;
+    top: 1px;
+    box-shadow: none;
+}
+
+.biu-close{
+    -webkit-app-region: no-drag;
 }
 
 .invalidFile{

@@ -204,18 +204,6 @@ tryRun(setHexoAutoSetting, moeApp.config.get('hexo-auto-setting'));
 tryRun(setHexoConfigEnable, moeApp.config.get('hexo-config-enable'));
 tryRun(setHexoConfig, moeApp.config.get('hexo-config'));
 tryRun(setHexoTagPaths, moeApp.config.get('hexo-tag-paths'));
-// setEditorFont(moeApp.config.get('editor-font'));
-// setShowLineNumber(!!moeApp.config.get('editor-ShowLineNumber'));
-// setEditorTheme(moeApp.config.get('editor-theme'));
-// setEditorFontSize(moeApp.config.get('editor-font-size'));
-// setEditorLineHeight(moeApp.config.get('editor-line-height'));
-// setRenderTheme(moeApp.config.get('render-theme'));
-// setHighlightTheme(moeApp.config.get('highlight-theme'));
-// setCustomCSSs(moeApp.config.get('custom-csss'));
-// setHexoAutoSetting(moeApp.config.get('hexo-auto-setting'));
-// setHexoConfigEnable(moeApp.config.get('hexo-config-enable'));
-// setHexoConfig(moeApp.config.get('hexo-config'));
-// setHexoTagPaths(moeApp.config.get('hexo-tag-paths'));
 
 const ipcRenderer = require('electron').ipcRenderer;
 ipcRenderer.on('setting-changed', (e, arg) => {

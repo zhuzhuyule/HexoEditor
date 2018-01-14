@@ -39,6 +39,13 @@ module.exports = {
         line_number: true,
         tab_replace: ''
     },
+    server: {
+        port: 4000,
+        log: false,
+        ip: '0.0.0.0',
+        compress: false,
+        header: true
+    },
     // Category & Tag
     default_category: 'uncategorized',
     category_map: {},

@@ -70,6 +70,7 @@ class MoeditorWindow {
 
     registerEvents() {
         this.window.on('close', (e) => {
+            console.log(moeApp.windows.length,this.changed)
             if (moeApp.windows.length && this.changed) {
                 const choice = dialog.showMessageBox(
                     this.window,
@@ -96,11 +97,16 @@ class MoeditorWindow {
                 }
             }
 
+            console.log(this.window == moeApp.shellServer.lastWindow)
+            if (this.window == moeApp.shellServer.lastWindow)
+                process.nextTick(moeApp.shellServer.kill,false);
+
             const index = moeApp.windows.indexOf(this);
             if (index !== -1) moeApp.windows.splice(index, 1);
 
             if ( !moeApp.windows.length) {
-                app.quit()
+                process.nextTick(moeApp.shellServer.kill,false);
+                setTimeout(app.quit,200)
             }
         });
     }
