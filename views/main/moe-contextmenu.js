@@ -109,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 },
                 {
-                    type: 'separator',
+                    type: moeApp.defTheme ? 'normal' : 'separator',
                     visible: !moeApp.defTheme,
                 },
                 {
