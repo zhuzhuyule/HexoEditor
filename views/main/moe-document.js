@@ -23,6 +23,7 @@ window.app = require('electron').remote.app;
 window.moeApp = app.moeApp;
 window.w = moeApp.newWindow;
 require('electron-titlebar');
+const {clipboard} = require('electron');
 
 let gSavedContent;
 
@@ -39,6 +40,74 @@ $(() => {
     }
     document.querySelector('#editor textarea').innerText = w.content;
 
+    function mkdirsSync(dirpath, mode) {
+        if (!fs.existsSync(dirpath)) {
+            var pathtmp;
+            dirpath.split(path.sep).forEach(function (dirname) {
+                if (pathtmp) {
+                    pathtmp = path.join(pathtmp, dirname);
+                }
+                else {
+                    pathtmp = dirname;
+                }
+                if (!fs.existsSync(pathtmp)) {
+                    if (!fs.mkdirSync(pathtmp, mode)) {
+                        return false;
+                    }
+                }
+            });
+        }
+        return true;
+    }
+
+    var perNativeImage;
+    var perImagepath;
+
+    // 判断是否为Mac
+    CodeMirror.commands.prastData = function (codeMirror) {
+        let image = clipboard.readImage();
+        if (!image.isEmpty() ) {
+            if (perNativeImage == image.toDataURL()){
+                codeMirror.replaceSelection(perImagepath, "end");
+                return;
+            }
+            let rootPaht = '';
+            if (!moeApp.defTheme && hexo.config.__basedir) {
+                rootPaht = path.join(hexo.config.__basedir, 'source', 'images');
+            } else if (moeApp.config.get('image-path')) {
+                rootPaht = moeApp.config.get('image-path');
+            } else {
+                rootPaht = w.directory;
+            }
+            let imageTitle = codeMirror.getSelection();
+            let imageName = imageTitle || require('moment')().format('YYYYMMDDhhmmssSSS');
+
+            let count = 0;
+            let currFileName = path.basename(w.fileName, path.extname(w.fileName)) || w.ID;
+            let imagePath = path.join(rootPaht, currFileName, imageName + '.png');
+            do {
+                if (count > 0)
+                    imagePath = path.join(rootPaht, currFileName, imageName + count + '.png');
+                count += 1;
+                if (count > 50) {
+                    imagePath = path.join(rootPaht, currFileName, imageName + require('moment')().format('YYYYMMDDhhmmssSSS') + '.png');
+                    break;
+                }
+            } while (fs.existsSync(imagePath));
+            mkdirsSync(path.dirname(imagePath));
+            fs.writeFileSync(imagePath, image.toPNG());
+            perNativeImage = image.toDataURL();
+            if (!moeApp.defTheme && hexo.config.__basedir)
+                perImagepath = `![${imageTitle}](${'/images/' + path.relative(rootPaht, imagePath).replace(/\\+/g, '/')})`
+            else
+                perImagepath = `![${imageTitle}](${'/' + path.relative(rootPaht, imagePath).replace(/\\+/g, '/')})`
+            codeMirror.replaceSelection(perImagepath, "end");
+        } else {
+            perNativeImage = '';
+            perImagepath = '';
+            codeMirror.replaceSelection(clipboard.readText())
+        }
+    };
     var editor = CodeMirror.fromTextArea(document.querySelector('#editor textarea'), {
         lineNumbers: false,
         mode: moeApp.config.get('math') ? 'gfm_math' : 'gfm',
@@ -46,10 +115,15 @@ $(() => {
         theme: moeApp.config.get('editor-theme'),
         lineWrapping: true,
         extraKeys: {
+            Esc: 'singleSelection',
             Enter: 'newlineAndIndentContinueMarkdownList',
             Home: 'goLineLeft',
             End: 'goLineRight',
-            'Shift-Tab': 'indentLess'
+            Tab: function (codeMirror) {
+                codeMirror.indentSelection(parseInt(codeMirror.getOption("indentUnit")));
+            },
+            'Shift-Tab': 'indentLess',
+            prastDataKey: 'prastData'
         },
         fixedGutter: false,
         tabSize: moeApp.config.get('tab-size'),
@@ -58,6 +132,9 @@ $(() => {
         styleActiveLine: true,
         showCursorWhenSelecting: true
     });
+    var prastDataKey = (process.platform === 'darwin' ? "Cmd" : "Ctrl") + "-V";
+    editor.options.extraKeys[prastDataKey] = "prastData";
+
 
     editor.focus();
 
@@ -69,43 +146,44 @@ $(() => {
         });
     };
 
-    window.changeFileName = (force)=> {
-        if( !force && w.defName !== w.fileName ) return;
+    window.changeFileName = (force) => {
+        if (!force && w.defName !== w.fileName) return;
 
-        let title,fileNameNew;
-        let filename = path.basename(w.fileName,path.extname(w.fileName));
+        let title, fileNameNew;
+        let filename = path.basename(w.fileName, path.extname(w.fileName));
 
         w.content.replace(/^---+([\w\W]+?)---+/, function () {
             title = YMAL.parse(arguments[1]).title;
             return '';
         });
 
-        if (filename===title ) {
+        if (filename === title) {
             if (force)
                 w.isSaved = true;
             return
         }
 
         try {
-            filename = title.toString().replace(/[ \\\/:\*\?"<>\|]+/g,'-');
+            filename = title.toString().replace(/[ \\\/:\*\?"<>\|]+/g, '-');
             let dir = path.dirname(w.fileName);
             let ext = path.extname(w.fileName);
             let count = -1;
             do {
                 count++;
-                fileNameNew = filename + (count > 0 ? count:'');
+                fileNameNew = filename + (count > 0 ? count : '');
                 fileNameNew = path.resolve(dir, fileNameNew + ext);
                 if (w.fileName == fileNameNew || count > 50) {
                     return;
                 }
             } while (fs.existsSync(fileNameNew))
 
-            fs.renameSync(w.fileName,fileNameNew);
+            fs.renameSync(w.fileName, fileNameNew);
             w.fileName = fileNameNew;
+
             w.window.setRepresentedFilename(fileNameNew);
             document.getElementsByTagName('title')[0].innerText = 'Moeditor - ' + path.basename(fileNameNew);
 
-            if(force){
+            if (force) {
                 fs.writeFile(w.fileName, w.content, (err) => {
                     if (err) {
                         w.changed = true;
@@ -124,7 +202,7 @@ $(() => {
         }
     }
 
-    window.autoSave = ()=> {
+    window.autoSave = () => {
         const option = moeApp.config.get('auto-save');
         if (option === 'auto' && w.content !== gSavedContent) {
             fs.writeFile(w.fileName, w.content, (err) => {
@@ -144,7 +222,7 @@ $(() => {
         window.updatePreview(false)
     });
 
-    editor.on('blur',() => {
+    editor.on('blur', () => {
         if (w.fileName === '') return;
         window.changeFileName(false);
         window.autoSave();
@@ -156,11 +234,11 @@ $(() => {
 
     window.editor = editor;
     // workaround for the .button is still :hover after maximize window
-    $('#cover-bottom .button-bottom').mouseover(function() {
+    $('#cover-bottom .button-bottom').mouseover(function () {
         $(this).addClass('hover');
-    }).mouseout(function() {
+    }).mouseout(function () {
         $(this).removeClass('hover');
-    }).click(function() {
+    }).click(function () {
         var s = $(this).data('action');
         if (s === 'menu') MoeditorSideMenu.open();
     });
@@ -182,7 +260,7 @@ $(() => {
             e.preventDefault();
         }
     });
-    $("#container").on('click', 'a', function(e) {
+    $("#container").on('click', 'a', function (e) {
         e.preventDefault();
         const href = this.getAttribute('href');
         if (href.startsWith('#')) {
@@ -223,7 +301,7 @@ $(() => {
 
     $("#main-container div").mousemove(function (e) {
         // $('.scrolling').removeClass('scrolling');
-        if(e.clientX + 100 > this.offsetWidth + this.offsetLeft)
+        if (e.clientX + 100 > this.offsetWidth + this.offsetLeft)
             $(this).find('.CodeMirror-vscrollbar').addClass('hoverScroll');
         else {
             $(this).find('.CodeMirror-vscrollbar').removeClass('hoverScroll');
@@ -232,7 +310,7 @@ $(() => {
 
     $("#main-container div").hover(
         function (e) {
-        }       ,
+        },
         function (e) {
             // $('.scrolling').removeClass('scrolling');
             $(this).find('.CodeMirror-vscrollbar').removeClass('hoverScroll');
@@ -241,16 +319,16 @@ $(() => {
 
     document.querySelectorAll('.CodeMirror-vscrollbar').forEach(
         function (item) {
-            item .addEventListener("transitionend", function (e) {
+            item.addEventListener("transitionend", function (e) {
                 // if (e.propertyName == 'font-size'){
-                    $('.scrolling').removeClass('scrolling');
+                $('.scrolling').removeClass('scrolling');
                 // }
             });
 
-            item.addEventListener("scroll",function (e) {
+            item.addEventListener("scroll", function (e) {
                 if ($(this.parentElement).is(':hover'))
                     $(this).addClass('scrolling');
-                if ($(this).css('font-size') == '14px'){
+                if ($(this).css('font-size') == '14px') {
                     $('.scrolling').removeClass('scrolling');
                 }
             })
@@ -277,7 +355,7 @@ $(() => {
     }, true);
 
 
-    window.addEventListener('resize',function(){
+    window.addEventListener('resize', function () {
         $('#right-panel .CodeMirror-vscrollbar div').height(document.getElementById('container-wrapper').scrollHeight);
     })
 

@@ -39,6 +39,7 @@ class MoeditorWindow {
             this.fileContent = this.content = MoeditorFile.read(path).toString();
         }
 
+        this.ID = require('moment')().format('YYYYMMDDHHmmssSSS');
         this.defName = defName;
         this.isSaved = (path !== defName);
         this.changed = path === defName;

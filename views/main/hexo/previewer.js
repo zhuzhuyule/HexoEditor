@@ -4,6 +4,8 @@ const YAML = require('yamljs');
 const Hexo = require('./hexo');
 const __ = require('lodash');
 const Promise = require('bluebird');
+const url = require('url');
+const fs = require('fs');
 
 var rEscapeContent = /<escape(?:[^>]*)>([\s\S]*?)<\/escape>/g;
 var rSwigVar = /\{\{[\s\S]*?\}\}/g;
@@ -71,6 +73,32 @@ Previewer.prototype.render = function (content, MoeMark, options, callback) {
 
     function after_post_render() {
             hexo.execFilter('after_post_render', data, {context: hexo});
+            let contentHtml = $('<div></div>');
+        contentHtml.html(data.content)
+            let imgs = contentHtml.find('img')|| [];
+            for (let img of imgs) {
+                let src = img.getAttribute('src');
+                let srcLocal = '';
+                if (src && (url.parse(src).protocol === null)) {
+                    if (!fs.existsSync(src)){
+                        if (!moeApp.defTheme && hexo.config.__basedir) {
+                            srcLocal = path.join(hexo.config.__basedir, 'source',src);
+                            if (!fs.existsSync(srcLocal) )
+                                srcLocal = '';
+                        }
+                        if (!srcLocal && moeApp.config.get('image-path')) {
+                            srcLocal = path.join(moeApp.config.get('image-path'),src);
+                            if (!fs.existsSync(srcLocal) )
+                                srcLocal = '';
+                        }
+                        if (!srcLocal)
+                            srcLocal = path.join(w.directory,src);
+                        src = url.resolve('file://', srcLocal);
+                    }
+                }
+                img.setAttribute('src', src);
+            }
+            data.content = contentHtml.html();
     }
 
     if (moeApp.defTheme) {

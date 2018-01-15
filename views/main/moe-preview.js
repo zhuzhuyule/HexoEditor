@@ -23,8 +23,6 @@ var updatePreview = false, updatePreviewRunning = false;
 const marked = require('./moe-marked') ;
 const MoeditorMathRenderer = require('./moe-math');
 const SVGFixer = require('./svgfixer');
-const path = require('path');
-const url = require('url');
 
 
 module.exports = (cm, force, cb) => {
@@ -63,16 +61,6 @@ module.exports = (cm, force, cb) => {
             rendered.innerHTML = value;
             MoeditorMathRenderer.renderMany(math, (math) => {
                 for (let id in math) rendered.querySelector('#' + id).innerHTML = math[id].res;
-
-                let imgs = rendered.querySelectorAll('img') || [];
-                for (let img of imgs) {
-                    let src = img.getAttribute('src');
-                    if (src && (url.parse(src).protocol === null)) {
-                        if (!path.isAbsolute(src)) src = path.resolve(w.directory, src);
-                        src = url.resolve('file://', src);
-                    }
-                    img.setAttribute('src', src);
-                }
 
                 var set = new Set();
                 let lineNumbers = rendered.querySelectorAll('moemark-linenumber') || [];

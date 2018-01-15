@@ -204,6 +204,7 @@ class MoeditorAction {
         try {
             MoeditorFile.write(fileName, w.moeditorWindow.content);
             w.moeditorWindow.isSaved = true;
+            w.moeditorWindow.directory = lastDir;
             w.moeditorWindow.fileContent = w.moeditorWindow.content;
             w.moeditorWindow.fileName = fileName;
             w.moeditorWindow.changed = false;

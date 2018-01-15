@@ -95,12 +95,10 @@ class ShellServer {
         });
         moeApp.shellServer.shellProcess.stdout.on('data', (data) => {
             clearTimeout(moeApp.shellServer.timeID);
-            if (flagOK || (/INFO  Hexo is running at https?:\/+/.test(data)) ) {
+            console.log(data);
+            if ( /INFO  Hexo is running at https?:\/+/.test(data) ) {
                 flagOK = true;
                 moeApp.shellServer.sendConsole('<i class="fa fa-spinner fa-pulse fa-fw margin-bottom"></i>'+__('ServerStart'), 'info', 'stop');
-
-
-
                 require('electron').shell.openExternal(data.match(/INFO  Hexo is running at (https?:\/+[^\/]+\/). Press Ctrl.C to stop./i)[1])
             } else {
                 moeApp.shellServer.timeID = setTimeout(() => {
@@ -110,7 +108,6 @@ class ShellServer {
                     }
                 }, 10000)
             }
-            console.log(data);
         });
         moeApp.shellServer.shellProcess.on('close', (code, signal) => {
             if (flagOK === -1)
