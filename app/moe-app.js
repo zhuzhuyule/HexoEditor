@@ -166,24 +166,24 @@ class MoeditorApplication {
             MoeditorAction.saveAs();
         });
 
-        shortcut.register('CmdOrCtrl + R', () => {
-            let w = require('electron').BrowserWindow.getFocusedWindow();
-            if (w) w.webContents.send('change-edit-mode', 'read');
-        });
+        // shortcut.register('CmdOrCtrl + R', () => {
+        //     let w = require('electron').BrowserWindow.getFocusedWindow();
+        //     if (w) w.webContents.send('change-edit-mode', 'read');
+        // });
 
         shortcut.register('CmdOrCtrl + W', () => {
             let w = require('electron').BrowserWindow.getFocusedWindow();
-            if (w) w.webContents.send('change-edit-mode', 'write');
+            if (w) w.webContents.send('change-edit-mode', 'change');
         });
 
         shortcut.register('CmdOrCtrl + P', () => {
             let w = require('electron').BrowserWindow.getFocusedWindow();
-            if (w) w.webContents.send('change-edit-mode', 'changepreview');
+            if (w) w.webContents.send('change-edit-mode', 'preview');
         });
 
         shortcut.register('CmdOrCtrl + Shift + P', () => {
             let w = require('electron').BrowserWindow.getFocusedWindow();
-            if (w) w.webContents.send('change-edit-mode', 'change');
+            if (w) w.webContents.send('change-edit-mode', 'changepreview');
         });
 
         shortcut.register('CmdOrCtrl + Alt + Shift + R', () => {

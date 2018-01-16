@@ -54,8 +54,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 {
                     label: __('Paste'),
-                    enabled: inEditor && require('electron').clipboard.readText().length !== 0,
-                    role: (inEditor && require('electron').clipboard.readText().length !== 0) ? 'paste' : ''
+                    enabled: inEditor && (require('electron').clipboard.readText().length !== 0||
+                        !clipboard.readImage().isEmpty()),
+                    click(item, w){
+                        pasteData();
+                    }
                 },
                 {
                     label: __('Delete'),

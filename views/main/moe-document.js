@@ -19,11 +19,14 @@
 
 'use strict';
 
+require('electron-titlebar');
 window.app = require('electron').remote.app;
 window.moeApp = app.moeApp;
 window.w = moeApp.newWindow;
-require('electron-titlebar');
-const {clipboard} = require('electron');
+window.imgRelativePathToID = {};
+window.imgIDToRelativePath = {};
+window.imgRelativeToAbsolute = {};
+window.clipboard = require('electron').clipboard;
 
 let gSavedContent;
 
@@ -40,7 +43,33 @@ $(() => {
     }
     document.querySelector('#editor textarea').innerText = w.content;
 
-    function mkdirsSync(dirpath, mode) {
+    var editor = CodeMirror.fromTextArea(document.querySelector('#editor textarea'), {
+        lineNumbers: false,
+        mode: moeApp.config.get('math') ? 'gfm_math' : 'gfm',
+        matchBrackets: true,
+        theme: moeApp.config.get('editor-theme'),
+        lineWrapping: true,
+        extraKeys: {
+            Esc: 'singleSelection',
+            Enter: 'newlineAndIndentContinueMarkdownList',
+            Home: 'goLineLeft',
+            End: 'goLineRight',
+            Tab: function (codeMirror) {
+                codeMirror.indentSelection(parseInt(codeMirror.getOption("indentUnit")));
+            },
+            'Shift-Tab': 'indentLess',
+        },
+        fixedGutter: false,
+        tabSize: moeApp.config.get('tab-size'),
+        indentUnit: moeApp.config.get('tab-size'),
+        viewportMargin: Infinity,
+        styleActiveLine: true,
+        showCursorWhenSelecting: true
+    });
+
+    editor.focus();
+
+    window.mkdirsSync = (dirpath, mode) => {
         if (!fs.existsSync(dirpath)) {
             var pathtmp;
             dirpath.split(path.sep).forEach(function (dirname) {
@@ -60,86 +89,93 @@ $(() => {
         return true;
     }
 
-    var perNativeImage;
-    var perImagepath;
+    window.md5 = (text) => {
+        return require('crypto').createHash('md5').update(text).digest('hex');
+    };
+    window.imgRootPath = (extendPath) => {
+        let rootPaht = '';
+        if (!moeApp.defTheme && hexo.config.__basedir) {
+            rootPaht = path.join(hexo.config.__basedir, 'source', extendPath || '');
+        } else if (moeApp.config.get('image-path')) {
+            rootPaht = moeApp.config.get('image-path');
+        } else {
+            rootPaht = w.directory;
+        }
+        return rootPaht;
+    }
 
-    // 判断是否为Mac
-    CodeMirror.commands.prastData = function (codeMirror) {
+    function replaceImgSelection(codeMirror, title, relativePath, imageID, absolutePath) {
+        if (!relativePath) {
+            if (!moeApp.defTheme && hexo.config.__basedir)
+                relativePath = '/' + path.relative(imgRootPath(), absolutePath).replace(/\\+/g, '/')
+            else
+                relativePath = '/' + path.relative(imgRootPath(), absolutePath).replace(/\\+/g, '/')
+            if (!imageID) {
+                imageID = imgRelativePathToID[absolutePath] || md5(absolutePath);
+            }
+            imgIDToRelativePath[imageID] = relativePath;
+            imgRelativeToAbsolute[imageID] = absolutePath;
+            imgRelativePathToID[relativePath] = imageID;
+        }
+        codeMirror.replaceSelection(`![${title}](${relativePath})`);
+    }
+
+    window.pasteData = (codeMirror) => {
+        if (!codeMirror)
+            codeMirror = editor;
         let image = clipboard.readImage();
-        if (!image.isEmpty() ) {
-            if (perNativeImage == image.toDataURL()){
-                codeMirror.replaceSelection(perImagepath, "end");
+        if (!image.isEmpty()) {
+            image = image.toPNG();
+            let imageTitle = codeMirror.getSelection();
+            let imageID = md5(image);
+            let relativePath = imgIDToRelativePath[imageID];
+            if (relativePath) {
+                replaceImgSelection(codeMirror, imageTitle, relativePath);
                 return;
             }
-            let rootPaht = '';
-            if (!moeApp.defTheme && hexo.config.__basedir) {
-                rootPaht = path.join(hexo.config.__basedir, 'source', 'images');
-            } else if (moeApp.config.get('image-path')) {
-                rootPaht = moeApp.config.get('image-path');
-            } else {
-                rootPaht = w.directory;
-            }
-            let imageTitle = codeMirror.getSelection();
+            let rootPaht = imgRootPath('images');
             let imageName = imageTitle || require('moment')().format('YYYYMMDDhhmmssSSS');
 
             let count = 0;
             let currFileName = path.basename(w.fileName, path.extname(w.fileName)) || w.ID;
-            let imagePath = path.join(rootPaht, currFileName, imageName + '.png');
+            let imageAbsolutePath = path.join(rootPaht, currFileName, imageName + '.png');
             do {
                 if (count > 0)
-                    imagePath = path.join(rootPaht, currFileName, imageName + count + '.png');
+                    imageAbsolutePath = path.join(rootPaht, currFileName, imageName + count + '.png');
                 count += 1;
                 if (count > 50) {
-                    imagePath = path.join(rootPaht, currFileName, imageName + require('moment')().format('YYYYMMDDhhmmssSSS') + '.png');
+                    imageAbsolutePath = path.join(rootPaht, currFileName, imageName + require('moment')().format('YYYYMMDDhhmmssSSS') + '.png');
                     break;
                 }
-            } while (fs.existsSync(imagePath));
-            mkdirsSync(path.dirname(imagePath));
-            fs.writeFileSync(imagePath, image.toPNG());
-            perNativeImage = image.toDataURL();
-            if (!moeApp.defTheme && hexo.config.__basedir)
-                perImagepath = `![${imageTitle}](${'/images/' + path.relative(rootPaht, imagePath).replace(/\\+/g, '/')})`
-            else
-                perImagepath = `![${imageTitle}](${'/' + path.relative(rootPaht, imagePath).replace(/\\+/g, '/')})`
-            codeMirror.replaceSelection(perImagepath, "end");
+            } while (fs.existsSync(imageAbsolutePath));
+            mkdirsSync(path.dirname(imageAbsolutePath));
+            fs.writeFileSync(imageAbsolutePath, image);
+            replaceImgSelection(codeMirror, imageTitle, '', imageID, imageAbsolutePath);
         } else {
-            perNativeImage = '';
-            perImagepath = '';
             codeMirror.replaceSelection(clipboard.readText())
         }
     };
-    var editor = CodeMirror.fromTextArea(document.querySelector('#editor textarea'), {
-        lineNumbers: false,
-        mode: moeApp.config.get('math') ? 'gfm_math' : 'gfm',
-        matchBrackets: true,
-        theme: moeApp.config.get('editor-theme'),
-        lineWrapping: true,
-        extraKeys: {
-            Esc: 'singleSelection',
-            Enter: 'newlineAndIndentContinueMarkdownList',
-            Home: 'goLineLeft',
-            End: 'goLineRight',
-            Tab: function (codeMirror) {
-                codeMirror.indentSelection(parseInt(codeMirror.getOption("indentUnit")));
-            },
-            'Shift-Tab': 'indentLess',
-            prastDataKey: 'prastData'
-        },
-        fixedGutter: false,
-        tabSize: moeApp.config.get('tab-size'),
-        indentUnit: moeApp.config.get('tab-size'),
-        viewportMargin: Infinity,
-        styleActiveLine: true,
-        showCursorWhenSelecting: true
-    });
+
     var prastDataKey = (process.platform === 'darwin' ? "Cmd" : "Ctrl") + "-V";
-    editor.options.extraKeys[prastDataKey] = "prastData";
+    editor.options.extraKeys[prastDataKey] = pasteData;
 
-
-    editor.focus();
+    const holder = document.getElementById('editor')
+    holder.ondragover = () => {
+        return false;
+    }
+    holder.ondragleave = holder.ondragend = () => {
+        return false;
+    }
+    holder.ondrop = (e) => {
+        e.stopPropagation()
+        e.preventDefault()
+        for (let f of e.dataTransfer.files) {
+            replaceImgSelection(editor, (editor.getSelection() || ''), '', '', f.path);
+        }
+        return false;
+    }
 
     const scroll = require('./moe-scroll');
-
     window.updatePreview = (force) => {
         MoeditorPreview(editor, force, () => {
             scroll();
@@ -335,8 +371,65 @@ $(() => {
         }
     );
 
+    let renameForm = document.querySelector('#renameForm');
+    window.renameImage = (relativePath) => {
+        renameForm.setAttribute('path', relativePath);
+        renameForm.querySelector('input').setAttribute('placeholder', path.basename(relativePath))
+        renameForm.querySelector('input').value = '';
+        renameForm.classList.add('show');
+    }
 
-    document.getElementById("container").addEventListener("click", function () {
+    document.querySelector('#renameForm .button-check').addEventListener("click", e => {
+        let rootPaht = window.imgRootPath();
+        let relativePath = renameForm.getAttribute('path');
+        let absolutePath = path.join(rootPaht, relativePath);
+        if (fs.existsSync(absolutePath)) {
+            let newName = renameForm.querySelector('input').value;
+            const ext = path.extname(relativePath);
+            if (ext !== path.extname(newName))
+                newName += ext;
+
+            const newAbsolutePath = path.join(path.dirname(absolutePath), newName).replace(/\\/g, '/');
+            const newRelativePath = path.normalize('/' + path.relative(rootPaht, newAbsolutePath)).replace(/\\/g, '/');
+
+            let content;
+            if (fs.existsSync(newAbsolutePath)) {
+                window.popMessageShell(e, {
+                    content: 'FileExist',
+                    type: 'danger',
+                    autoHide: true
+                })
+                renameForm.querySelector('input').select();
+            } else {
+                fs.renameSync(absolutePath, newAbsolutePath);
+                let oldImgID = imgRelativePathToID[relativePath];
+                imgIDToRelativePath[oldImgID] = newRelativePath;
+                imgRelativePathToID[newRelativePath] = oldImgID;
+                imgRelativeToAbsolute[newRelativePath] = newAbsolutePath;
+                delete imgRelativePathToID[relativePath];
+                delete imgRelativeToAbsolute[relativePath];
+                delete imgIDToRelativePath[oldImgID];
+
+                let reg = new RegExp('(!\\[[^\\[\\]]*\\]\\()' + relativePath.replace(/\\/g, '\\\\') + '\\)', 'g')
+                editor.setValue(editor.getValue().replace(reg, '$1' + newRelativePath + ')'));
+                renameForm.classList.remove('show');
+                window.popMessageShell(e, {
+                    content: __('Operation Finished'),
+                    type: 'success',
+                    btnTip: 'check',
+                    autoHide: true
+                })
+            }
+
+
+        }
+    })
+
+    document.querySelector('#renameForm .button-close').addEventListener("click", e => {
+        renameForm.classList.remove('show');
+    })
+
+    document.getElementById("container").addEventListener("click", e=> {
         var script = document.getElementById('dynamicScript');
         if (!script) {
             var rightpanel = document.getElementById('right-panel');
@@ -352,13 +445,43 @@ $(() => {
             }
             rightpanel.appendChild(script);
         }
+        if (e.ctrlKey) {
+            $('[localImg]').unbind('click').click(e => {
+                if (e.ctrlKey) {
+                    renameImage(e.target.id)
+                }
+            })
+        }
     }, true);
+    document.getElementById("editor").addEventListener("click", e=> {
+        if (e.ctrlKey) {
+            $('span.cm-string.cm-url').unbind('click').click(e => {
+                if (e.ctrlKey) {
+                    const innerLink = e.target.innerText.replace(/^\((.*)\)$/, '$1');
+                    if (innerLink.startsWith('http://') || innerLink.startsWith('https://'))
+                        require('electron').shell.openItem(innerLink);
+                    else
+                        renameImage(innerLink)
+                }
+            })
+        }
+    }, true)
 
-
-    window.addEventListener('resize', function () {
+    window.addEventListener('resize', e=>{
         $('#right-panel .CodeMirror-vscrollbar div').height(document.getElementById('container-wrapper').scrollHeight);
     })
 
+    let editordiv = document.querySelector('#editor');
+    editordiv.addEventListener('keydown',(e)=>{
+        if(e.ctrlKey){
+            editordiv.classList.add('ctrl')
+        }
+    })
+    editordiv.addEventListener('keyup',(e)=>{
+        if(!e.ctrlKey){
+           editordiv.classList.remove('ctrl')
+        }
+    })
 
     window.onfocus = (e) => {
         if (w.fileName === '') return;

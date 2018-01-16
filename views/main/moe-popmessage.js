@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     let oldbiu = null;
-    ipcRenderer.on('pop-message-shell',(e,arg)=>{
+    window.popMessageShell = (e,arg)=>{
         if (oldbiu && oldbiu != null) oldbiu.hide();
         oldbiu = biu(arg.content, {
             type: 'webConsole biu-' + arg.type,
@@ -62,7 +62,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 drag.style.width = ''
             }, 1000);
         }
-    })  ;
+    }
+    ipcRenderer.on('pop-message-shell',popMessageShell)  ;
 
     ipcRenderer.on('refresh-editor', function () {
         let w  = window.w;

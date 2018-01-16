@@ -37,14 +37,14 @@ Previewer.prototype.render = function (content, MoeMark, options, callback) {
     }
 
     function tryFilterHeader() {
-            data.content = data.content.replace(/^---+([\w\W]+?)---+/, function () {
-                data = __.extend(data, YAML.parse(arguments[1]))
-                return '';
-            });
+        data.content = data.content.replace(/^---+([\w\W]+?)---+/, function () {
+            data = __.extend(data, YAML.parse(arguments[1]))
+            return '';
+        });
     }
 
     function before_post_render() {
-            hexo.execFilterSync('before_post_render', data, {context: hexo});
+        hexo.execFilterSync('before_post_render', data, {context: hexo});
     }
 
     function escapeTag() {
@@ -57,9 +57,9 @@ Previewer.prototype.render = function (content, MoeMark, options, callback) {
     }
 
     function markdownContent() {
-            MoeMark(data.content, options, function (err, content) {
-                data.content = content;
-            });
+        MoeMark(data.content, options, function (err, content) {
+            data.content = content;
+        });
     }
 
     function backTag() {
@@ -72,33 +72,40 @@ Previewer.prototype.render = function (content, MoeMark, options, callback) {
     }
 
     function after_post_render() {
-            hexo.execFilter('after_post_render', data, {context: hexo});
-            let contentHtml = $('<div></div>');
-        contentHtml.html(data.content)
-            let imgs = contentHtml.find('img')|| [];
-            for (let img of imgs) {
-                let src = img.getAttribute('src');
-                let srcLocal = '';
-                if (src && (url.parse(src).protocol === null)) {
-                    if (!fs.existsSync(src)){
-                        if (!moeApp.defTheme && hexo.config.__basedir) {
-                            srcLocal = path.join(hexo.config.__basedir, 'source',src);
-                            if (!fs.existsSync(srcLocal) )
-                                srcLocal = '';
-                        }
-                        if (!srcLocal && moeApp.config.get('image-path')) {
-                            srcLocal = path.join(moeApp.config.get('image-path'),src);
-                            if (!fs.existsSync(srcLocal) )
-                                srcLocal = '';
-                        }
-                        if (!srcLocal)
-                            srcLocal = path.join(w.directory,src);
-                        src = url.resolve('file://', srcLocal);
+        hexo.execFilter('after_post_render', data, {context: hexo});
+        checkRes();
+    }
+
+    function checkRes() {
+        let contentHtml = $('<div></div>');
+        contentHtml.html(data.content);
+        let imgs = contentHtml.find('img') || [];
+        for (let img of imgs) {
+            let src = img.getAttribute('src');
+            let srcLocal = '';
+            if (src && (url.parse(src).protocol === null)) {
+                if (!fs.existsSync(src)) {
+                    srcLocal = (imgRelativePathToID[src] ? imgRelativeToAbsolute[src] : '');
+                    if (!srcLocal && !moeApp.defTheme && hexo.config.__basedir) {
+                        srcLocal = path.join(hexo.config.__basedir, 'source', src);
+                        if (!fs.existsSync(srcLocal))
+                            srcLocal = '';
                     }
+                    if (!srcLocal && moeApp.config.get('image-path')) {
+                        srcLocal = path.join(moeApp.config.get('image-path'), src);
+                        if (!fs.existsSync(srcLocal))
+                            srcLocal = '';
+                    }
+                    if (!srcLocal)
+                        srcLocal = path.join(w.directory, src);
+                    img.id = src;
+                    img.setAttribute('localImg', true);
+                    src = url.resolve('file://', srcLocal);
                 }
-                img.setAttribute('src', src);
             }
-            data.content = contentHtml.html();
+            img.setAttribute('src', src);
+        }
+        data.content = contentHtml.html();
     }
 
     if (moeApp.defTheme) {
