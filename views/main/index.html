@@ -30,84 +30,14 @@
 		window.$ = window.jQuery = require('jquery');
         document.querySelector('html').classList.add(process.platform);
         </script>
-
-        <link rel="stylesheet" href="../node_modules/font-awesome/css/font-awesome.min.css">
-
         <link rel="stylesheet" href="moe-scrollbar.css">
-        <link rel="stylesheet" href="main/moe-popmenu.css">
+
         <link rel="stylesheet" href="main/moe-treeview.css">
-
-        <script src="../node_modules/codemirror/lib/codemirror.js"></script>
-        <script src="../node_modules/codemirror/mode/markdown/markdown.js"></script>
-        <script src="../node_modules/codemirror/mode/gfm/gfm.js"></script>
-
-        <script src="../node_modules/codemirror/addon/mode/simple.js"></script>
-        <script src="../node_modules/codemirror/mode/xml/xml.js"></script>
-        <script src="../node_modules/codemirror/mode/css/css.js"></script>
-        <script src="../node_modules/codemirror/mode/clike/clike.js"></script>
-        <script src="../node_modules/codemirror/mode/haml/haml.js"></script>
-        <script src="../node_modules/codemirror/mode/htmlmixed/htmlmixed.js"></script>
-        <script src="../node_modules/codemirror/mode/javascript/javascript.js"></script>
-        <script src="../node_modules/codemirror/mode/jsx/jsx.js"></script>
-        <script src="../node_modules/codemirror/mode/php/php.js"></script>
-        <script src="../node_modules/codemirror/mode/python/python.js"></script>
-        <script src="../node_modules/codemirror/mode/powershell/powershell.js"></script>
-        <script src="../node_modules/codemirror/mode/ruby/ruby.js"></script>
-        <script src="../node_modules/codemirror/mode/shell/shell.js"></script>
-        <script src="../node_modules/codemirror/mode/slim/slim.js"></script>
-        <script src="../node_modules/codemirror/mode/sql/sql.js"></script>
-        <script src="../node_modules/codemirror/mode/stex/stex.js"></script>
-        <script src="../node_modules/codemirror/mode/textile/textile.js"></script>
-        <script src="../node_modules/codemirror/mode/verilog/verilog.js"></script>
-        <script src="../node_modules/codemirror/mode/xml/xml.js"></script>
-        <script src="../node_modules/codemirror/mode/xquery/xquery.js"></script>
-        <script src="../node_modules/codemirror/mode/rust/rust.js"></script>
-        <script src="../node_modules/codemirror/mode/mscgen/mscgen.js"></script>
-        <script src="../node_modules/codemirror/mode/dylan/dylan.js"></script>
-        <script src="../node_modules/codemirror/mode/meta.js"></script>
-
-        <script src="../node_modules/codemirror/addon/mode/overlay.js"></script>
-        <script src="../node_modules/codemirror/addon/mode/multiplex.js"></script>
-        <script src="../node_modules/codemirror/addon/scroll/simplescrollbars.js"></script>
-        <script src="../node_modules/codemirror/addon/selection/active-line.js"></script>
-        <script src="main/CodeMirror/continuelist.js"></script>
-        <script src="main/CodeMirror/markdown_math.js"></script>
-        <script src="main/CodeMirror/gfm_math.js"></script>
-        <link rel="stylesheet" href="../node_modules/codemirror/lib/codemirror.css">
-
-        <script src="../node_modules/katex/dist/katex.min.js"></script>
-        <link rel="stylesheet" href="../node_modules/katex/dist/katex.min.css">
-
-        <script src="../node_modules/biu.js/dist/biu.min.js"></script>
-        <link rel="stylesheet" href="../node_modules/biu.js/dist/biu.css">
-
-        <!-- Mathjax config -->
-        <script src="../node_modules/mathjax/MathJax.js?config=TeX-AMS-MML_SVG"></script>
-        <script type="text/x-mathjax-config">
-            MathJax.Hub.Config({
-                tex2jax: {
-                    preview: "none",
-                    inlineMath: [ ['$','$'], ["\\(","\\)"] ],
-                    processEscapes: true
-                },
-                messageStyle: "none"
-            });
-        </script>
-
-        <script type="text/javascript" src="main/moe-document.js"></script>
-        <script type="text/javascript" src="main/moe-sidemenu.js"></script>
-        <!--script type="text/javascript" src="main/moe-treeview.js"></script-->
-        <script type="text/javascript" src="main/moe-popmenu.js"></script>
-        <script type="text/javascript" src="main/moe-mode.js"></script>
-        <script type="text/javascript" src="main/moe-export.js"></script>
-        <script type="text/javascript" src="main/moe-popmessage.js"></script>
-        <script type="text/javascript" src="main/moe-contextmenu.js"></script>
-
-        <script type="text/javascript" src="moe-localize.js"></script>
-
         <link rel="stylesheet" href="fonts/moe-fonts.css">
         <link rel="stylesheet" href="main/moe-style.css">
         <link rel="stylesheet" href="main/base16-light.css">
+        <script type="text/javascript" src="main/moe-document.js"></script>
+
     </head>
     <body>
         <div id="electron-titlebar" class="inset" style="z-index: 1; ">
@@ -233,5 +163,72 @@
                 </ul>
             </div>
         </div>
+
+        <link rel="stylesheet" href="../node_modules/font-awesome/css/font-awesome.min.css">
+        <link rel="stylesheet" href="main/moe-popmenu.css">
+        <link rel="stylesheet" href="../node_modules/codemirror/lib/codemirror.css">
+        <link rel="stylesheet" href="../node_modules/katex/dist/katex.min.css">
+        <link rel="stylesheet" href="../node_modules/biu.js/dist/biu.css">
+
+        <script src="../node_modules/codemirror/lib/codemirror.js"></script>
+        <script src="../node_modules/codemirror/addon/mode/simple.js"></script>
+        <script src="../node_modules/codemirror/mode/markdown/markdown.js"></script>
+        <script src="../node_modules/codemirror/mode/yaml/yaml.js"></script>
+        <script src="../node_modules/codemirror/mode/yaml-frontmatter/yaml-frontmatter.js"></script>
+        <script src="../node_modules/codemirror/mode/gfm/gfm.js"></script>
+        <script src="../node_modules/codemirror/mode/xml/xml.js"></script>
+        <script src="../node_modules/codemirror/mode/css/css.js"></script>
+        <script src="../node_modules/codemirror/mode/htmlmixed/htmlmixed.js"></script>
+        <script src="../node_modules/codemirror/mode/javascript/javascript.js"></script>
+
+        <script src="../node_modules/codemirror/mode/clike/clike.js"></script>
+        <script src="../node_modules/codemirror/mode/haml/haml.js"></script>
+        <script src="../node_modules/codemirror/mode/jsx/jsx.js"></script>
+        <script src="../node_modules/codemirror/mode/php/php.js"></script>
+        <script src="../node_modules/codemirror/mode/python/python.js"></script>
+        <script src="../node_modules/codemirror/mode/powershell/powershell.js"></script>
+        <script src="../node_modules/codemirror/mode/ruby/ruby.js"></script>
+        <script src="../node_modules/codemirror/mode/shell/shell.js"></script>
+        <script src="../node_modules/codemirror/mode/slim/slim.js"></script>
+        <script src="../node_modules/codemirror/mode/sql/sql.js"></script>
+        <script src="../node_modules/codemirror/mode/stex/stex.js"></script>
+        <script src="../node_modules/codemirror/mode/textile/textile.js"></script>
+        <script src="../node_modules/codemirror/mode/verilog/verilog.js"></script>
+        <script src="../node_modules/codemirror/mode/xquery/xquery.js"></script>
+        <script src="../node_modules/codemirror/mode/rust/rust.js"></script>
+        <script src="../node_modules/codemirror/mode/mscgen/mscgen.js"></script>
+        <script src="../node_modules/codemirror/mode/dylan/dylan.js"></script>
+        <script src="../node_modules/codemirror/mode/meta.js"></script>
+
+        <script src="../node_modules/codemirror/addon/mode/overlay.js"></script>
+        <script src="../node_modules/codemirror/addon/mode/multiplex.js"></script>
+        <script src="../node_modules/codemirror/addon/scroll/simplescrollbars.js"></script>
+        <script src="../node_modules/codemirror/addon/selection/active-line.js"></script>
+        <script src="main/CodeMirror/continuelist.js"></script>
+
+        <script src="../node_modules/katex/dist/katex.min.js"></script>
+        <script src="../node_modules/biu.js/dist/biu.min.js"></script>
+        <!-- Mathjax config -->
+        <script src="../node_modules/mathjax/MathJax.js?config=TeX-AMS-MML_SVG"></script>
+        <script type="text/x-mathjax-config">
+            MathJax.Hub.Config({
+                tex2jax: {
+                    preview: "none",
+                    inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+                    processEscapes: true
+                },
+                messageStyle: "none"
+            });
+        </script>
+
+        <script type="text/javascript" src="main/moe-sidemenu.js"></script>
+        <script type="text/javascript" src="main/moe-treeview.js"></script>
+        <script type="text/javascript" src="main/moe-popmenu.js"></script>
+        <script type="text/javascript" src="main/moe-mode.js"></script>
+        <script type="text/javascript" src="main/moe-export.js"></script>
+        <script type="text/javascript" src="main/moe-popmessage.js"></script>
+        <script type="text/javascript" src="main/moe-contextmenu.js"></script>
+
+        <script type="text/javascript" src="moe-localize.js"></script>
     </body>
 </html>

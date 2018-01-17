@@ -90,8 +90,6 @@ function setEditorLineHeight(val) {
 }
 
 function setMath(val) {
-    if (val.toString() === 'true') window.editor.setOption('mode', 'gfm_math');
-    else window.editor.setOption('mode', 'gfm');
     window.editor.refresh();
     window.updatePreview(true);
 }

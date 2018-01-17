@@ -45,7 +45,7 @@ $(() => {
 
     var editor = CodeMirror.fromTextArea(document.querySelector('#editor textarea'), {
         lineNumbers: false,
-        mode: moeApp.config.get('math') ? 'gfm_math' : 'gfm',
+        mode: 'yaml-frontmatter',
         matchBrackets: true,
         theme: moeApp.config.get('editor-theme'),
         lineWrapping: true,
