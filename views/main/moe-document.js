@@ -159,7 +159,7 @@ $(() => {
     var prastDataKey = (process.platform === 'darwin' ? "Cmd" : "Ctrl") + "-V";
     editor.options.extraKeys[prastDataKey] = pasteData;
 
-    const holder = document.getElementById('editor')
+    const holder = document
     holder.ondragover = () => {
         return false;
     }
@@ -187,6 +187,7 @@ $(() => {
 
         let title, fileNameNew;
         let filename = path.basename(w.fileName, path.extname(w.fileName));
+        let oldName = filename;
 
         w.content.replace(/^---+([\w\W]+?)---+/, function () {
             title = YMAL.parse(arguments[1]).title;
@@ -218,6 +219,23 @@ $(() => {
 
             w.window.setRepresentedFilename(fileNameNew);
             document.getElementsByTagName('title')[0].innerText = 'Moeditor - ' + path.basename(fileNameNew);
+
+            let irp = imgRootPath('images');
+            let imgFilePathOld = path.join(irp, oldName);
+            if (fs.existsSync(imgFilePathOld)) {
+                let imgFilePathNew = path.join(irp, path.basename(fileNameNew, ext));
+                fs.rename(imgFilePathOld, imgFilePathNew, err => {
+                    if (err) console.error(err);
+                    fs.stat(imgFilePathNew, (err, stats) => {
+                        if (err) console.error(err);
+                        console.log('stats: ' + JSON.stringify(stats));
+                        let relativePathOld = path.relative(imgRootPath(),imgFilePathOld).replace(/[\/\\]/g,'\\[\\\\/\\\\\\\\\\]');
+                        let relativePathNew = path.relative(imgRootPath(),imgFilePathNew).replace(/[\/\\]/g,'\\\\/');
+                        editor.setValue(editor.getValue().replace(new RegExp('\\]\\(/'+relativePathOld),'g'),'](/'+relativePathNew)
+                    })
+                })
+            }
+
 
             if (force) {
                 fs.writeFile(w.fileName, w.content, (err) => {
@@ -429,7 +447,7 @@ $(() => {
         renameForm.classList.remove('show');
     })
 
-    document.getElementById("container").addEventListener("click", e=> {
+    document.getElementById("container").addEventListener("click", e => {
         var script = document.getElementById('dynamicScript');
         if (!script) {
             var rightpanel = document.getElementById('right-panel');
@@ -453,7 +471,7 @@ $(() => {
             })
         }
     }, true);
-    document.getElementById("editor").addEventListener("click", e=> {
+    document.getElementById("editor").addEventListener("click", e => {
         if (e.ctrlKey) {
             $('span.cm-string.cm-url').unbind('click').click(e => {
                 if (e.ctrlKey) {
@@ -467,19 +485,19 @@ $(() => {
         }
     }, true)
 
-    window.addEventListener('resize', e=>{
+    window.addEventListener('resize', e => {
         $('#right-panel .CodeMirror-vscrollbar div').height(document.getElementById('container-wrapper').scrollHeight);
     })
 
     let editordiv = document.querySelector('#editor');
-    editordiv.addEventListener('keydown',(e)=>{
-        if(e.ctrlKey){
+    editordiv.addEventListener('keydown', (e) => {
+        if (e.ctrlKey) {
             editordiv.classList.add('ctrl')
         }
     })
-    editordiv.addEventListener('keyup',(e)=>{
-        if(!e.ctrlKey){
-           editordiv.classList.remove('ctrl')
+    editordiv.addEventListener('keyup', (e) => {
+        if (!e.ctrlKey) {
+            editordiv.classList.remove('ctrl')
         }
     })
 

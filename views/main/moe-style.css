@@ -657,10 +657,15 @@ body[settings-mode=read] #drag-right, body[settings-mode=write] #drag-right {
     background-color: whitesmoke;
     display: block;
 }
+#editor .CodeMirror-linebackground {
+    left: 3px;
+    width: calc(100% - 7px);
+}
 
 div#cover-bottom {
     line-height: 1 !important;
 }
+
 
 #editor.ctrl span.cm-string.cm-url:hover {
     text-decoration: underline;
