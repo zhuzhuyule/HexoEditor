@@ -70,7 +70,7 @@ function render(s, type, cb) {
 }
 
 function html(cb) {
-    render(w.content, 'html', (res, haveMath, haveCode) => {
+    render(hexoWindow.content, 'html', (res, haveMath, haveCode) => {
         const doc = document.implementation.createHTMLDocument();
         const head = doc.querySelector('head');
         const meta = doc.createElement('meta');
@@ -103,7 +103,7 @@ function html(cb) {
 }
 
 function pdf(cb) {
-    render(w.content, 'pdf', (res, haveMath, haveCode) => {
+    render(hexoWindow.content, 'pdf', (res, haveMath, haveCode) => {
         const doc = document.implementation.createHTMLDocument();
         const head = doc.querySelector('head');
         const meta = doc.createElement('meta');
@@ -154,13 +154,13 @@ if (!flag) {
     const ipcRenderer = require('electron').ipcRenderer;
     const MoeditorAction = require('electron').remote.require('./moe-action');
     ipcRenderer.on('action-export-html', () => {
-        MoeditorAction.exportAsHTML(w.window, (cb) => {
+        MoeditorAction.exportAsHTML(hexoWindow.window, (cb) => {
             html(cb);
         });
     });
 
     ipcRenderer.on('action-export-pdf', () => {
-        MoeditorAction.exportAsPDF(w.window, (cb) => {
+        MoeditorAction.exportAsPDF(hexoWindow.window, (cb) => {
             pdf(cb);
         });
     });

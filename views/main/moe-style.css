@@ -231,8 +231,27 @@ html, body {
     position: absolute;
     top: 0;
     width: 100%;
-    height: 50px;
+    height: 40px;
     z-index: 1000;
+}
+
+
+#drag-left {
+    z-index: -1;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: calc(50% - 10px);
+    height: 100%;
+}
+
+#drag-right {
+    z-index: -1;
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 50%;
+    height: 100%;
 }
 
 #left-panel .cover-top {
@@ -465,23 +484,6 @@ moemark-linenumber{
     word-wrap: break-word !important;
 }
 
-#drag-left {
-    z-index: -1;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: calc(50% - 6px);
-    height: 100%;
-}
-
-#drag-right {
-    z-index: -1;
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 50%;
-    height: 100%;
-}
 
 #renameForm input {
     background-color: #fff;

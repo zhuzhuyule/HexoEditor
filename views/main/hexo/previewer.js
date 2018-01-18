@@ -86,7 +86,7 @@ Previewer.prototype.render = function (content, MoeMark, options, callback) {
             if (src && (url.parse(src).protocol === null)) {
                 if (!fs.existsSync(src)) {
                     srcLocal = (imgRelativePathToID[src] ? imgRelativeToAbsolute[src] : '');
-                    if (!srcLocal && !moeApp.defTheme && hexo.config.__basedir) {
+                    if (!srcLocal && !moeApp.useHexo && hexo.config.__basedir) {
                         srcLocal = path.join(hexo.config.__basedir, 'source', src);
                         if (!fs.existsSync(srcLocal))
                             srcLocal = '';
@@ -97,7 +97,7 @@ Previewer.prototype.render = function (content, MoeMark, options, callback) {
                             srcLocal = '';
                     }
                     if (!srcLocal)
-                        srcLocal = path.join(w.directory, src);
+                        srcLocal = path.join(hexoWindow.directory, src);
                     img.id = src;
                     img.setAttribute('localImg', true);
                     src = url.resolve('file://', srcLocal);
@@ -108,7 +108,7 @@ Previewer.prototype.render = function (content, MoeMark, options, callback) {
         data.content = contentHtml.html();
     }
 
-    if (moeApp.defTheme) {
+    if (moeApp.useHexo) {
         Promise.resolve()
             .then(escapeTag).catch(console.log)
             .then(markdownContent, markdownContent).catch(console.log)

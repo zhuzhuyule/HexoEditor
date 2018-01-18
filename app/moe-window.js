@@ -27,7 +27,7 @@ const BrowserWindow = require('electron').BrowserWindow,
 
 class MoeditorWindow {
 	constructor(path,defName) {
-        moeApp.newWindow = this;
+        moeApp.hexoWindow = this;
 
         if (MoeditorFile.isDirectory(path)) {
             this.directory = path
@@ -59,7 +59,7 @@ class MoeditorWindow {
         else conf.frame = false;
 
 		this.window = new BrowserWindow(conf);
-        this.window.moeditorWindow = this;
+        this.window.hexoeditorWindow = this;
 
         this.registerEvents();
         this.window.loadURL('file://' + Const.path + '/views/main/index.html');

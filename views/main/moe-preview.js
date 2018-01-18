@@ -31,17 +31,17 @@ module.exports = (cm, force, cb) => {
         updatePreviewRunning = true;
 
         const content = cm.getValue();
-        if (w.content === content && !force) {
+        if (hexoWindow.content === content && !force) {
             updatePreviewRunning = false;
             if (updatePreview) setTimeout(updateAsync, 0);
             cb();
             return;
         }
 
-        if (w.content !== content) {
-            w.content = content;
-            w.changed = true;
-            w.window.setDocumentEdited(true);
+        if (hexoWindow.content !== content) {
+            hexoWindow.content = content;
+            hexoWindow.changed = true;
+            hexoWindow.window.setDocumentEdited(true);
         }
 
         if (window.editMode && !window.editMode.startsWith('preview') && !window.editMode.startsWith('read')) {

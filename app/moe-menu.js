@@ -25,22 +25,22 @@ module.exports = (cb) => {
                 {
                     localize() { this.label = __('New'); },
                     accelerator: 'CmdOrCtrl+N',
-                    click(item, w) {
-                        cb.fileNew(w);
+                    click(item, hexoWindow) {
+                        cb.fileNew(hexoWindow);
                     }
                 },
                 {
                     localize() { this.label = __('New Post'); },
                     accelerator: 'CmdOrCtrl+H',
-                    click(item, w) {
-                        cb.fileNewHexo(w);
+                    click(item, hexoWindow) {
+                        cb.fileNewHexo(hexoWindow);
                     }
                 },
                 {
                     localize() { this.label = __('Open') + '...'; },
                     accelerator: 'CmdOrCtrl+O',
-                    click(item, w) {
-                        cb.fileOpen(w);
+                    click(item, hexoWindow) {
+                        cb.fileOpen(hexoWindow);
                     }
                 },
                 {
@@ -49,14 +49,14 @@ module.exports = (cb) => {
                 {
                     localize() { this.label = __('Save'); },
                     accelerator: 'CmdOrCtrl+S',
-                    click(item, w) {
-                        cb.fileSave(w);
+                    click(item, hexoWindow) {
+                        cb.fileSave(hexoWindow);
                     }
                 },{
                     localize() { this.label = __('Save as'); },
                     accelerator: 'CmdOrCtrl+Shift+S',
-                    click(item, w) {
-                        cb.fileSaveAs(w);
+                    click(item, hexoWindow) {
+                        cb.fileSaveAs(hexoWindow);
                     }
                 },{
                     type: 'separator'
@@ -66,14 +66,14 @@ module.exports = (cb) => {
                         {
                             localize() { this.label = 'HTML...'; },
                             accelerator: 'CmdOrCtrl+Shift+E',
-                            click(item, w) {
-                                cb.fileExportHTML(w);
+                            click(item, hexoWindow) {
+                                cb.fileExportHTML(hexoWindow);
                             }
                         }, {
                             localize() { this.label = 'PDF...'; },
                             accelerator: 'CmdOrCtrl+Shift+P',
-                            click(item, w) {
-                                cb.fileExportPDF(w);
+                            click(item, hexoWindow) {
+                                cb.fileExportPDF(hexoWindow);
                             }
                         }
                     ]

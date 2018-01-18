@@ -70,7 +70,7 @@ class ShellServer {
     sendConsole(content, type, btnTip) {
         if (moeApp.shellServer.closeMsg) return;
         try {
-            moeApp.shellServer.lastWindow.moeditorWindow.window.webContents.send('pop-message-shell', {
+            moeApp.shellServer.lastWindow.hexoeditorWindow.window.webContents.send('pop-message-shell', {
                 subProcess: this.shellProcess,
                 content: content,
                 type: type,

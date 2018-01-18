@@ -35,7 +35,7 @@ const MoeditorWindow = require('./moe-window'),
 class MoeditorApplication {
 	constructor() {
 		this.windows = new Array();
-        this.newWindow = null;
+        this.hexoWindow = null;
 	}
 
 	open(fileName,defName) {
@@ -105,40 +105,40 @@ class MoeditorApplication {
     registerAppMenu() {
         require('./moe-menu')(
             {
-                fileNew: (w) => {
+                fileNew: (hexoWindow) => {
                     MoeditorAction.openNew();
                 },
-                fileNewHexo: (w) => {
+                fileNewHexo: (hexoWindow) => {
                     MoeditorAction.openNewHexo();
                 },
-                fileOpen: (w) => {
+                fileOpen: (hexoWindow) => {
                     MoeditorAction.open();
                 },
-                fileSave: (w) => {
-                    MoeditorAction.save(w);
+                fileSave: (hexoWindow) => {
+                    MoeditorAction.save(hexoWindow);
                 },
-                fileSaveAs: (w) => {
-                    MoeditorAction.saveAs(w);
+                fileSaveAs: (hexoWindow) => {
+                    MoeditorAction.saveAs(hexoWindow);
                 },
-                fileExportHTML: (w) => {
-                    w.webContents.send('action-export-html');
+                fileExportHTML: (hexoWindow) => {
+                    hexoWindow.webContents.send('action-export-html');
                 },
-                fileExportPDF: (w) => {
-                    w.webContents.send('action-export-pdf');
+                fileExportPDF: (hexoWindow) => {
+                    hexoWindow.webContents.send('action-export-pdf');
                 },
-                modeToRead: (w) => {
-                    w.webContents.send('change-edit-mode', 'read');
+                modeToRead: (hexoWindow) => {
+                    hexoWindow.webContents.send('change-edit-mode', 'read');
                 },
-                modeToWrite: (w) => {
-                    w.webContents.send('change-edit-mode', 'write');
+                modeToWrite: (hexoWindow) => {
+                    hexoWindow.webContents.send('change-edit-mode', 'write');
                 },
-                modeToPreview: (w) => {
-                    w.webContents.send('change-edit-mode', 'preview');
+                modeToPreview: (hexoWindow) => {
+                    hexoWindow.webContents.send('change-edit-mode', 'preview');
                 },
-                about: (w) => {
+                about: (hexoWindow) => {
                     MoeditorAbout();
                 },
-                settings: (w) => {
+                settings: (hexoWindow) => {
                     MoeditorSettings();
                 }
             }
@@ -167,40 +167,45 @@ class MoeditorApplication {
         });
 
         // shortcut.register('CmdOrCtrl + R', () => {
-        //     let w = require('electron').BrowserWindow.getFocusedWindow();
-        //     if (w) w.webContents.send('change-edit-mode', 'read');
+        //     let hexoWindow = require('electron').BrowserWindow.getFocusedWindow();
+        //     if (hexoWindow) hexoWindow.webContents.send('change-edit-mode', 'read');
         // });
 
         shortcut.register('CmdOrCtrl + W', () => {
-            let w = require('electron').BrowserWindow.getFocusedWindow();
-            if (w) w.webContents.send('change-edit-mode', 'change');
+            let hexoWindow = require('electron').BrowserWindow.getFocusedWindow();
+            if (hexoWindow) hexoWindow.webContents.send('change-edit-mode', 'change');
         });
 
         shortcut.register('CmdOrCtrl + P', () => {
-            let w = require('electron').BrowserWindow.getFocusedWindow();
-            if (w) w.webContents.send('change-edit-mode', 'preview');
+            let hexoWindow = require('electron').BrowserWindow.getFocusedWindow();
+            if (hexoWindow) hexoWindow.webContents.send('change-edit-mode', 'preview');
         });
 
         shortcut.register('CmdOrCtrl + Shift + P', () => {
-            let w = require('electron').BrowserWindow.getFocusedWindow();
-            if (w) w.webContents.send('change-edit-mode', 'changepreview');
+            let hexoWindow = require('electron').BrowserWindow.getFocusedWindow();
+            if (hexoWindow) hexoWindow.webContents.send('change-edit-mode', 'changepreview');
         });
 
         shortcut.register('CmdOrCtrl + Alt + Shift + R', () => {
-            let w = require('electron').BrowserWindow.getFocusedWindow();
-            w.reload();
+            let hexoWindow = require('electron').BrowserWindow.getFocusedWindow();
+            hexoWindow.reload();
+        });
+
+        shortcut.register('CmdOrCtrl + Alt + S', () => {
+            let hexoWindow = require('electron').BrowserWindow.getFocusedWindow();
+            MoeditorSettings();
         });
 
         shortcut.register('CmdOrCtrl + Alt + Shift + F12', () => {
-            let w = require('electron').BrowserWindow.getFocusedWindow();
-            w.webContents.openDevTools();
+            let hexoWindow = require('electron').BrowserWindow.getFocusedWindow();
+            hexoWindow.webContents.openDevTools();
         });
 
 
         /*
         shortcut.register('CmdOrCtrl + Shift + P', () => {
-            let w = require('electron').BrowserWindow.getFocusedWindow();
-            if (w) w.webContents.send('change-edit-mode', 'preview');
+            let hexoWindow = require('electron').BrowserWindow.getFocusedWindow();
+            if (hexoWindow) hexoWindow.webContents.send('change-edit-mode', 'preview');
         });
         */
     }

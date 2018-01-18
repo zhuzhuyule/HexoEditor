@@ -71,27 +71,27 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     sideMenu.querySelector('li[data-action=open]').itemClicked = (() => {
-        MoeditorAction.open(w.window);
+        MoeditorAction.open(hexoWindow.window);
     });
 
     sideMenu.querySelector('li[data-action=save]').itemClicked = (() => {
-        MoeditorAction.save(w.window);
+        MoeditorAction.save(hexoWindow.window);
     });
 
     sideMenu.querySelector('li[data-action=save-as]').itemClicked = (() => {
-        MoeditorAction.saveAs(w.window);
+        MoeditorAction.saveAs(hexoWindow.window);
     });
 
     sideMenu.querySelector('li[data-action=export-as-html]').itemClicked = (() => {
         const MoeditorExport = require('./moe-export');
-        MoeditorAction.exportAsHTML(w.window, (cb) => {
+        MoeditorAction.exportAsHTML(hexoWindow.window, (cb) => {
             MoeditorExport.html(cb);
         });
     });
 
     sideMenu.querySelector('li[data-action=export-as-pdf]').itemClicked = (() => {
         const MoeditorExport = require('./moe-export');
-        MoeditorAction.exportAsPDF(w.window, (cb) => {
+        MoeditorAction.exportAsPDF(hexoWindow.window, (cb) => {
             MoeditorExport.pdf(cb);
         });
     });

@@ -26,7 +26,7 @@ const url = require('url');
 module.exports = {
     getCSS(forURL) {
         const theme = moeApp.config.get('render-theme');
-        moeApp.defTheme = ['*GitHub','*No Theme'].indexOf(theme) > -1;
+        moeApp.useHexo = ['*GitHub','*No Theme'].indexOf(theme) > -1;
 
         let res;
         if (theme.startsWith('*')) {

@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 {
                     label: __('Undo'),
                     enabled: window.editor.doc.historySize().undo !== 0,
-                    click(item, w) {
+                    click(item, hexoWindow) {
                         window.editor.undo();
                     }
                 },
@@ -56,16 +56,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     label: __('Paste'),
                     enabled: inEditor && (require('electron').clipboard.readText().length !== 0||
                         !clipboard.readImage().isEmpty()),
-                    click(item, w){
+                    click(item, hexoWindow){
                         pasteData();
                     }
                 },
                 {
                     label: __('Delete'),
                     enabled: inEditor && window.editor.doc.somethingSelected(),
-                    click(item, w) {
-                        w.webContents.sendInputEvent({ type: 'keyDown', modifiers: [], keyCode: 'Delete' });
-                        w.webContents.sendInputEvent({ type: 'keyUp', modifiers: [], keyCode: 'Delete' });
+                    click(item, hexoWindow) {
+                        hexoWindow.webContents.sendInputEvent({ type: 'keyDown', modifiers: [], keyCode: 'Delete' });
+                        hexoWindow.webContents.sendInputEvent({ type: 'keyUp', modifiers: [], keyCode: 'Delete' });
                     }
                 },
                 {
@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 {
                     label: __('Select All'),
-                    click(item, w) {
+                    click(item, hexoWindow) {
                         if (inEditor) {
                             window.editor.execCommand('selectAll');
                         } else {
@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     label: __('Show Number'),
                     type: 'checkbox',
                     checked: window.editor.getOption('lineNumbers'),
-                    click(item, w) {
+                    click(item, hexoWindow) {
                         let editor = document.querySelector('#editor');
                         if (item.checked) {
                             editor.classList.add('gutter');
@@ -107,39 +107,39 @@ document.addEventListener('DOMContentLoaded', () => {
                     label: __('Scroll Sync'),
                     type: 'checkbox',
                     checked: window.scrollTogether,
-                    click(item, w) {
+                    click(item, hexoWindow) {
                         window.scrollTogether = !window.scrollTogether;
                     }
                 },
                 {
-                    type: moeApp.defTheme ? 'normal' : 'separator',
-                    visible: !moeApp.defTheme,
+                    type: moeApp.useHexo ? 'normal' : 'separator',
+                    visible: !moeApp.useHexo,
                 },
                 {
                     label: "HEXO",
-                    visible: !moeApp.defTheme,
+                    visible: !moeApp.useHexo,
                     enabled: !shellServer.processRunning(),
-                    click(item, w) {
+                    click(item, hexoWindow) {
                         const shell = require('electron').shell
                         shell.showItemInFolder(path.join(hexo.config.__basedir, '*'))
                     },
                     submenu: [
                         {
                             label: __('File Rename'),
-                            click(item, w) {
+                            click(item, hexoWindow) {
                                 window.changeFileName(true);
                             }
                         },
                         {
                             label: __('HEXOOpenPath'),
-                            click(item, w) {
+                            click(item, hexoWindow) {
                                 const shell = require('electron').shell
                                 shell.showItemInFolder(path.join(hexo.config.__basedir, '*'))
                             }
                         },
                         {
                             label: __('HEXOQuickPublish'),
-                            click(item, w) {
+                            click(item, hexoWindow) {
                                 shellServer.generalAndDeploy();
                             }
                         },
@@ -148,31 +148,31 @@ document.addEventListener('DOMContentLoaded', () => {
                         },
                         {
                             label: __('HEXOServer'),
-                            click(item, w) {
+                            click(item, hexoWindow) {
                                 shellServer.server();
                             }
                         },
                         {
                             label: __('HEXOClean'),
-                            click(item, w) {
+                            click(item, hexoWindow) {
                                 shellServer.clean();
                             }
                         },
                         {
                             label: __('HEXOGenerate'),
-                            click(item, w) {
+                            click(item, hexoWindow) {
                                 shellServer.general();
                             }
                         },
                         {
                             label: __('HEXODeploy'),
-                            click(item, w) {
+                            click(item, hexoWindow) {
                                 shellServer.deploy();
                             }
                         },
                         {
                             label: __('HEXOKillPort'),
-                            click(item, w) {
+                            click(item, hexoWindow) {
                                 shellServer.stopServerForce();
                             }
                         }

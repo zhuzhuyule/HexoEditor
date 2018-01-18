@@ -89,6 +89,11 @@ function setEditorLineHeight(val) {
     window.editor.refresh();
 }
 
+function setImagePath(val) {
+    console.log(val)
+    window.editor.refresh();
+}
+
 function setMath(val) {
     window.editor.refresh();
     window.updatePreview(true);
@@ -126,11 +131,9 @@ function setRenderTheme(val) {
     if (['*GitHub','*No Theme'].indexOf(val) > -1){
         $(container).addClass('_def');
         $(container).removeClass('post-body');
-        moeApp.defTheme = true;
     } else /*if ( 'post-body' == val )*/{
         $(container).removeClass('_def');
         $(container).addClass('post-body');
-        moeApp.defTheme = false;
     }
     moeApp.containerClasss = container.className.replace('preview','');
 
@@ -150,6 +153,7 @@ function setHexoAutoSetting(val) {
 };
 
 function setHexoConfigEnable(val) {
+    moeApp.useHexo = val;                                  us
     hexo.enable = val;
     hexo.changeConfig();
     window.updatePreview(true);
@@ -217,6 +221,8 @@ ipcRenderer.on('setting-changed', (e, arg) => {
         tryRun(setEditorFontSize, arg.val);
     } else if (arg.key === 'editor-line-height') {
         tryRun(setEditorLineHeight, arg.val);
+    } else if (arg.key === 'image-path') {
+        tryRun(setImagePath, arg.val);
     } else if (arg.key === 'math') {
         tryRun(setMath, arg.val);
     } else if (arg.key === 'uml-diagrams') {

@@ -22,13 +22,13 @@
 require('electron-titlebar');
 window.app = require('electron').remote.app;
 window.moeApp = app.moeApp;
-window.w = moeApp.newWindow;
+window.hexoWindow = moeApp.hexoWindow;
 window.imgRelativePathToID = {};
 window.imgIDToRelativePath = {};
 window.imgRelativeToAbsolute = {};
 window.clipboard = require('electron').clipboard;
 
-let gSavedContent;
+hexoWindow.savedContent;
 
 $(() => {
     const fs = require('fs');
@@ -38,10 +38,10 @@ $(() => {
 
     const MoeditorPreview = require('./moe-preview');
 
-    if (w.fileName !== '') {
-        document.getElementsByTagName('title')[0].innerText = 'Moeditor - ' + path.basename(w.fileName);
+    if (hexoWindow.fileName !== '') {
+        document.getElementsByTagName('title')[0].innerText = 'HexoEditor - ' + path.basename(hexoWindow.fileName);
     }
-    document.querySelector('#editor textarea').innerText = w.content;
+    document.querySelector('#editor textarea').innerText = hexoWindow.content;
 
     var editor = CodeMirror.fromTextArea(document.querySelector('#editor textarea'), {
         lineNumbers: false,
@@ -60,6 +60,11 @@ $(() => {
             'Shift-Tab': 'indentLess',
         },
         fixedGutter: false,
+        // foldGutter: true,
+        // gutters:["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+        // auto:"auto",
+        // autoCloseBrackets: true,
+
         tabSize: moeApp.config.get('tab-size'),
         indentUnit: moeApp.config.get('tab-size'),
         viewportMargin: Infinity,
@@ -68,6 +73,9 @@ $(() => {
     });
 
     editor.focus();
+    editor.on('keypress', ()=>{
+        editor.showHint();
+    });
 
     window.mkdirsSync = (dirpath, mode) => {
         if (!fs.existsSync(dirpath)) {
@@ -94,19 +102,19 @@ $(() => {
     };
     window.imgRootPath = (extendPath) => {
         let rootPaht = '';
-        if (!moeApp.defTheme && hexo.config.__basedir) {
+        if (!moeApp.useHexo && hexo.config.__basedir) {
             rootPaht = path.join(hexo.config.__basedir, 'source', extendPath || '');
         } else if (moeApp.config.get('image-path')) {
             rootPaht = moeApp.config.get('image-path');
         } else {
-            rootPaht = w.directory;
+            rootPaht = hexoWindow.directory;
         }
         return rootPaht;
     }
 
     function replaceImgSelection(codeMirror, title, relativePath, imageID, absolutePath) {
         if (!relativePath) {
-            if (!moeApp.defTheme && hexo.config.__basedir)
+            if (!moeApp.useHexo && hexo.config.__basedir)
                 relativePath = '/' + path.relative(imgRootPath(), absolutePath).replace(/\\+/g, '/')
             else
                 relativePath = '/' + path.relative(imgRootPath(), absolutePath).replace(/\\+/g, '/')
@@ -137,7 +145,7 @@ $(() => {
             let imageName = imageTitle || require('moment')().format('YYYYMMDDhhmmssSSS');
 
             let count = 0;
-            let currFileName = path.basename(w.fileName, path.extname(w.fileName)) || w.ID;
+            let currFileName = path.basename(hexoWindow.fileName, path.extname(hexoWindow.fileName)) || hexoWindow.ID;
             let imageAbsolutePath = path.join(rootPaht, currFileName, imageName + '.png');
             do {
                 if (count > 0)
@@ -183,42 +191,42 @@ $(() => {
     };
 
     window.changeFileName = (force) => {
-        if (!force && w.defName !== w.fileName) return;
+        if (!force && hexoWindow.defName !== hexoWindow.fileName) return;
 
         let title, fileNameNew;
-        let filename = path.basename(w.fileName, path.extname(w.fileName));
+        let filename = path.basename(hexoWindow.fileName, path.extname(hexoWindow.fileName));
         let oldName = filename;
 
-        w.content.replace(/^---+([\w\W]+?)---+/, function () {
+        hexoWindow.content.replace(/^---+([\w\W]+?)---+/, function () {
             title = YMAL.parse(arguments[1]).title;
             return '';
         });
 
         if (filename === title) {
             if (force)
-                w.isSaved = true;
+                hexoWindow.isSaved = true;
             return
         }
 
         try {
             filename = title.toString().replace(/[ \\\/:\*\?"<>\|]+/g, '-');
-            let dir = path.dirname(w.fileName);
-            let ext = path.extname(w.fileName);
+            let dir = path.dirname(hexoWindow.fileName);
+            let ext = path.extname(hexoWindow.fileName);
             let count = -1;
             do {
                 count++;
                 fileNameNew = filename + (count > 0 ? count : '');
                 fileNameNew = path.resolve(dir, fileNameNew + ext);
-                if (w.fileName == fileNameNew || count > 50) {
+                if (hexoWindow.fileName == fileNameNew || count > 50) {
                     return;
                 }
             } while (fs.existsSync(fileNameNew))
 
-            fs.renameSync(w.fileName, fileNameNew);
-            w.fileName = fileNameNew;
+            fs.renameSync(hexoWindow.fileName, fileNameNew);
+            hexoWindow.fileName = fileNameNew;
 
-            w.window.setRepresentedFilename(fileNameNew);
-            document.getElementsByTagName('title')[0].innerText = 'Moeditor - ' + path.basename(fileNameNew);
+            hexoWindow.window.setRepresentedFilename(fileNameNew);
+            document.getElementsByTagName('title')[0].innerText = 'HexoEditor - ' + path.basename(fileNameNew);
 
             let irp = imgRootPath('images');
             let imgFilePathOld = path.join(irp, oldName);
@@ -229,26 +237,31 @@ $(() => {
                     fs.stat(imgFilePathNew, (err, stats) => {
                         if (err) console.error(err);
                         console.log('stats: ' + JSON.stringify(stats));
-                        let relativePathOld = path.relative(imgRootPath(),imgFilePathOld).replace(/[\/\\]/g,'\\[\\\\/\\\\\\\\\\]');
-                        let relativePathNew = path.relative(imgRootPath(),imgFilePathNew).replace(/[\/\\]/g,'\\\\/');
-                        editor.setValue(editor.getValue().replace(new RegExp('\\]\\(/'+relativePathOld),'g'),'](/'+relativePathNew)
+                        let relativePathOld = path.relative(imgRootPath(),imgFilePathOld).replace(/[\/\\]/g,'/');
+                        let relativePathNew = path.relative(imgRootPath(),imgFilePathNew).replace(/[\/\\]/g,'/');
+                        editor.setValue(editor.getValue().replace(new RegExp('\\]\\(/'+relativePathOld,'g'),'](/'+relativePathNew))
+                        renameFinished(relativePathOld,relativePathNew,)
+
+                        window.imgIDToRelativePath = JSON.parse(JSON.stringify(imgIDToRelativePath).replace(new RegExp(relativePathOld,'g'),relativePathNew));
+                        window.imgRelativePathToID = JSON.parse(JSON.stringify(imgRelativePathToID).replace(new RegExp(relativePathOld,'g'),relativePathNew));
+                        window.imgRelativeToAbsolute = JSON.parse(JSON.stringify(imgRelativeToAbsolute).replace(new RegExp(relativePathOld,'g'),relativePathNew));
                     })
                 })
             }
 
 
             if (force) {
-                fs.writeFile(w.fileName, w.content, (err) => {
+                fs.writeFile(hexoWindow.fileName, hexoWindow.content, (err) => {
                     if (err) {
-                        w.changed = true;
-                        w.window.setDocumentEdited(true);
+                        hexoWindow.changed = true;
+                        hexoWindow.window.setDocumentEdited(true);
                         return;
                     }
-                    w.isSaved = true;
-                    w.changed = false;
-                    w.window.setDocumentEdited(false);
+                    hexoWindow.isSaved = true;
+                    hexoWindow.changed = false;
+                    hexoWindow.window.setDocumentEdited(false);
                     app.addRecentDocument(fileNameNew);
-                    gSavedContent = w.content;
+                    hexoWindow.savedContent = hexoWindow.content;
                 });
             }
         } catch (e) {
@@ -258,16 +271,16 @@ $(() => {
 
     window.autoSave = () => {
         const option = moeApp.config.get('auto-save');
-        if (option === 'auto' && w.content !== gSavedContent) {
-            fs.writeFile(w.fileName, w.content, (err) => {
+        if (option === 'auto' && hexoWindow.content !== hexoWindow.savedContent) {
+            fs.writeFile(hexoWindow.fileName, hexoWindow.content, (err) => {
                 if (err) {
-                    w.changed = true;
-                    w.window.setDocumentEdited(true);
+                    hexoWindow.changed = true;
+                    hexoWindow.window.setDocumentEdited(true);
                     return;
                 }
-                w.isSaved = true;
-                w.changed = false;
-                w.window.setDocumentEdited(false);
+                hexoWindow.isSaved = true;
+                hexoWindow.changed = false;
+                hexoWindow.window.setDocumentEdited(false);
             });
         }
     }
@@ -277,7 +290,7 @@ $(() => {
     });
 
     editor.on('blur', () => {
-        if (w.fileName === '') return;
+        if (hexoWindow.fileName === '') return;
         window.changeFileName(false);
         window.autoSave();
     });
@@ -330,28 +343,20 @@ $(() => {
         if (e.target === leftPanel) editor.focus();
     });
 
-    // if (moeApp.config.get('focus-mode') === true) document.getElementById('editor').classList.add('focus');
-    // document.getElementById('button-bottom-focus').addEventListener('click', function() {
-    //     document.getElementById('editor').classList.toggle('focus');
-    //     moeApp.config.set('focus-mode', document.getElementById('editor').classList.contains('focus'));
-    // });
+    if (moeApp.config.get('focus-mode') === true) document.getElementById('editor').classList.add('focus');
+    document.getElementById('button-bottom-focus').addEventListener('click', function() {
+        document.getElementById('editor').classList.toggle('focus');
+        moeApp.config.set('focus-mode', document.getElementById('editor').classList.contains('focus'));
+    });
 
     require('electron').ipcRenderer.on('set-title', (e, fileName) => {
-        document.getElementsByTagName('title')[0].innerText = 'Moeditor - ' + path.basename(fileName);
+        document.getElementsByTagName('title')[0].innerText = 'HexoEditor - ' + path.basename(fileName);
     });
 
     require('./moe-settings');
 
-    w.window.show();
+    hexoWindow.window.show();
 
-    // $(".CodeMirror-vscrollbar").hover(
-    //     function () {
-    //         $(this).addClass('hoverScroll')
-    //     },
-    //     function () {
-    //         $(this).removeClass('hoverScroll')
-    //     }
-    // );
 
     $("#main-container div").mousemove(function (e) {
         // $('.scrolling').removeClass('scrolling');
@@ -396,6 +401,17 @@ $(() => {
         renameForm.querySelector('input').value = '';
         renameForm.classList.add('show');
     }
+    window.renameFinished = (oldRelative,newRelative,oldAbsolute,newAbsolute)=>{
+        if (!newAbsolute)
+            newAbsolute = path.join(imgRootPath(), newRelative).replace(/\\/g, '/');
+        let oldImgID = imgRelativePathToID[oldRelative];
+        imgIDToRelativePath[oldImgID] = newRelative;
+        imgRelativePathToID[newRelative] = oldImgID;
+        imgRelativeToAbsolute[newRelative] = newAbsolute;
+        delete imgRelativePathToID[oldRelative];
+        delete imgRelativeToAbsolute[oldRelative];
+        delete imgIDToRelativePath[oldImgID];
+    }
 
     document.querySelector('#renameForm .button-check').addEventListener("click", e => {
         let rootPaht = window.imgRootPath();
@@ -410,7 +426,6 @@ $(() => {
             const newAbsolutePath = path.join(path.dirname(absolutePath), newName).replace(/\\/g, '/');
             const newRelativePath = path.normalize('/' + path.relative(rootPaht, newAbsolutePath)).replace(/\\/g, '/');
 
-            let content;
             if (fs.existsSync(newAbsolutePath)) {
                 window.popMessageShell(e, {
                     content: 'FileExist',
@@ -420,13 +435,8 @@ $(() => {
                 renameForm.querySelector('input').select();
             } else {
                 fs.renameSync(absolutePath, newAbsolutePath);
-                let oldImgID = imgRelativePathToID[relativePath];
-                imgIDToRelativePath[oldImgID] = newRelativePath;
-                imgRelativePathToID[newRelativePath] = oldImgID;
-                imgRelativeToAbsolute[newRelativePath] = newAbsolutePath;
-                delete imgRelativePathToID[relativePath];
-                delete imgRelativeToAbsolute[relativePath];
-                delete imgIDToRelativePath[oldImgID];
+
+                renameFinished(relativePath,newRelativePath,newAbsolutePath)
 
                 let reg = new RegExp('(!\\[[^\\[\\]]*\\]\\()' + relativePath.replace(/\\/g, '\\\\') + '\\)', 'g')
                 editor.setValue(editor.getValue().replace(reg, '$1' + newRelativePath + ')'));
@@ -438,8 +448,6 @@ $(() => {
                     autoHide: true
                 })
             }
-
-
         }
     })
 
@@ -475,6 +483,8 @@ $(() => {
         if (e.ctrlKey) {
             $('span.cm-string.cm-url').unbind('click').click(e => {
                 if (e.ctrlKey) {
+                    e.stopPropagation();
+                    // e.defaultPrevented();
                     const innerLink = e.target.innerText.replace(/^\((.*)\)$/, '$1');
                     if (innerLink.startsWith('http://') || innerLink.startsWith('https://'))
                         require('electron').shell.openItem(innerLink);
@@ -502,22 +512,22 @@ $(() => {
     })
 
     window.onfocus = (e) => {
-        if (w.fileName === '') return;
-        fs.readFile(w.fileName, (err, res) => {
+        if (hexoWindow.fileName === '') return;
+        fs.readFile(hexoWindow.fileName, (err, res) => {
             if (err) {
-                w.changed = true;
-                w.window.setDocumentEdited(true);
+                hexoWindow.changed = true;
+                hexoWindow.window.setDocumentEdited(true);
                 return;
             }
             let s = res.toString();
-            if (s !== w.fileContent) {
+            if (s !== hexoWindow.fileContent) {
                 const option = moeApp.config.get('auto-reload');
                 let flag = false;
                 if (option === 'auto') flag = true;
                 else if (option === 'never') flag = false;
                 else {
                     flag = dialog.showMessageBox(
-                        w.window,
+                        hexoWindow.window,
                         {
                             type: 'question',
                             buttons: [__("Yes"), __("No")],
@@ -528,11 +538,11 @@ $(() => {
                     ) === 0;
                 }
 
-                w.fileContent = w.content = s;
+                hexoWindow.fileContent = hexoWindow.content = s;
 
                 if (!flag) {
-                    w.changed = true;
-                    w.window.setDocumentEdited(true);
+                    hexoWindow.changed = true;
+                    hexoWindow.window.setDocumentEdited(true);
                     return;
                 }
 
@@ -545,8 +555,8 @@ $(() => {
                 if (scrollpos > 0)
                     editorScroll.scrollTop = scrollpos;
 
-                w.changed = false;
-                w.window.setDocumentEdited(false);
+                hexoWindow.changed = false;
+                hexoWindow.window.setDocumentEdited(false);
                 window.updatePreview(true);
             }
         });

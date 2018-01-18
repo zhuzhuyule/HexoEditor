@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const tabView = document.getElementsByClassName('tabview')[0];
     const tabs = tabView.getElementsByClassName('item');
     const panels = tabView.getElementsByClassName('panel');
-    const w = require('electron').remote.getCurrentWindow();
+    const hexoWindow = require('electron').remote.getCurrentWindow();
 
     for (const tab of tabs) {
         const s = tab.getAttribute('data-tab');
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tab.classList.add('selected');
 
             if (oldHeight !== null && newHeight !== null && oldHeight !== newHeight) {
-                let size = w.getSize();
+                let size = hexoWindow.getSize();
                 /*
                 // The animate has flickering issue
                 let delta = newHeight - oldHeight;
@@ -56,12 +56,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (delta < unit) unit = delta;
                     size[1] += unit * sgn;
                     delta -= unit;
-                    w.setSize(size[0], size[1], false);
+                    hexoWindow.setSize(size[0], size[1], false);
                     if (delta) setTimeout(ani, 20);
                 }
                 ani();
                 */
-                w.setSize(size[0], size[1] + newHeight - oldHeight, true);
+                hexoWindow.setSize(size[0], size[1] + newHeight - oldHeight, true);
             }
         });
     }

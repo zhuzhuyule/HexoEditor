@@ -66,12 +66,12 @@ document.addEventListener('DOMContentLoaded', () => {
     ipcRenderer.on('pop-message-shell',popMessageShell)  ;
 
     ipcRenderer.on('refresh-editor', function () {
-        let w  = window.w;
-        if (w.fileName !== '') {
-            document.getElementsByTagName('title')[0].innerText = 'Moeditor - ' + require('path').basename(w.fileName);
+        let hexoWindow  = window.hexoWindow;
+        if (hexoWindow.fileName !== '') {
+            document.getElementsByTagName('title')[0].innerText = 'Moeditor - ' + require('path').basename(hexoWindow.fileName);
         }
-        document.querySelector('#editor textarea').innerText = w.content;
-        window.editor.setValue(w.content);
+        document.querySelector('#editor textarea').innerText = hexoWindow.content;
+        window.editor.setValue(hexoWindow.content);
         window.updatePreview(true);
     })
 });

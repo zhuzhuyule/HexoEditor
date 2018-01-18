@@ -34,7 +34,7 @@ module.exports = {
     'editor-line-height': 2,
     'math': true,
     'uml-diagrams': true,
-    'auto-reload': 'auto',
+    'auto-reload': 'prompt',
     'auto-save': 'prompt',
     'highlight-theme': 'github',
     'render-theme': '*GitHub',

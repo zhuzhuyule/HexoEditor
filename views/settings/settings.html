@@ -85,7 +85,7 @@
                                 <td width="40%" class="l10n">Reload when file changed</td>
                                 <td width="60%">
                                     <select class="settings-item" data-key="auto-reload">
-                                        <option value="auto" class="l10n">Auto</option>
+                                        <!--<option value="auto" class="l10n">Auto</option>-->
                                         <option value="prompt" class="l10n">Prompt</option>
                                         <option value="never" class="l10n">Never</option>
                                     </select>
@@ -125,13 +125,13 @@
                             <tr>
                                 <td width="40%" class="l10n">Font Size</td>
                                 <td width="60%">
-                                    <input class="settings-item" type="text" data-key="editor-font-size" value="14">
+                                    <input class="settings-item" type="number" data-key="editor-font-size" value="14">
                                 </td>
                             </tr>
                             <tr>
                                 <td width="40%" class="l10n">Line Height</td>
                                 <td width="60%">
-                                    <input class="settings-item" type="text" data-key="editor-line-height" value="2">
+                                    <input class="settings-item" type="number" data-key="editor-line-height" value="2">
                                 </td>
                             </tr>
                             <tr>
@@ -170,10 +170,15 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td width="30%" class="l10n">Hexo Config</td>
+                                <td width="30%" class="l10n">Hexo Mode</td>
                                 <td width="70%">
                                     <input type="checkbox" class="settings-item" data-key="hexo-config-enable">
-                                    <input type="text" class="settings-item" disabled="disabled"  data-key="hexo-config" style="width: calc(100% - 50px);">
+                                </td>
+                            </tr>
+                            <tr>
+                                <td width="30%" class="l10n">Hexo Config</td>
+                                <td width="70%">
+                                    <input type="text" class="settings-item" disabled="disabled"  data-key="hexo-config" style="width: calc(100% - 25px);">
                                     <div style="display: inline-block; margin-left: -1px; position: absolute; " id="hexo-config-btn">
                                         <button class="button-add-remove button-add" ><i class="fa fa-folder-o" aria-hidden="true"></i></button>
                                     </div>

@@ -131,9 +131,9 @@
                         }
                     </script>
 
-                    <!--<div class="button-bottom l10n-title" id="button-bottom-focus" title="Toggle focus mode">-->
-                    <!--<i class="fa fa-dot-circle-o" aria-hidden="true"></i>-->
-                    <!--</div>-->
+                    <div class="button-bottom l10n-title" id="button-bottom-focus" title="Toggle focus mode">
+                        <i class="fa fa-dot-circle-o" aria-hidden="true"></i>
+                    </div>
 
                     <div class="button-bottom l10n-title"  title="Write Mode" exdata="(Ctrl+W)" onclick="clickItem(0)">
                         <i class="fa fa-pencil" aria-hidden="true"></i>
@@ -171,6 +171,7 @@
         <link rel="stylesheet" href="../node_modules/biu.js/dist/biu.css">
 
         <script src="../node_modules/codemirror/lib/codemirror.js"></script>
+        <!--Mode-->
         <script src="../node_modules/codemirror/addon/mode/simple.js"></script>
         <script src="../node_modules/codemirror/mode/markdown/markdown.js"></script>
         <script src="../node_modules/codemirror/mode/yaml/yaml.js"></script>
@@ -180,26 +181,24 @@
         <script src="../node_modules/codemirror/mode/css/css.js"></script>
         <script src="../node_modules/codemirror/mode/htmlmixed/htmlmixed.js"></script>
         <script src="../node_modules/codemirror/mode/javascript/javascript.js"></script>
-
+        <script src="../node_modules/codemirror/mode/javascript/javascript.js"></script>
         <script src="../node_modules/codemirror/mode/clike/clike.js"></script>
-        <script src="../node_modules/codemirror/mode/haml/haml.js"></script>
-        <script src="../node_modules/codemirror/mode/jsx/jsx.js"></script>
-        <script src="../node_modules/codemirror/mode/php/php.js"></script>
-        <script src="../node_modules/codemirror/mode/python/python.js"></script>
-        <script src="../node_modules/codemirror/mode/powershell/powershell.js"></script>
-        <script src="../node_modules/codemirror/mode/ruby/ruby.js"></script>
-        <script src="../node_modules/codemirror/mode/shell/shell.js"></script>
-        <script src="../node_modules/codemirror/mode/slim/slim.js"></script>
         <script src="../node_modules/codemirror/mode/sql/sql.js"></script>
-        <script src="../node_modules/codemirror/mode/stex/stex.js"></script>
-        <script src="../node_modules/codemirror/mode/textile/textile.js"></script>
-        <script src="../node_modules/codemirror/mode/verilog/verilog.js"></script>
-        <script src="../node_modules/codemirror/mode/xquery/xquery.js"></script>
-        <script src="../node_modules/codemirror/mode/rust/rust.js"></script>
-        <script src="../node_modules/codemirror/mode/mscgen/mscgen.js"></script>
-        <script src="../node_modules/codemirror/mode/dylan/dylan.js"></script>
-        <script src="../node_modules/codemirror/mode/meta.js"></script>
-
+        <script src="../node_modules/codemirror/mode/python/python.js"></script>
+        <script src="../node_modules/codemirror/mode/php/php.js"></script>
+        <!--hint-->
+        <!--<script src="../node_modules/codemirror/addon/hint/anyword-hint.js"></script>-->
+        <!--<script src="../node_modules/codemirror/addon/hint/javascript-hint.js"></script>-->
+        <!--<script src="../node_modules/codemirror/addon/hint/sql-hint.js"></script>-->
+        <!--<script src="../node_modules/codemirror/addon/hint/show-hint.js"></script>-->
+        <!--brackets-->
+        <script src="../node_modules/codemirror/addon/edit/closebrackets.js"></script>
+        <!--fold-->
+        <script src="../node_modules/codemirror/addon/fold/foldcode.js"></script>
+        <script src="../node_modules/codemirror/addon/fold/foldgutter.js"></script>
+        <script src="../node_modules/codemirror/addon/fold/brace-fold.js"></script>
+        <script src="../node_modules/codemirror/addon/fold/comment-fold.js"></script>
+        <!--other-->
         <script src="../node_modules/codemirror/addon/mode/overlay.js"></script>
         <script src="../node_modules/codemirror/addon/mode/multiplex.js"></script>
         <script src="../node_modules/codemirror/addon/scroll/simplescrollbars.js"></script>

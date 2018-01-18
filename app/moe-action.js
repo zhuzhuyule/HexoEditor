@@ -31,11 +31,11 @@ let lastDir = '';
 class MoeditorAction {
     static openNew() {
         let windows = require('electron').BrowserWindow.getAllWindows();
-        let w, i;
+        let hexoWindow, i;
         for (i = windows.length - 1; i > -1; i--) {
-            w = windows[i];
-            if (w.moeditorWindow && w.moeditorWindow.content.length < 1 &&!w.moeditorWindow.changed) {
-                w.focus();
+            hexoWindow = windows[i];
+            if (hexoWindow.hexoeditorWindow && hexoWindow.hexoeditorWindow.content.length < 1 &&!hexoWindow.hexoeditorWindow.changed) {
+                hexoWindow.focus();
                 break;
             }
         }
@@ -79,19 +79,19 @@ class MoeditorAction {
                 lastDir = fileDir;
                 MoeditorFile.write(fileName, content);
                 if (fs.existsSync(fileName)) {
-                    let w = require('electron').BrowserWindow.getFocusedWindow();
-                    if (typeof w.moeditorWindow == 'undefined' || w.moeditorWindow.changed || w.moeditorWindow.content) {
+                    let hexoWindow = require('electron').BrowserWindow.getFocusedWindow();
+                    if (typeof hexoWindow.hexoeditorWindow == 'undefined' || hexoWindow.hexoeditorWindow.changed || hexoWindow.hexoeditorWindow.content) {
                         app.addRecentDocument(fileName);
                         moeApp.open(fileName,fileName);
                     } else {
-                        w.moeditorWindow.defName = fileName;
-                        w.moeditorWindow.fileName = fileName;
-                        w.moeditorWindow.directory = lastDir;
-                        w.moeditorWindow.fileContent = w.moeditorWindow.content = MoeditorFile.read(fileName).toString();
-                        w.moeditorWindow.changed = false;
-                        w.moeditorWindow.window.setDocumentEdited(false);
-                        w.moeditorWindow.window.setRepresentedFilename(w.moeditorWindow.fileName);
-                        w.moeditorWindow.window.webContents.send('refresh-editor', {});
+                        hexoWindow.hexoeditorWindow.defName = fileName;
+                        hexoWindow.hexoeditorWindow.fileName = fileName;
+                        hexoWindow.hexoeditorWindow.directory = lastDir;
+                        hexoWindow.hexoeditorWindow.fileContent = hexoWindow.hexoeditorWindow.content = MoeditorFile.read(fileName).toString();
+                        hexoWindow.hexoeditorWindow.changed = false;
+                        hexoWindow.hexoeditorWindow.window.setDocumentEdited(false);
+                        hexoWindow.hexoeditorWindow.window.setRepresentedFilename(hexoWindow.hexoeditorWindow.fileName);
+                        hexoWindow.hexoeditorWindow.window.webContents.send('refresh-editor', {});
                         app.addRecentDocument(fileName);
                     }
                     notOpened = false;
@@ -121,24 +121,24 @@ class MoeditorAction {
         let filename = files[0];
         if (filename) {
             let windows = require('electron').BrowserWindow.getAllWindows();
-            let w, i;
+            let hexoWindow, i;
             for (i = windows.length - 1; i > -1; i--) {
-                w = windows[i];
-                if (w.moeditorWindow) {
-                    if (w.moeditorWindow.fileName == filename) {
-                        w.focus();
+                hexoWindow = windows[i];
+                if (hexoWindow.hexoeditorWindow) {
+                    if (hexoWindow.hexoeditorWindow.fileName == filename) {
+                        hexoWindow.focus();
                         break;
-                    } else if (w.moeditorWindow.fileName == '' && !w.moeditorWindow.changed) {
+                    } else if (hexoWindow.hexoeditorWindow.fileName == '' && !hexoWindow.hexoeditorWindow.changed) {
                         try {
-                            w.moeditorWindow.fileName = filename;
-                            w.moeditorWindow.directory = lastDir;
-                            w.moeditorWindow.fileContent = w.moeditorWindow.content = MoeditorFile.read(filename).toString();
-                            w.moeditorWindow.changed = false;
-                            w.moeditorWindow.window.setDocumentEdited(false);
-                            w.moeditorWindow.window.setRepresentedFilename(w.moeditorWindow.fileName);
-                            w.moeditorWindow.window.webContents.send('refresh-editor', {});
+                            hexoWindow.hexoeditorWindow.fileName = filename;
+                            hexoWindow.hexoeditorWindow.directory = lastDir;
+                            hexoWindow.hexoeditorWindow.fileContent = hexoWindow.hexoeditorWindow.content = MoeditorFile.read(filename).toString();
+                            hexoWindow.hexoeditorWindow.changed = false;
+                            hexoWindow.hexoeditorWindow.window.setDocumentEdited(false);
+                            hexoWindow.hexoeditorWindow.window.setRepresentedFilename(hexoWindow.hexoeditorWindow.fileName);
+                            hexoWindow.hexoeditorWindow.window.webContents.send('refresh-editor', {});
                             app.addRecentDocument(filename);
-                            w.focus();
+                            hexoWindow.focus();
                             break;
                         } catch (e) {
                             console.log(e);
@@ -153,28 +153,28 @@ class MoeditorAction {
         }
     }
 
-    static save(w) {
-        if (typeof w == 'undefined') w = require('electron').BrowserWindow.getFocusedWindow();
-        if (typeof w.moeditorWindow == 'undefined') return false;
+    static save(hexoWindow) {
+        if (typeof hexoWindow == 'undefined') hexoWindow = require('electron').BrowserWindow.getFocusedWindow();
+        if (typeof hexoWindow.hexoeditorWindow == 'undefined') return false;
 
-        if (typeof w.moeditorWindow.fileName == 'undefined' || w.moeditorWindow.fileName == '') {
-            return MoeditorAction.saveAs(w);
+        if (typeof hexoWindow.hexoeditorWindow.fileName == 'undefined' || hexoWindow.hexoeditorWindow.fileName == '') {
+            return MoeditorAction.saveAs(hexoWindow);
         } else {
             try {
-                MoeditorFile.write(w.moeditorWindow.fileName, w.moeditorWindow.content);
-                w.moeditorWindow.isSaved = true;
-                w.moeditorWindow.fileContent = w.moeditorWindow.content;
-                w.moeditorWindow.changed = false;
-                w.moeditorWindow.window.setDocumentEdited(false);
-                w.moeditorWindow.window.setRepresentedFilename(w.moeditorWindow.fileName);
-                w.moeditorWindow.window.webContents.send('pop-message', {
+                MoeditorFile.write(hexoWindow.hexoeditorWindow.fileName, hexoWindow.hexoeditorWindow.content);
+                hexoWindow.hexoeditorWindow.isSaved = true;
+                hexoWindow.hexoeditorWindow.fileContent = hexoWindow.hexoeditorWindow.content;
+                hexoWindow.hexoeditorWindow.changed = false;
+                hexoWindow.hexoeditorWindow.window.setDocumentEdited(false);
+                hexoWindow.hexoeditorWindow.window.setRepresentedFilename(hexoWindow.hexoeditorWindow.fileName);
+                hexoWindow.hexoeditorWindow.window.webContents.send('pop-message', {
                     type: 'success',
                     content: __('Saved successfully.')
                 });
-                moeApp.addRecentDocument(w.moeditorWindow.fileName);
+                moeApp.addRecentDocument(hexoWindow.hexoeditorWindow.fileName);
                 return true;
             } catch (e) {
-                w.moeditorWindow.window.webContents.send('pop-message', {
+                hexoWindow.hexoeditorWindow.window.webContents.send('pop-message', {
                     type: 'error',
                     content: __('Can\'t save file') + ', ' + e.toString()
                 });
@@ -185,11 +185,11 @@ class MoeditorAction {
         return false;
     }
 
-    static saveAs(w) {
-        if (typeof w == 'undefined') w = require('electron').BrowserWindow.getFocusedWindow();
-        if (typeof w.moeditorWindow == 'undefined') return false;
+    static saveAs(hexoWindow) {
+        if (typeof hexoWindow == 'undefined') hexoWindow = require('electron').BrowserWindow.getFocusedWindow();
+        if (typeof hexoWindow.hexoeditorWindow == 'undefined') return false;
 
-        const fileName = dialog.showSaveDialog(w,
+        const fileName = dialog.showSaveDialog(hexoWindow,
             {
                 defaultPath: lastDir,
                 filters: [
@@ -202,23 +202,23 @@ class MoeditorAction {
         lastDir = path.dirname(fileName);
 
         try {
-            MoeditorFile.write(fileName, w.moeditorWindow.content);
-            w.moeditorWindow.isSaved = true;
-            w.moeditorWindow.directory = lastDir;
-            w.moeditorWindow.fileContent = w.moeditorWindow.content;
-            w.moeditorWindow.fileName = fileName;
-            w.moeditorWindow.changed = false;
+            MoeditorFile.write(fileName, hexoWindow.hexoeditorWindow.content);
+            hexoWindow.hexoeditorWindow.isSaved = true;
+            hexoWindow.hexoeditorWindow.directory = lastDir;
+            hexoWindow.hexoeditorWindow.fileContent = hexoWindow.hexoeditorWindow.content;
+            hexoWindow.hexoeditorWindow.fileName = fileName;
+            hexoWindow.hexoeditorWindow.changed = false;
             moeApp.addRecentDocument(fileName);
-            w.moeditorWindow.window.setDocumentEdited(false);
-            w.moeditorWindow.window.setRepresentedFilename(fileName);
-            w.moeditorWindow.window.webContents.send('pop-message', {
+            hexoWindow.hexoeditorWindow.window.setDocumentEdited(false);
+            hexoWindow.hexoeditorWindow.window.setRepresentedFilename(fileName);
+            hexoWindow.hexoeditorWindow.window.webContents.send('pop-message', {
                 type: 'success',
                 content: __('Saved successfully.')
             });
-            w.moeditorWindow.window.webContents.send('set-title', fileName);
+            hexoWindow.hexoeditorWindow.window.webContents.send('set-title', fileName);
             return true;
         } catch (e) {
-            w.moeditorWindow.window.webContents.send('pop-message', {
+            hexoWindow.hexoeditorWindow.window.webContents.send('pop-message', {
                 type: 'error',
                 content: __('Can\'t save file') + ', ' + e.toString()
             });
@@ -227,11 +227,11 @@ class MoeditorAction {
         }
     }
 
-    static exportAsHTML(w, f) {
-        if (typeof w == 'undefined') w = require('electron').BrowserWindow.getFocusedWindow();
-        if (typeof w.moeditorWindow == 'undefined') return;
+    static exportAsHTML(hexoWindow, f) {
+        if (typeof hexoWindow == 'undefined') hexoWindow = require('electron').BrowserWindow.getFocusedWindow();
+        if (typeof hexoWindow.hexoeditorWindow == 'undefined') return;
 
-        const fileName = dialog.showSaveDialog(w,
+        const fileName = dialog.showSaveDialog(hexoWindow,
             {
                 defaultPath: lastDir,
                 filters: [
@@ -244,7 +244,7 @@ class MoeditorAction {
 
         f((s) => {
             try {
-                w.moeditorWindow.window.webContents.send('pop-message', {
+                hexoWindow.hexoeditorWindow.window.webContents.send('pop-message', {
                     type: 'info',
                     content: __('Exporting as HTML, please wait ...')
                 });
@@ -252,7 +252,7 @@ class MoeditorAction {
                 const {shell} = require('electron');
                 shell.openItem(fileName);
             } catch (e) {
-                w.moeditorWindow.window.webContents.send('pop-message', {
+                hexoWindow.hexoeditorWindow.window.webContents.send('pop-message', {
                     type: 'error',
                     content: __('Can\'t export as HTML') + ', ' + e.toString()
                 });
@@ -261,11 +261,11 @@ class MoeditorAction {
         });
     }
 
-    static exportAsPDF(w, f) {
-        if (typeof w == 'undefined') w = require('electron').BrowserWindow.getFocusedWindow();
-        if (typeof w.moeditorWindow == 'undefined') return;
+    static exportAsPDF(hexoWindow, f) {
+        if (typeof hexoWindow == 'undefined') hexoWindow = require('electron').BrowserWindow.getFocusedWindow();
+        if (typeof hexoWindow.hexoeditorWindow == 'undefined') return;
 
-        const fileName = dialog.showSaveDialog(w,
+        const fileName = dialog.showSaveDialog(hexoWindow,
             {
                 defaultPath: lastDir,
                 filters: [
@@ -278,14 +278,14 @@ class MoeditorAction {
 
         f((s) => {
             let errorHandler = (e) => {
-                w.moeditorWindow.window.webContents.send('pop-message', {
+                hexoWindow.hexoeditorWindow.window.webContents.send('pop-message', {
                     type: 'error',
                     content: __('Can\'t export as PDF') + ', ' + e.toString()
                 });
                 console.log('Can\'t export as PDF: ' + e.toString());
             }
             try {
-                w.moeditorWindow.window.webContents.send('pop-message', {
+                hexoWindow.hexoeditorWindow.window.webContents.send('pop-message', {
                     type: 'info',
                     content: __('Exporting as PDF, please wait ...')
                 });

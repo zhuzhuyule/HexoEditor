@@ -27,10 +27,11 @@ var moeApp = null, openFile = null;
 
 app.on("ready", () => {
     moeApp = new MoeditorApplication();
-    if (openFile !== null) moeApp.osxOpenFile = openFile;
     global.moeApp = moeApp;
     global.app = app;
     app.moeApp = moeApp;
+    if (openFile !== null)
+        moeApp.osxOpenFile = openFile;
 	moeApp.run();
 });
 

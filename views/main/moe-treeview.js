@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
         items.appendChild(newNode);
     }
 
-    const MoeditorPath = require('./moe-path'), rootPath = new MoeditorPath(w.directory);
+    const MoeditorPath = require('./moe-path'), rootPath = new MoeditorPath(hexoWindow.directory);
 
     function clickItem(e) {
         if (e.getAttribute('data-isdir') === 'true') {
