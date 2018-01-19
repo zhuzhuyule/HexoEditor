@@ -153,7 +153,7 @@ function setHexoAutoSetting(val) {
 };
 
 function setHexoConfigEnable(val) {
-    moeApp.useHexo = val;                                  us
+    moeApp.useHexo = val;
     hexo.enable = val;
     hexo.changeConfig();
     window.updatePreview(true);

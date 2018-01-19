@@ -73,9 +73,9 @@ $(() => {
     });
 
     editor.focus();
-    editor.on('keypress', ()=>{
-        editor.showHint();
-    });
+    // editor.on('keypress', ()=>{
+    //     editor.showHint();
+    // });
 
     window.mkdirsSync = (dirpath, mode) => {
         if (!fs.existsSync(dirpath)) {
