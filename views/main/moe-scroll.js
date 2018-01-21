@@ -30,7 +30,7 @@ function lookup(a, x) {
     return l;
 }
 
-var container = document.getElementById('container'), containerWrapper = document.getElementById('container-wrapper');
+var container = document.getElementById('container'), containerWrapper = document.getElementById('preview');
 var editorScroll = $('.CodeMirror-vscrollbar')[0], containerScroll = containerWrapper;
 function getLineNumberTags() {
     // from http://stackoverflow.com/questions/9496427/get-elements-by-attribute-when-queryselectorall-is-not-available-without-using-l
@@ -111,7 +111,7 @@ $editorScroll.on('scroll', function(e) {
 });
 
 
-var $previewer = $('#container-wrapper');
+var $previewer = $('#preview');
 var $previewerScroll = $('#right-panel .CodeMirror-vscrollbar');
 
 $previewer.on('scroll', function() {

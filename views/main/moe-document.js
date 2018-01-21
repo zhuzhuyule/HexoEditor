@@ -77,6 +77,7 @@ $(() => {
     //     editor.showHint();
     // });
 
+
     window.mkdirsSync = (dirpath, mode) => {
         if (!fs.existsSync(dirpath)) {
             var pathtmp;
@@ -285,8 +286,48 @@ $(() => {
         }
     }
 
-    editor.on('change', (editor, obj) => {
-        window.updatePreview(false)
+    window.throttle = (func,wait,must)=>{
+       let timeout = 0;
+       return function(){
+           var context = this,
+               args = arguments,
+               curTime = new Date();
+
+           clearTimeout(timeout);
+           // 如果达到了规定的触发时间间隔，触发 handler
+           if(curTime - startTime >= mustRun){
+               func.apply(context,args);
+               startTime = curTime;
+               // 没达到触发间隔，重新设定定时器
+           }else{
+               timeout = setTimeout(func, wait);
+           }
+       }
+    }
+
+    let debounceTimeout = 0;
+    let debounceStartTime =0;
+    window.debounce = (func, wait, mustRun)=> {
+        clearTimeout(debounceTimeout);
+        let curTime = new Date();
+        if(curTime - debounceStartTime >= mustRun){
+            func();
+            debounceTimeout = 0;
+            debounceStartTime = curTime;
+        }else{
+            debounceTimeout = setTimeout(()=>{
+                func();
+                debounceTimeout = 0;
+                debounceStartTime = curTime
+            }, wait);
+        }
+};
+
+
+    editor.on('change', () => {
+        debounce(()=> {
+            window.updatePreview(false)
+        }, 150,500);
     });
 
     editor.on('blur', () => {
@@ -312,7 +353,7 @@ $(() => {
 
     const s = require('electron').shell;
 
-    const containerWrapper = document.getElementById('container-wrapper');
+    const containerWrapper = document.getElementById('preview');
     document.addEventListener('keydown', (e) => {
         if ((process.platform === 'darwin' ? e.metaKey : e.ctrlKey) && e.keyCode == 65) {
             if (document.getElementById('editor').contains(e.target)) {
@@ -496,7 +537,7 @@ $(() => {
     }, true)
 
     window.addEventListener('resize', e => {
-        $('#right-panel .CodeMirror-vscrollbar div').height(document.getElementById('container-wrapper').scrollHeight);
+        $('#right-panel .CodeMirror-vscrollbar div').height(document.getElementById('preview').scrollHeight);
     })
 
     let editordiv = document.querySelector('#editor');

@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const remote = require('electron').remote;
     const {Menu, MenuItem} = remote;
 
-    const editor = document.getElementById('editor'), containerWrapper = document.getElementById('container-wrapper');
+    const editor = document.getElementById('editor'), containerWrapper = document.getElementById('preview');
 
     window.addEventListener('contextmenu', (e) => {
         e.preventDefault();

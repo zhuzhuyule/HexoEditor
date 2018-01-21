@@ -21,63 +21,17 @@
 'use strict';
 
 document.addEventListener('DOMContentLoaded', () => {
-    const titlebar = document.getElementById('electron-titlebar');
-    const main = document.getElementById('main');
-    const modeButton = document.getElementById('button-bottom-mode');
-    const rightPanel = document.getElementById('right-panel');
-    const modeMenu = document.getElementById('popup-menu-mode');
-    const modeMenuItems = modeMenu.getElementsByTagName('li');
     const editor = document.getElementById('editor');
-    const container = document.getElementById('container');
 
+    document.querySelectorAll('#cover-bottom-right> [mode-button]').forEach(function (item) {
+        item.addEventListener('click', (e) => {
+            var type = item.getAttribute('mode-button');
+            setMode(type)
+        })
+    })
     function setMode(m) {
-        function setBaseMode(bm) {
-            document.body.setAttribute('settings-mode', bm);
-            if (bm === 'write') {
-                main.classList.add('write-mode');
-                moeApp.config.set('edit-mode-write', m);
-            } else if (bm === 'read') {
-                main.classList.add('read-mode');
-                moeApp.config.set('edit-mode-read', m);
-            }
-        }
-
-        [
-            'write-mode',
-            'read-mode',
-            'write-mode-wide',
-            'write-mode-medium',
-            'write-mode-thin',
-            'read-mode-wide',
-            'read-mode-medium',
-            'read-mode-thin'
-        ].forEach(x => main.classList.remove(x));
-
-        if (m === 'write-wide') {
-            setBaseMode('write');
-            main.classList.add('write-mode-wide');
-        } else if (m === 'write-medium') {
-            setBaseMode('write');
-            main.classList.add('write-mode-medium');
-        } else if (m === 'write-narrow') {
-            setBaseMode('write');
-            main.classList.add('write-mode-thin');
-        } else if (m === 'preview') {
-            setBaseMode('preview');
-        } else if (m === 'read-wide') {
-            setBaseMode('read');
-            main.classList.add('read-mode-wide');
-        } else if (m === 'read-medium') {
-            setBaseMode('read');
-            main.classList.add('read-mode-medium');
-        } else if (m === 'read-narrow') {
-            setBaseMode('read');
-            main.classList.add('read-mode-thin');
-        }
-
         if (window.editMode === m) return;
-
-        for (const it of modeMenuItems) it.getElementsByClassName('fa')[0].style.opacity = (it.attributes['data-name'].value === m) ? '1' : '0';
+        document.body.setAttribute('class', m);
 
         window.editMode = m;
         if (window.updatePreview)
@@ -91,27 +45,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setMode(moeApp.config.get('edit-mode'));
 
-    modeButton.addEventListener('click', () => {
-        window.toggleMenu(modeMenu);
-    });
-
-    for (const it of modeMenuItems) it.addEventListener('click', () => {
-        setMode(it.attributes['data-name'].value);
-        window.editor.focus();
-    })
+    window.editor.focus();
 
     require('electron').ipcRenderer.on('change-edit-mode', (e, arg) => {
         if (arg === 'read' || arg === 'write')
             setMode(moeApp.config.get('edit-mode-' + arg));
-        else if (arg === 'change'){
-            if(document.querySelector('#main.write-mode'))
+        else if (arg === 'change') {
+            if (document.querySelector('.write'))
                 setMode(moeApp.config.get('edit-mode-read'));
             else
                 setMode(moeApp.config.get('edit-mode-write'));
-        }else if (arg === 'changepreview'){
-            if(document.querySelector('#main.write-mode'))
+        } else if (arg === 'changepreview') {
+            if (document.querySelector('.write'))
                 setMode('preview');
-            else if(document.querySelector('#main.read-mode'))
+            else if (document.querySelector('.read'))
                 setMode(moeApp.config.get('edit-mode-write'));
             else
                 setMode(moeApp.config.get('edit-mode-read'));
@@ -122,8 +69,4 @@ document.addEventListener('DOMContentLoaded', () => {
     editor.addEventListener('transitionend', (e) => {
         if (e.target === editor && e.propertyName === 'width') window.editor.refresh();
     });
-
-    // rightPanel.addEventListener('transitionend', (e) => {
-    //     if (e.target === rightPanel && (window.editMode.startsWith('read') || window.editMode.startsWith('preview'))) window.updatePreview(true);
-    // });
 });

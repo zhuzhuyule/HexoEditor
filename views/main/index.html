@@ -102,7 +102,7 @@
                     <div class="CodeMirror-vscrollbar" cm-not-content="true" style="display: block; ">
                         <div style="min-width: 1px;"></div>
                     </div>
-                    <div id="container-wrapper" tabindex="-1">
+                    <div id="preview" tabindex="-1">
                         <div id="container" class="preview post-body"></div>
                     </div>
                     <div class="cover-top"></div>
@@ -123,49 +123,24 @@
                     <!--</div>-->
                 </div>
                 <div id="cover-bottom-right">
-                    <script type="text/javascript">
-                        function clickItem(index){
-                            var modeMenu = document.getElementById('popup-menu-mode');
-                            var modeMenuItems = modeMenu.getElementsByTagName('li');
-                            modeMenuItems[index].click();
-                        }
-                    </script>
-
                     <div class="button-bottom l10n-title" id="button-bottom-focus" title="Toggle focus mode">
                         <i class="fa fa-dot-circle-o" aria-hidden="true"></i>
                     </div>
 
-                    <div class="button-bottom l10n-title"  title="Write Mode" exdata="(Ctrl+W)" onclick="clickItem(0)">
+                    <div class="button-bottom l10n-title"  title="Write Mode" exdata="(Ctrl+W)" mode-button="write">
                         <i class="fa fa-pencil" aria-hidden="true"></i>
                     </div>
-                    <div class="button-bottom l10n-title"  title="Preview Mode" exdata="(Ctrl+P)" onclick="clickItem(6)">
+                    <div class="button-bottom l10n-title"  title="Preview Mode" exdata="(Ctrl+P)" mode-button="preview">
                         <i class="fa fa-pencil-square-o" aria-hidden="true"></i>
                     </div>
-                    <div class="button-bottom l10n-title"  title="Read Mode" exdata="(Ctrl+R)" onclick="clickItem(3)">
+                    <div class="button-bottom l10n-title"  title="Read Mode" exdata="(Ctrl+R)" mode-button="read">
                         <i class="fa fa-eye" aria-hidden="true"></i>
-                    </div>
-                    <div class="button-bottom l10n-title" id="button-bottom-mode" title="Edit mode">
-                        <i class="fa fa-circle-o" aria-hidden="true"></i>
                     </div>
                 </div>
             </div>
         </div>
-        <div id="popup-layer">
-            <div class="popup-menu" id="popup-menu-mode" tabindex="-1">
-                <ul>
-                    <li data-name="write-wide"><i class="fa fa-check" aria-hidden="true"></i><span class="l10n">Write Mode</span> (<span class="l10n">Wide</span>)</li>
-                    <li data-name="write-medium"><i class="fa fa-check" aria-hidden="true"></i><span class="l10n">Write Mode</span> (<span class="l10n">Medium</span>)</li>
-                    <li data-name="write-narrow"><i class="fa fa-check" aria-hidden="true"></i><span class="l10n">Write Mode</span> (<span class="l10n">Narrow</span>)</li>
-                    <li data-name="read-wide"><i class="fa fa-check" aria-hidden="true"></i><span class="l10n">Read Mode</span> (<span class="l10n">Wide</span>)</li>
-                    <li data-name="read-medium"><i class="fa fa-check" aria-hidden="true"></i><span class="l10n">Read Mode</span> (<span class="l10n">Medium</span>)</li>
-                    <li data-name="read-narrow"><i class="fa fa-check" aria-hidden="true"></i><span class="l10n">Read Mode</span> (<span class="l10n">Narrow</span>)</li>
-                    <li data-name="preview"><i class="fa fa-check" aria-hidden="true"></i><span class="l10n">Preview Mode</span></li>
-                </ul>
-            </div>
-        </div>
 
         <link rel="stylesheet" href="../node_modules/font-awesome/css/font-awesome.min.css">
-        <link rel="stylesheet" href="main/moe-popmenu.css">
         <link rel="stylesheet" href="../node_modules/codemirror/lib/codemirror.css">
         <link rel="stylesheet" href="../node_modules/katex/dist/katex.min.css">
         <link rel="stylesheet" href="../node_modules/biu.js/dist/biu.css">
@@ -222,7 +197,6 @@
 
         <script type="text/javascript" src="main/moe-sidemenu.js"></script>
         <!--<script type="text/javascript" src="main/moe-treeview.js"></script>-->
-        <script type="text/javascript" src="main/moe-popmenu.js"></script>
         <script type="text/javascript" src="main/moe-mode.js"></script>
         <script type="text/javascript" src="main/moe-export.js"></script>
         <script type="text/javascript" src="main/moe-popmessage.js"></script>

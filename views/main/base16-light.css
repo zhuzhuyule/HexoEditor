@@ -35,6 +35,10 @@
     background: linear-gradient(to bottom, rgb(245, 245, 245) 40%, transparent);
 }
 
+#right-panel .cover-top {
+    background: linear-gradient(to bottom, rgb(255, 255, 255) 40%, transparent)
+}
+
 #cover-bottom #cover-bottom-background-left {
     background: rgb(245, 245, 245);
 }

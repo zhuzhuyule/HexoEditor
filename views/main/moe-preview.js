@@ -19,48 +19,46 @@
 
 'use strict';
 
-var updatePreview = false, updatePreviewRunning = false;
 const marked = require('./moe-marked') ;
 const MoeditorMathRenderer = require('./moe-math');
 const SVGFixer = require('./svgfixer');
 
+let gLastContent = '';
+let gNeedUpdate = false;
+let gUpdateRunning = false;
 
 module.exports = (cm, force, cb) => {
+    const content = cm.getValue();
+    if (hexoWindow.content === content) {
+        hexoWindow.changed = true;
+        hexoWindow.window.setDocumentEdited(true);
+    } else {
+        hexoWindow.changed = false;
+    }
+
+    if (gNeedUpdate || (!force && gLastContent == content))
+        return;
+
+    if (gUpdateRunning ){
+        gNeedUpdate = true;
+    } else {
+        setTimeout(updateAsync,0);
+    }
+
     function updateAsync() {
-        updatePreview = false;
-        updatePreviewRunning = true;
+        gLastContent = cm.getValue();
+        gUpdateRunning = true;
 
-        const content = cm.getValue();
-        if (hexoWindow.content === content && !force) {
-            updatePreviewRunning = false;
-            if (updatePreview) setTimeout(updateAsync, 0);
-            cb();
-            return;
-        }
-
-        if (hexoWindow.content !== content) {
-            hexoWindow.content = content;
-            hexoWindow.changed = true;
-            hexoWindow.window.setDocumentEdited(true);
-        }
-
-        if (window.editMode && !window.editMode.startsWith('preview') && !window.editMode.startsWith('read')) {
-            updatePreviewRunning = false;
-            if (updatePreview) setTimeout(updateAsync, 0);
-            cb();
-            return;
-        }
-
-        var math = new Array();
-        var rendered = null;
-
-        rendered = document.createElement('span');
-        marked(content,markEnd);
+        marked(gLastContent,markEnd);
 
         function markEnd(value){
+            var math = new Array();
+            var rendered = null;
+            rendered = document.createElement('span');
             rendered.innerHTML = value;
             MoeditorMathRenderer.renderMany(math, (math) => {
-                for (let id in math) rendered.querySelector('#' + id).innerHTML = math[id].res;
+                for (let id in math)
+                    rendered.querySelector('#' + id).innerHTML = math[id].res;
 
                 var set = new Set();
                 let lineNumbers = rendered.querySelectorAll('moemark-linenumber') || [];
@@ -75,22 +73,17 @@ module.exports = (cm, force, cb) => {
 
                 document.getElementById('container').innerHTML = rendered.innerHTML;
                 SVGFixer(document.getElementById('container'));
-                $('#right-panel .CodeMirror-vscrollbar div').height(document.getElementById('container-wrapper').scrollHeight);
+                $('#right-panel .CodeMirror-vscrollbar div').height(document.getElementById('preview').scrollHeight);
 
-                if (!window.xyz) window.xyz = rendered.innerHTML;
-
-                cb();
-
-                updatePreviewRunning = false;
-                if (updatePreview) setTimeout(updateAsync, 0);
+                gUpdateRunning = false;
+                if (gNeedUpdate){
+                    setTimeout(updateAsync,0);
+                }
+                gNeedUpdate = false;
+                if(typeof cb === 'function')
+                    cb();
             });
-            $('#right-panel .CodeMirror-vscrollbar div').height(document.getElementById('container-wrapper').scrollHeight);
+            $('#right-panel .CodeMirror-vscrollbar div').height(document.getElementById('preview').scrollHeight);
         }
     }
-    updatePreview = true;
-
-    if (!updatePreviewRunning) {
-        setTimeout(updateAsync, 0);
-    }
-
 }

@@ -136,12 +136,18 @@
 
 
 /*#editor .CodeMirror-vscrollbar::-webkit-scrollbar-thumb ,*/
-/*#container-wrapper::-webkit-scrollbar-thumb {*/
+/*#preview::-webkit-scrollbar-thumb {*/
     /*background-color: rgba(0,0,0,0);*/
     /*-webkit-animation: 1s;*/
 /*}*/
 
 /*#editor .CodeMirror-vscrollbar.hoverScroll::-webkit-scrollbar-thumb ,*/
-/*#container-wrapper.hoverScroll::-webkit-scrollbar-thumb {*/
+/*#preview.hoverScroll::-webkit-scrollbar-thumb {*/
     /*background-color: rgba(0,0,0,0.2);*/
 /*}*/
+
+#preview::-webkit-scrollbar,
+.CodeMirror-scroll::-webkit-scrollbar {
+    width: 0px !important;
+    height: 0px !important;
+}

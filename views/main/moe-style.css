@@ -18,6 +18,10 @@
  *  along with Moeditor. If not, see <http://www.gnu.org/licenses/>.
  */
 
+:root{
+    --spaceX: 45px;
+    --spaceY: 30px;
+}
 
 .notransition, .notransition *:not(.CodeMirror-cursors):not(.CodeMirror-lines):not(.CodeMirror-sizer):not(.CodeMirror-vscrollbar) {
     transition: none !important;
@@ -134,69 +138,40 @@ html, body {
     position: absolute;
     right: 0;
     width: 50%;
+    overflow: hidden;
     height: calc(100% - 25px);
     transition: all 500ms ease-in-out;
 }
 
-#main.read-mode #left-panel {
+.read #left-panel {
     left: -50%;
     width: 50%;
 }
 
-#main.read-mode #right-panel {
+.read #right-panel {
     width: 100%;
-    /*padding-right: 4px;*/
 }
 
-#main.read-mode #right-panel .cover-top {
+.read #right-panel .cover-top {
     left: 0;
     width: calc(100% - 10px);
 }
 
-#main.write-mode #left-panel {
+.write #left-panel {
     width: 100%;
 }
 
-#main.read-mode #left-panel .cover-top {
+.read #left-panel .cover-top {
     width: calc(100% - 10px);
 }
 
-#main.write-mode #right-panel {
+.write #right-panel {
     right: -50%;
     width: 50%;
 }
 
-#editor {
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    transition: all 500ms ease-in-out;
-    -webkit-user-select: initial;
-}
 
-#main.write-mode.write-mode-thin .CodeMirror-scroll {
-    width: calc(100% / 3 + var(--scrollWidth)) !important;
-    padding-left: calc(100% / 3) !important;
-    padding-right: calc(100% / 3) !important;
-}
 
-#main.write-mode.write-mode-medium .CodeMirror-scroll {
-    width: calc(100% / 2 + var(--scrollWidth)) !important;
-    padding-left: calc(100% / 4) !important;
-    padding-right: calc(100% / 4) !important;
-}
-
-#main.write-mode.write-mode-wide .CodeMirror-scroll {
-    width: calc((100% / 3) * 2 + var(--scrollWidth)) !important;
-    padding-left: calc(100% / 6) !important;
-    padding-right: calc(100% / 6) !important;
-}
-
-#editor.write-mode .CodeMirror-scroll {
-    padding-left: 0;
-    padding-right: 0;
-    width: calc(100% + 30px) !important;
-}
 
 #editor.focus .CodeMirror-line {
     transition: opacity 150ms !important;
@@ -234,7 +209,6 @@ html, body {
     height: 40px;
     z-index: 1000;
 }
-
 
 #drag-left {
     z-index: -1;
@@ -293,19 +267,19 @@ html, body {
     transition: all 500ms ease-in-out;
 }
 
-#main.read-mode #cover-bottom-background-left {
+.read #cover-bottom #cover-bottom-background-left {
     left: -50%;
 }
 
-#main.read-mode #cover-bottom-background-right {
+.read #cover-bottom #cover-bottom-background-right {
     width: 100%;
 }
 
-#main.write-mode #cover-bottom-background-left {
+.write #cover-bottom #cover-bottom-background-left {
     width: 100%;
 }
 
-#main.write-mode #cover-bottom-background-right {
+.write #cover-bottom #cover-bottom-background-right {
     right: -50%;
 }
 
@@ -369,60 +343,29 @@ body[settings-editor-font="sans"] #editor  * {
     font-family: sans-serif !important;
 }
 
-.CodeMirror-wrap, .CodeMirror pre, .CodeMirror span, .CodeMirror-vscrollbar div, .CodeMirror-measure {
-    /*transition: none !important;*/
-}
-
-#editor .CodeMirror {
-    width: 100%;
-    height: 100%;
-}
-
-#container-wrapper {
-    /*width: calc(100% + var(--scrollWidth)) !important;*/
-    width: calc(100% + var(--scrollWidth)) !important;
-    height: 100%;
-    overflow-y: scroll;
-    overflow-x: hidden;
+#preview {
+    position: relative !important;
+    -webkit-user-select: initial;
+    transition: all 500ms ease-in-out;
+    width: calc(100% - var(--spaceX) * 2) !important;
+    height: calc(100% - var(--spaceY)) !important;
+    padding: var(--spaceY)  var(--spaceX) 0  var(--spaceX);
+    overflow: scroll !important;
+    font-size: 14px !important;
     outline: none;
-    position: relative;
+}
+
+@media screen and (min-width: 875px){
+    .read #container {
+        max-width: 1200px !important;
+        width: 70% !important;
+    }
 }
 
 #container {
-    padding-top: 40px;
-    padding-bottom: 30px;
-    padding-left: 45px;
-    padding-right: 40px;
-    font-size: 14px !important;
     transition: all 500ms ease-in-out;
     -webkit-user-select: initial;
-}
-
-#main.read-mode #container {
-    padding-left: 0;
-    padding-right: 0;
-}
-
-#main.read-mode #container-wrapper {
-    width: calc(100%) !important;
-}
-
-#main.read-mode.read-mode-thin #container {
-    width: calc(100% / 3);
-    margin-left: calc(100% / 3);
-    margin-right: calc(100% / 3);
-}
-
-#main.read-mode.read-mode-medium #container {
-    width: calc(100% / 2);
-    margin-left: calc(100% / 4);
-    margin-right: calc(100% / 4);
-}
-
-#main.read-mode.read-mode-wide #container {
-    width: calc((100% / 3) * 2);
-    margin-left: calc(100% / 6);
-    margin-right: calc(100% / 6);
+    margin: auto !important;
 }
 
 .cm-s-default .cm-header {
@@ -436,31 +379,14 @@ body[settings-editor-font="sans"] #editor  * {
 .cm-header-5 { font-size: 1.05em; }
 .cm-header-6 { font-size: 1em; }
 
-.CodeMirror-scroll {
-    overflow: hidden !important;
-    overflow-x: hidden !important;
-    overflow-y: scroll !important;
-    padding-left: 45px;
-    padding-right: 20px;
-    padding-top: 35px;
-    height: calc(100% - 35px - 31px);
-    /*width: calc(100% - 45px - 20px - 24px + 30px) !important;*/
-    width: calc(100% - 45px - 20px + var(--scrollWidth)) !important;
-    transition: all 500ms ease-in-out;
-}
-
 .CodeMirror-vscrollbar {
     z-index: 1000000 !important;
     position: absolute !important;
-    right: 0px !important;
-    bottom: 25px !important;
 }
 
-#container-wrapper .CodeMirror-vscrollbar,
-#main.write-mode .CodeMirror-vscrollbar {
+#preview .CodeMirror-vscrollbar,
+.write .CodeMirror-vscrollbar {
     position: absolute !important;
-    right: 0px !important;
-    bottom: 25px !important;
 }
 
 .CodeMirror {
@@ -478,6 +404,35 @@ body[settings-editor-font="sans"] #editor  * {
 
 .CodeMirror-lines {
     overflow-x: visible;
+}
+
+#left-panel{
+    overflow: hidden!important;
+}
+
+#editor {
+    position: relative  !important;
+    overflow: visible  !important;
+    -webkit-user-select: initial;
+    transition: all 500ms ease-in-out;
+    width: calc(100% - var(--spaceX) * 2)  !important;
+    height: 100%  !important;
+    padding: 0 var(--spaceX) 0 var(--spaceX)  !important;
+}
+
+#editor .CodeMirror {
+    position: absolute !important;
+    overflow: visible  !important;
+    width: calc(100% - var(--spaceX) * 2) !important;
+    height: calc(100% - var(--spaceY)) !important;
+    padding-top: var(--spaceY)  !important;
+}
+
+#editor .CodeMirror .CodeMirror-vscrollbar {
+    position: absolute;
+    overflow-y: scroll;
+    transition: all 500ms ease-in-out;
+    right: calc(0px - var(--spaceX));
 }
 
 moemark-linenumber{
@@ -587,50 +542,6 @@ body[settings-mode=read] #drag-right, body[settings-mode=write] #drag-right {
 .invalidFile{
     background: red;
 }
-
-/*.CodeMirror-linenumber.CodeMirror-gutter-elt {*/
-    /*!* border-right: 1px solid #cfeacf; *!*/
-    /*color: #a3a3a3;*/
-    /*background: #e8e8e8;*/
-    /*box-shadow: 2px 1px 1px 0px #bbb;*/
-    /*margin-left: -3px;*/
-    /*padding-right: 4px;*/
-/*}*/
-
-
-/*.CodeMirror-gutter-wrapper {*/
-    /*display: none;*/
-/*}*/
-
-
-/*#editor.nogutter .CodeMirror-sizer {*/
-    /*margin-left: 0 !important;*/
-/*}*/
-
-/*#editor.gutter .CodeMirror-gutter-wrapper {*/
-    /*display: block;*/
-    /*position: absolute;*/
-    /*z-index: 4;*/
-    /*background: none !important;*/
-    /*border: none !important;*/
-/*}*/
-
-/*#editor.gutter .CodeMirror-code {*/
-    /*box-shadow: inset 3px -2px 3px #ddd;*/
-    /*padding-bottom: 3px;*/
-/*}*/
-
-/*#editor.gutter .CodeMirror-code::after {*/
-    /*content: "";*/
-    /*position: relative;*/
-    /*bottom: -3px;*/
-    /*height: 4px;*/
-    /*width: 100%;*/
-    /*background-color: whitesmoke;*/
-    /*display: block;*/
-/*}*/
-
-
 
 .CodeMirror-gutter-wrapper {
     display: none;
