@@ -5,7 +5,6 @@ const Hexo = require('./hexo');
 const __ = require('lodash');
 const Promise = require('bluebird');
 const url = require('url');
-const fs = require('fs');
 
 var rEscapeContent = /<escape(?:[^>]*)>([\s\S]*?)<\/escape>/g;
 var rSwigVar = /\{\{[\s\S]*?\}\}/g;
@@ -73,7 +72,6 @@ Previewer.prototype.render = function (content, MoeMark, options, callback) {
 
     function after_post_render() {
         hexo.execFilter('after_post_render', data, {context: hexo});
-        checkRes();
     }
 
     function checkRes() {
@@ -85,17 +83,20 @@ Previewer.prototype.render = function (content, MoeMark, options, callback) {
             let srcLocal = '';
             if (src && (url.parse(src).protocol === null)) {
                 if (!fs.existsSync(src)) {
-                    srcLocal = (imgRelativePathToID[src] ? imgRelativeToAbsolute[src] : '');
-                    if (!srcLocal && !moeApp.useHexo && hexo.config.__basedir) {
-                        srcLocal = path.join(hexo.config.__basedir, 'source', src);
-                        if (!fs.existsSync(srcLocal))
-                            srcLocal = '';
-                    }
+                    srcLocal = imgManager.resolvePath(src)|| '';
+                    //首先查询用户设置目录
                     if (!srcLocal && moeApp.config.get('image-path')) {
                         srcLocal = path.join(moeApp.config.get('image-path'), src);
                         if (!fs.existsSync(srcLocal))
                             srcLocal = '';
                     }
+                    //再查询Hexo资源目录
+                    if (!srcLocal && moeApp.useHexo && hexo.config.__basedir) {
+                        srcLocal = path.join(hexo.config.__basedir, 'source', src);
+                        if (!fs.existsSync(srcLocal))
+                            srcLocal = '';
+                    }
+                    //最后查询文档所在目录
                     if (!srcLocal)
                         srcLocal = path.join(hexoWindow.directory, src);
                     img.id = src;
@@ -110,20 +111,20 @@ Previewer.prototype.render = function (content, MoeMark, options, callback) {
 
     if (moeApp.useHexo) {
         Promise.resolve()
-            .then(escapeTag).catch(console.log)
-            .then(markdownContent, markdownContent).catch(console.log)
-            .then(backTag).catch(console.log)
-            .then(function () {
-                callback(data.content)
-            })
-    } else {
-        Promise.resolve()
             .then(tryFilterHeader).catch(console.log)
             .then(before_post_render).catch(console.log)
             .then(escapeTag).catch(console.log)
             .then(markdownContent, markdownContent).catch(console.log)
             .then(backTag).catch(console.log)
             .then(after_post_render).catch(console.log)
+            .then(checkRes).catch(console.log)
+            .then(function () {
+                callback(data.content)
+            })
+    } else {
+        Promise.resolve()
+            .then(markdownContent, markdownContent).catch(console.log)
+            .then(checkRes).catch(console.log)
             .then(function () {
                 callback(data.content)
             })

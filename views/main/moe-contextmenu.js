@@ -112,12 +112,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 },
                 {
-                    type: moeApp.useHexo ? 'normal' : 'separator',
-                    visible: !moeApp.useHexo,
+                    type: moeApp.useHexo ?  'separator' :'normal',
+                    visible: moeApp.useHexo,
                 },
                 {
                     label: "HEXO",
-                    visible: !moeApp.useHexo,
+                    visible: moeApp.useHexo,
                     enabled: !shellServer.processRunning(),
                     click(item, hexoWindow) {
                         const shell = require('electron').shell

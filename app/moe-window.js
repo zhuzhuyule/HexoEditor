@@ -71,7 +71,6 @@ class MoeditorWindow {
 
     registerEvents() {
         this.window.on('close', (e) => {
-            console.log(moeApp.windows.length,this.changed)
             if (moeApp.windows.length && this.changed) {
                 const choice = dialog.showMessageBox(
                     this.window,

@@ -19,8 +19,6 @@
 
 'use strict';
 
-const path = require('path');
-const fs = require('fs');
 const body = document.body;
 const codemirror = document.querySelector('#editor > .CodeMirror');
 
@@ -90,7 +88,7 @@ function setEditorLineHeight(val) {
 }
 
 function setImagePath(val) {
-    console.log(val)
+    imgManager.updateBase();
     window.editor.refresh();
 }
 
@@ -154,7 +152,7 @@ function setHexoAutoSetting(val) {
 
 function setHexoConfigEnable(val) {
     moeApp.useHexo = val;
-    hexo.enable = val;
+    imgManager.updateBase();
     hexo.changeConfig();
     window.updatePreview(true);
 };
@@ -185,12 +183,6 @@ function setCustomCSSs(val) {
         link.className = 'link-custom-csss';
         document.head.appendChild(link);
     }
-}
-
-// just use to v1.1.8 ---> v1.1.10
-let tmpTheme = moeApp.config.get('render-theme');
-if (['GitHub','No Theme','next'].indexOf(tmpTheme) > -1){
-    moeApp.config.set('render-theme', '*'+tmpTheme)
 }
 
 tryRun(setEditorFont, moeApp.config.get('editor-font'));

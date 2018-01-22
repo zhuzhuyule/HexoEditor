@@ -78,8 +78,12 @@ Hexo.prototype.loadTags = function () {
     }
 }
 
-Hexo.prototype.changeConfig = function () {
-    hexo.enable = moeApp.config.get('hexo-config-enable');
+Hexo.prototype.changeConfig = function (enable) {
+    this.enable = enable;
+    let file = moeApp.config.get('hexo-config');
+    if (typeof file === 'object')
+        file = file.toString();
+    this.config.__basedir = path.dirname(file|| '');
     // var sep = path.sep;
     // this.base_dir = base + sep;
     // this.public_dir = pathFn.join(base, 'public') + sep;
@@ -90,10 +94,12 @@ Hexo.prototype.changeConfig = function () {
     // this.theme_dir = pathFn.join(base, 'themes', defaultConfig.theme) + sep;
     // this.theme_script_dir = pathFn.join(this.theme_dir, 'scripts') + sep;
 
-    // Load Hexo config
-    this.loadConfig();
-    // Load tags file
-    this.loadTags();
+    if (enable){
+        // Load Hexo config
+        this.loadConfig();
+        // Load tags file
+        this.loadTags();
+    }
 }
 
 module.exports = Hexo;

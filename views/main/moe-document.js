@@ -23,16 +23,11 @@ require('electron-titlebar');
 window.app = require('electron').remote.app;
 window.moeApp = app.moeApp;
 window.hexoWindow = moeApp.hexoWindow;
-window.imgRelativePathToID = {};
-window.imgIDToRelativePath = {};
-window.imgRelativeToAbsolute = {};
 window.clipboard = require('electron').clipboard;
-
-hexoWindow.savedContent;
+window.fs = require('fs');
+window.path = require('path');
 
 $(() => {
-    const fs = require('fs');
-    const path = require('path');
     const dialog = require('electron').remote.dialog;
     const YMAL = require('yamljs');
 
@@ -73,116 +68,6 @@ $(() => {
     });
 
     editor.focus();
-    // editor.on('keypress', ()=>{
-    //     editor.showHint();
-    // });
-
-
-    window.mkdirsSync = (dirpath, mode) => {
-        if (!fs.existsSync(dirpath)) {
-            var pathtmp;
-            dirpath.split(path.sep).forEach(function (dirname) {
-                if (pathtmp) {
-                    pathtmp = path.join(pathtmp, dirname);
-                }
-                else {
-                    pathtmp = dirname;
-                }
-                if (!fs.existsSync(pathtmp)) {
-                    if (!fs.mkdirSync(pathtmp, mode)) {
-                        return false;
-                    }
-                }
-            });
-        }
-        return true;
-    }
-
-    window.md5 = (text) => {
-        return require('crypto').createHash('md5').update(text).digest('hex');
-    };
-    window.imgRootPath = (extendPath) => {
-        let rootPaht = '';
-        if (!moeApp.useHexo && hexo.config.__basedir) {
-            rootPaht = path.join(hexo.config.__basedir, 'source', extendPath || '');
-        } else if (moeApp.config.get('image-path')) {
-            rootPaht = moeApp.config.get('image-path');
-        } else {
-            rootPaht = hexoWindow.directory;
-        }
-        return rootPaht;
-    }
-
-    function replaceImgSelection(codeMirror, title, relativePath, imageID, absolutePath) {
-        if (!relativePath) {
-            if (!moeApp.useHexo && hexo.config.__basedir)
-                relativePath = '/' + path.relative(imgRootPath(), absolutePath).replace(/\\+/g, '/')
-            else
-                relativePath = '/' + path.relative(imgRootPath(), absolutePath).replace(/\\+/g, '/')
-            if (!imageID) {
-                imageID = imgRelativePathToID[absolutePath] || md5(absolutePath);
-            }
-            imgIDToRelativePath[imageID] = relativePath;
-            imgRelativeToAbsolute[imageID] = absolutePath;
-            imgRelativePathToID[relativePath] = imageID;
-        }
-        codeMirror.replaceSelection(`![${title}](${relativePath})`);
-    }
-
-    window.pasteData = (codeMirror) => {
-        if (!codeMirror)
-            codeMirror = editor;
-        let image = clipboard.readImage();
-        if (!image.isEmpty()) {
-            image = image.toPNG();
-            let imageTitle = codeMirror.getSelection();
-            let imageID = md5(image);
-            let relativePath = imgIDToRelativePath[imageID];
-            if (relativePath) {
-                replaceImgSelection(codeMirror, imageTitle, relativePath);
-                return;
-            }
-            let rootPaht = imgRootPath('images');
-            let imageName = imageTitle || require('moment')().format('YYYYMMDDhhmmssSSS');
-
-            let count = 0;
-            let currFileName = path.basename(hexoWindow.fileName, path.extname(hexoWindow.fileName)) || hexoWindow.ID;
-            let imageAbsolutePath = path.join(rootPaht, currFileName, imageName + '.png');
-            do {
-                if (count > 0)
-                    imageAbsolutePath = path.join(rootPaht, currFileName, imageName + count + '.png');
-                count += 1;
-                if (count > 50) {
-                    imageAbsolutePath = path.join(rootPaht, currFileName, imageName + require('moment')().format('YYYYMMDDhhmmssSSS') + '.png');
-                    break;
-                }
-            } while (fs.existsSync(imageAbsolutePath));
-            mkdirsSync(path.dirname(imageAbsolutePath));
-            fs.writeFileSync(imageAbsolutePath, image);
-            replaceImgSelection(codeMirror, imageTitle, '', imageID, imageAbsolutePath);
-        } else {
-            codeMirror.replaceSelection(clipboard.readText())
-        }
-    };
-
-    var prastDataKey = (process.platform === 'darwin' ? "Cmd" : "Ctrl") + "-V";
-    editor.options.extraKeys[prastDataKey] = pasteData;
-
-    const holder = document
-    holder.ondragover = () => {
-        return false;
-    }
-    holder.ondragleave = holder.ondragend = () => {
-        return false;
-    }
-    holder.ondrop = (e) => {
-        e.stopPropagation()
-        e.preventDefault()
-        for (let f of e.dataTransfer.files) {
-            replaceImgSelection(editor, (editor.getSelection() || ''), '', '', f.path);
-        }
-        return false;
-    }
 
     const scroll = require('./moe-scroll');
     window.updatePreview = (force) => {
@@ -191,143 +76,28 @@ $(() => {
         });
     };
 
-    window.changeFileName = (force) => {
-        if (!force && hexoWindow.defName !== hexoWindow.fileName) return;
-
-        let title, fileNameNew;
-        let filename = path.basename(hexoWindow.fileName, path.extname(hexoWindow.fileName));
-        let oldName = filename;
-
-        hexoWindow.content.replace(/^---+([\w\W]+?)---+/, function () {
-            title = YMAL.parse(arguments[1]).title;
-            return '';
-        });
-
-        if (filename === title) {
-            if (force)
-                hexoWindow.isSaved = true;
-            return
-        }
-
-        try {
-            filename = title.toString().replace(/[ \\\/:\*\?"<>\|]+/g, '-');
-            let dir = path.dirname(hexoWindow.fileName);
-            let ext = path.extname(hexoWindow.fileName);
-            let count = -1;
-            do {
-                count++;
-                fileNameNew = filename + (count > 0 ? count : '');
-                fileNameNew = path.resolve(dir, fileNameNew + ext);
-                if (hexoWindow.fileName == fileNameNew || count > 50) {
-                    return;
-                }
-            } while (fs.existsSync(fileNameNew))
-
-            fs.renameSync(hexoWindow.fileName, fileNameNew);
-            hexoWindow.fileName = fileNameNew;
-
-            hexoWindow.window.setRepresentedFilename(fileNameNew);
-            document.getElementsByTagName('title')[0].innerText = 'HexoEditor - ' + path.basename(fileNameNew);
-
-            let irp = imgRootPath('images');
-            let imgFilePathOld = path.join(irp, oldName);
-            if (fs.existsSync(imgFilePathOld)) {
-                let imgFilePathNew = path.join(irp, path.basename(fileNameNew, ext));
-                fs.rename(imgFilePathOld, imgFilePathNew, err => {
-                    if (err) console.error(err);
-                    fs.stat(imgFilePathNew, (err, stats) => {
-                        if (err) console.error(err);
-                        console.log('stats: ' + JSON.stringify(stats));
-                        let relativePathOld = path.relative(imgRootPath(),imgFilePathOld).replace(/[\/\\]/g,'/');
-                        let relativePathNew = path.relative(imgRootPath(),imgFilePathNew).replace(/[\/\\]/g,'/');
-                        editor.setValue(editor.getValue().replace(new RegExp('\\]\\(/'+relativePathOld,'g'),'](/'+relativePathNew))
-                        renameFinished(relativePathOld,relativePathNew,)
-
-                        window.imgIDToRelativePath = JSON.parse(JSON.stringify(imgIDToRelativePath).replace(new RegExp(relativePathOld,'g'),relativePathNew));
-                        window.imgRelativePathToID = JSON.parse(JSON.stringify(imgRelativePathToID).replace(new RegExp(relativePathOld,'g'),relativePathNew));
-                        window.imgRelativeToAbsolute = JSON.parse(JSON.stringify(imgRelativeToAbsolute).replace(new RegExp(relativePathOld,'g'),relativePathNew));
-                    })
-                })
-            }
-
-
-            if (force) {
-                fs.writeFile(hexoWindow.fileName, hexoWindow.content, (err) => {
-                    if (err) {
-                        hexoWindow.changed = true;
-                        hexoWindow.window.setDocumentEdited(true);
-                        return;
-                    }
-                    hexoWindow.isSaved = true;
-                    hexoWindow.changed = false;
-                    hexoWindow.window.setDocumentEdited(false);
-                    app.addRecentDocument(fileNameNew);
-                    hexoWindow.savedContent = hexoWindow.content;
-                });
-            }
-        } catch (e) {
-            console.log(e);
-        }
-    }
-
-    window.autoSave = () => {
-        const option = moeApp.config.get('auto-save');
-        if (option === 'auto' && hexoWindow.content !== hexoWindow.savedContent) {
-            fs.writeFile(hexoWindow.fileName, hexoWindow.content, (err) => {
-                if (err) {
-                    hexoWindow.changed = true;
-                    hexoWindow.window.setDocumentEdited(true);
-                    return;
-                }
-                hexoWindow.isSaved = true;
-                hexoWindow.changed = false;
-                hexoWindow.window.setDocumentEdited(false);
-            });
-        }
-    }
-
-    window.throttle = (func,wait,must)=>{
-       let timeout = 0;
-       return function(){
-           var context = this,
-               args = arguments,
-               curTime = new Date();
-
-           clearTimeout(timeout);
-           // 如果达到了规定的触发时间间隔，触发 handler
-           if(curTime - startTime >= mustRun){
-               func.apply(context,args);
-               startTime = curTime;
-               // 没达到触发间隔，重新设定定时器
-           }else{
-               timeout = setTimeout(func, wait);
-           }
-       }
-    }
-
     let debounceTimeout = 0;
-    let debounceStartTime =0;
-    window.debounce = (func, wait, mustRun)=> {
+    let debounceStartTime = 0;
+    window.debounce = (func, wait, mustRun) => {
         clearTimeout(debounceTimeout);
         let curTime = new Date();
-        if(curTime - debounceStartTime >= mustRun){
+        if (curTime - debounceStartTime >= mustRun) {
             func();
             debounceTimeout = 0;
             debounceStartTime = curTime;
-        }else{
-            debounceTimeout = setTimeout(()=>{
+        } else {
+            debounceTimeout = setTimeout(() => {
                 func();
                 debounceTimeout = 0;
                 debounceStartTime = curTime
             }, wait);
         }
-};
-
+    };
 
     editor.on('change', () => {
-        debounce(()=> {
+        debounce(() => {
             window.updatePreview(false)
-        }, 150,500);
+        }, 150, 500);
     });
 
     editor.on('blur', () => {
@@ -385,7 +155,7 @@ $(() => {
     });
 
     if (moeApp.config.get('focus-mode') === true) document.getElementById('editor').classList.add('focus');
-    document.getElementById('button-bottom-focus').addEventListener('click', function() {
+    document.getElementById('button-bottom-focus').addEventListener('click', function () {
         document.getElementById('editor').classList.toggle('focus');
         moeApp.config.set('focus-mode', document.getElementById('editor').classList.contains('focus'));
     });
@@ -394,10 +164,14 @@ $(() => {
         document.getElementsByTagName('title')[0].innerText = 'HexoEditor - ' + path.basename(fileName);
     });
 
+    //加载填图功能
+    const ImgManager = require('./hexo-image');
+    window.imgManager = new ImgManager(hexo.filename)
+
+    //加载设置
     require('./moe-settings');
 
     hexoWindow.window.show();
-
 
     $("#main-container div").mousemove(function (e) {
         // $('.scrolling').removeClass('scrolling');
@@ -412,7 +186,6 @@ $(() => {
         function (e) {
         },
         function (e) {
-            // $('.scrolling').removeClass('scrolling');
             $(this).find('.CodeMirror-vscrollbar').removeClass('hoverScroll');
         }
     )
@@ -420,9 +193,7 @@ $(() => {
     document.querySelectorAll('.CodeMirror-vscrollbar').forEach(
         function (item) {
             item.addEventListener("transitionend", function (e) {
-                // if (e.propertyName == 'font-size'){
                 $('.scrolling').removeClass('scrolling');
-                // }
             });
 
             item.addEventListener("scroll", function (e) {
@@ -435,6 +206,127 @@ $(() => {
         }
     );
 
+
+
+    function replaceImgSelection(codeMirror, title, relativePath) {
+        codeMirror.replaceSelection(`![${title}](${relativePath})`);
+    }
+
+    window.pasteData = (codeMirror) => {
+        if (!codeMirror)
+            codeMirror = editor;
+        let image = clipboard.readImage();
+        if (!image.isEmpty()) {
+            let imageTitle = codeMirror.getSelection();
+            replaceImgSelection(codeMirror, imageTitle, imgManager.getImageOfObj(image,imageTitle));
+        } else {
+            codeMirror.replaceSelection(clipboard.readText())
+        }
+    };
+
+    var prastDataKey = (process.platform === 'darwin' ? "Cmd" : "Ctrl") + "-V";
+    editor.options.extraKeys[prastDataKey] = pasteData;
+
+    const holder = document
+    holder.ondragover = () => {
+        return false;
+    }
+    holder.ondragleave = holder.ondragend = () => {
+        return false;
+    }
+    holder.ondrop = (e) => {
+        e.stopPropagation()
+        e.preventDefault()
+        for (let f of e.dataTransfer.files) {
+            replaceImgSelection(editor, (editor.getSelection() || ''),imgManager.getImageOfPath(f.path));
+        }
+        return false;
+    }
+
+    window.changeFileName = (force) => {
+        if (!force && hexoWindow.defName !== hexoWindow.fileName)
+            return;
+
+        let title, nameNew;
+        let nameOld = path.basename(hexoWindow.fileName, path.extname(hexoWindow.fileName));
+
+        hexoWindow.content.replace(/^---+([\w\W]+?)---+/, function () {
+            title = YMAL.parse(arguments[1]).title;
+            return '';
+        });
+
+        try {
+            nameNew = title.toString().replace(/[ \\\/:\*\?"<>\|]+/g, '-');
+            if (nameNew !== nameOld){
+                let dir = path.dirname(hexoWindow.fileName);
+                let ext = path.extname(hexoWindow.fileName);
+                let count = -1,fileNameNew;
+                do {
+                    count++;
+                    fileNameNew = nameOld + (count > 0 ? count : '');
+                    fileNameNew = path.resolve(dir, nameNew + ext);
+                    if (count > 50) {
+                        return;
+                    }
+                } while (fs.existsSync(fileNameNew))
+
+                fs.renameSync(hexoWindow.fileName, fileNameNew);
+                hexoWindow.fileName = fileNameNew;
+                hexoWindow.changed = ture;
+                hexoWindow.window.setRepresentedFilename(fileNameNew);
+                document.getElementsByTagName('title')[0].innerText = 'HexoEditor - ' + nameNew + ext;
+
+                //修改文章中的Image链接
+                let imgPathOld = path.join(imgManager.imgBasePath,nameOld).replace(/\\/g,'/');
+                if (fs.existsSync(imgPathOld)) {
+                    let imgPathNew = path.join(imgManager.imgBasePath,nameNew).replace(/\\/g,'/');
+                    fs.rename(imgPathOld, imgPathNew, err => {
+                        if (err) console.error(err);
+                        fs.stat(imgFilePathNew, (err, stats) => {
+                            if (err) console.error(err);
+                            let relativePathOld = imgManager.relativePath(imgPathOld);
+                            let relativePathNew = imgManager.relativePath(imgPathNew);
+                            editor.setValue(editor.getValue().replace(new RegExp('\\]\\(/' + relativePathOld, 'g'), '](/' + relativePathNew))
+                            imgManager.updateFile(nameNew);
+                        })
+                    })
+                }
+            }
+            if (force) {
+                fs.writeFile(hexoWindow.fileName, hexoWindow.content, (err) => {
+                    if (err) {
+                        hexoWindow.window.setDocumentEdited(true);
+                        return;
+                    }
+                    hexoWindow.isSaved = true;
+                    hexoWindow.changed = false;
+                    hexoWindow.window.setDocumentEdited(false);
+                    hexoWindow.fileContent = hexoWindow.content;
+                    app.addRecentDocument(nameNew);
+                });
+            }
+        } catch (e) {
+            console.log(e);
+        }
+    }
+
+    window.autoSave = () => {
+        const option = moeApp.config.get('auto-save');
+        if (option === 'auto' && hexoWindow.content !== hexoWindow.fileContent) {
+            fs.writeFile(hexoWindow.fileName, hexoWindow.content, (err) => {
+                if (err) {
+                    hexoWindow.changed = true;
+                    hexoWindow.window.setDocumentEdited(true);
+                    return;
+                }
+                hexoWindow.isSaved = true;
+                hexoWindow.changed = false;
+                hexoWindow.fileContent = hexoWindow.content;
+                hexoWindow.window.setDocumentEdited(false);
+            });
+        }
+    }
+
     let renameForm = document.querySelector('#renameForm');
     window.renameImage = (relativePath) => {
         renameForm.setAttribute('path', relativePath);
@@ -442,22 +334,10 @@ $(() => {
         renameForm.querySelector('input').value = '';
         renameForm.classList.add('show');
     }
-    window.renameFinished = (oldRelative,newRelative,oldAbsolute,newAbsolute)=>{
-        if (!newAbsolute)
-            newAbsolute = path.join(imgRootPath(), newRelative).replace(/\\/g, '/');
-        let oldImgID = imgRelativePathToID[oldRelative];
-        imgIDToRelativePath[oldImgID] = newRelative;
-        imgRelativePathToID[newRelative] = oldImgID;
-        imgRelativeToAbsolute[newRelative] = newAbsolute;
-        delete imgRelativePathToID[oldRelative];
-        delete imgRelativeToAbsolute[oldRelative];
-        delete imgIDToRelativePath[oldImgID];
-    }
 
     document.querySelector('#renameForm .button-check').addEventListener("click", e => {
-        let rootPaht = window.imgRootPath();
         let relativePath = renameForm.getAttribute('path');
-        let absolutePath = path.join(rootPaht, relativePath);
+        let absolutePath = imgManager.resolvePath(relativePath);
         if (fs.existsSync(absolutePath)) {
             let newName = renameForm.querySelector('input').value;
             const ext = path.extname(relativePath);
@@ -465,7 +345,7 @@ $(() => {
                 newName += ext;
 
             const newAbsolutePath = path.join(path.dirname(absolutePath), newName).replace(/\\/g, '/');
-            const newRelativePath = path.normalize('/' + path.relative(rootPaht, newAbsolutePath)).replace(/\\/g, '/');
+            const newRelativePath = imgManager.relativePath(newAbsolutePath);
 
             if (fs.existsSync(newAbsolutePath)) {
                 window.popMessageShell(e, {
@@ -475,19 +355,23 @@ $(() => {
                 })
                 renameForm.querySelector('input').select();
             } else {
+                //重名文件名
                 fs.renameSync(absolutePath, newAbsolutePath);
-
-                renameFinished(relativePath,newRelativePath,newAbsolutePath)
-
-                let reg = new RegExp('(!\\[[^\\[\\]]*\\]\\()' + relativePath.replace(/\\/g, '\\\\') + '\\)', 'g')
-                editor.setValue(editor.getValue().replace(reg, '$1' + newRelativePath + ')'));
+                //替换原内容
+                let reg = new RegExp('(!\\[[^\\[\\]]*\\]\\()' + relativePath.replace(/\\/g, '/') + '\\)', 'g')
+                hexoWindow.content = editor.getValue().replace(reg, '$1' + newRelativePath + ')');
+                editor.setValue(hexoWindow.content);
+                hexoWindow.changed = false;
+                //更新字典
+                imgManager.updateImgage(path.basename(relativePath),newName);
+                //更新结果提示
                 renameForm.classList.remove('show');
                 window.popMessageShell(e, {
                     content: __('Operation Finished'),
                     type: 'success',
                     btnTip: 'check',
                     autoHide: true
-                })
+                });
             }
         }
     })
@@ -553,17 +437,18 @@ $(() => {
     })
 
     window.onfocus = (e) => {
-        if (hexoWindow.fileName === '') return;
+        if (hexoWindow.fileName === '' || !fs.existsSync(hexoWindow.fileName))
+            return;
         fs.readFile(hexoWindow.fileName, (err, res) => {
             if (err) {
                 hexoWindow.changed = true;
                 hexoWindow.window.setDocumentEdited(true);
                 return;
             }
-            let s = res.toString();
-            if (s !== hexoWindow.fileContent) {
-                const option = moeApp.config.get('auto-reload');
+            let content = res.toString();
+            if (content !== hexoWindow.fileContent) {
                 let flag = false;
+                const option = moeApp.config.get('auto-reload');
                 if (option === 'auto') flag = true;
                 else if (option === 'never') flag = false;
                 else {
@@ -579,18 +464,17 @@ $(() => {
                     ) === 0;
                 }
 
-                hexoWindow.fileContent = hexoWindow.content = s;
-
                 if (!flag) {
                     hexoWindow.changed = true;
                     hexoWindow.window.setDocumentEdited(true);
                     return;
                 }
+                hexoWindow.fileContent = hexoWindow.content = content;
 
                 let pos = window.editor.getCursor();
                 let editorScroll = document.querySelector('.CodeMirror-vscrollbar');
                 let scrollpos = editorScroll.scrollTop;
-                window.editor.setValue(s);
+                window.editor.setValue(content);
                 window.editor.setCursor(pos);
 
                 if (scrollpos > 0)

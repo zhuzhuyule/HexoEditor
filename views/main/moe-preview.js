@@ -28,15 +28,15 @@ let gNeedUpdate = false;
 let gUpdateRunning = false;
 
 module.exports = (cm, force, cb) => {
-    const content = cm.getValue();
-    if (hexoWindow.content === content) {
+    hexoWindow.content = cm.getValue();
+    if (hexoWindow.fileContent !== hexoWindow.content) {
         hexoWindow.changed = true;
         hexoWindow.window.setDocumentEdited(true);
     } else {
         hexoWindow.changed = false;
     }
 
-    if (gNeedUpdate || (!force && gLastContent == content))
+    if (gNeedUpdate || (!force && gLastContent == hexoWindow.content))
         return;
 
     if (gUpdateRunning ){
@@ -77,9 +77,9 @@ module.exports = (cm, force, cb) => {
 
                 gUpdateRunning = false;
                 if (gNeedUpdate){
+                    gNeedUpdate = false;
                     setTimeout(updateAsync,0);
                 }
-                gNeedUpdate = false;
                 if(typeof cb === 'function')
                     cb();
             });
