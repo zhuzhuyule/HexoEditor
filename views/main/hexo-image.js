@@ -126,8 +126,6 @@ class ImgManager {
         let imgPath = file.path;
 
         if (fs.existsSync(imgPath)) {
-            this.upload(file);
-            this.upload(fileb)
             imgPath = imgPath.replace(/\\/g, '/');
             let relativePath = '';
             if (this.imgPathIDList[imgPath]) {
@@ -207,7 +205,7 @@ class ImgManager {
         xhr.send();
     }
 
-    upload(file, callback) {
+    uploadSm(file, callback) {
         let formdata = new FormData();
         formdata.append('smfile', file);
         let xhr = new XMLHttpRequest();
@@ -236,14 +234,23 @@ class ImgManager {
         xhr.send(formdata)
     }
 
+    uploadQiNiu(imgPath, callback) {
+        require('./hexo-qiniu')(this.relativePath(imgPath).slice(1),imgPath,callback)
+    }
+
     uploadPath(imgPath, callback) {
-        let file = new File([fs.readFileSync(imgPath)], md5(imgPath) + path.extname(imgPath), {type: 'image/' + path.extname(imgPath).slice(1)});
-        return this.upload(file, callback);
+        if (!this.isQiNiu){
+            this.uploadQiNiu(imgPath,callback)
+        } else {
+            let file = new File([fs.readFileSync(imgPath)], md5(imgPath) + path.extname(imgPath), {type: 'image/' + path.extname(imgPath).slice(1)});
+            return this.uploadSm(file, callback);
+        }
     }
 
     uploadLocalSrc() {
         this.isUploading = true;
         this.timeout = 0;
+        this.isQiNiu = moeApp.config.get('image-config-qiniu');
 
         let finishedCount = 0;
         let uploadList = new Map();
@@ -297,7 +304,6 @@ class ImgManager {
                     uploadEnd(true);
                 }, 30000)
         }
-
 
         document.querySelector('#right-panel').querySelectorAll('img[localimg="true"]').forEach((item) => {
             let filePath = item.src.replace(/^file:\/\/\//, '');

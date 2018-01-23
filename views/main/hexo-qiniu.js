@@ -1,34 +1,48 @@
 var qiniu = require("qiniu");
 //需要填写你的 Access Key 和 Secret Key
-qiniu.conf.ACCESS_KEY = 'Access_Key';
-qiniu.conf.SECRET_KEY = 'Secret_Key';
+qiniu.conf.ACCESS_KEY = '';
+qiniu.conf.SECRET_KEY = '';
+qiniu.baseWeb = 'http://*.bkt.clouddn.com/'
 //要上传的空间
-bucket = 'Bucket_Name';
-//上传到七牛后保存的文件名
-key = 'my-nodejs-logo.png';
+const bucket = 'test';
+
 //构建上传策略函数，设置回调的url以及需要回调给业务服务器的数据
 function uptoken(bucket, key) {
-    var putPolicy = new qiniu.rs.PutPolicy(bucket+":"+key);
-    putPolicy.callbackUrl = 'http://your.domain.com/callback';
-    putPolicy.callbackBody = 'filename=$(fname)&filesize=$(fsize)';
-    return putPolicy.token();
+    var options = {
+        scope: bucket + ":" + key
+    };
+    var putPolicy = new qiniu.rs.PutPolicy(options);
+    return putPolicy.uploadToken();
 }
-//生成上传 Token
-token = uptoken(bucket, key);
-//要上传文件的本地路径
-filePath = './nodejs-logo.png'
+
 //构造上传函数
-function uploadFile(uptoken, key, localFile) {
-    var extra = new qiniu.io.PutExtra();
-    qiniu.io.putFile(uptoken, key, localFile, extra, function(err, ret) {
-        if(!err) {
-            // 上传成功， 处理返回值
-            console.log(ret.hash, ret.key, ret.persistentId);
-        } else {
-            // 上传失败， 处理返回代码
-            console.log(err);
-        }
-    });
+function uploadFile(key, localFile,callback) {
+    //生成上传 Token
+    let token = uptoken(bucket, key);
+    var formUploader = new qiniu.form_up.FormUploader(qiniu.conf);
+    var extra = new qiniu.form_up.PutExtra();
+    formUploader.putFile(token, key, localFile, extra,
+        function (respErr, respBody, respInfo) {
+            if (respErr) {
+                throw respErr;
+            }
+            console.log(2, respBody);
+            if (respInfo.statusCode == 200 || respInfo.statusCode ==  579) {
+                console.log(respBody);
+                let response = {
+                    code: 'success',
+                    data: {
+                        url: qiniu.baseWeb+respBody.key
+                    }
+                }
+                 callback(md5(localFile),response);
+            } else {
+                console.log(respInfo.statusCode);
+                let response = {
+                    error: respInfo.statusCode + respBody,
+                }
+                callback(md5(localFile),response);
+            }
+        });
 }
-//调用uploadFile上传
-uploadFile(token, key, filePath);
+module.exports = uploadFile;
