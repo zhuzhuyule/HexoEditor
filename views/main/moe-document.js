@@ -206,8 +206,6 @@ $(() => {
         }
     );
 
-
-
     function replaceImgSelection(codeMirror, title, relativePath) {
         codeMirror.replaceSelection(`![${title}](${relativePath})`);
     }
@@ -238,7 +236,7 @@ $(() => {
         e.stopPropagation()
         e.preventDefault()
         for (let f of e.dataTransfer.files) {
-            replaceImgSelection(editor, (editor.getSelection() || ''),imgManager.getImageOfPath(f.path));
+            replaceImgSelection(editor, (editor.getSelection() || ''),imgManager.getImageOfFile(f));
         }
         return false;
     }

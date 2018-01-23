@@ -234,7 +234,18 @@ const strings = {
         "Window": "Window",
         "Help": "Help",
         "Toggle Developer Tools": "Toggle Developer Tools",
-        "Preference": "Preference"
+        "Preference": "Preference",
+
+        "Upload Finished": "Upload Finished.",
+        "Access Denied.": "Access Denied.",
+        "Upload file count limit.": "Upload file count limit.",
+        "Upload file frequency limit.": "Upload file frequency limit.",
+        "Server error. Upload directory isn't writable.": "Server error. Upload directory isn't writable.",
+        "No files were uploaded.": "No files were uploaded.",
+        "File is empty.": "File is empty.",
+        "File is too large.": "File is too large.(Max: 5M)",
+        "File has an invalid extension.": "File has an invalid extension.",
+        "Could not save uploaded file.": "Could not save uploaded file."
 	},
     "zh_CN": {
         "_name": "简体中文",
@@ -371,7 +382,18 @@ const strings = {
         "Window": "窗口",
         "Help": "帮助",
         "Toggle Developer Tools": "切换开发者工具",
-        "Preference": "偏好设置"
+        "Preference": "偏好设置",
+
+        "Upload Finished": "上传完成.",
+        "Access Denied.": "服务器拒绝访问.",
+        "Upload file count limit.": "超出上传文件数量.",
+        "Upload file frequency limit.": "上传文件频率限制.",
+        "Server error. Upload directory isn't writable.": "服务器错误。上传目录不可写.",
+        "No files were uploaded.": "没有文件上传.",
+        "File is empty.": "文件是空的.",
+        "File is too large.": "文件太大.(最大支持5M)",
+        "File has an invalid extension.": "文件扩展名无效.",
+        "Could not save uploaded file.": "无法保存上传的文件."
     },
 	"de": {
         "_name": "Deutsch",

@@ -91,6 +91,7 @@
     "moment-timezone": "^0.5.14",
     "nunjucks": "^3.0.1",
     "os-locale": "^1.4.0",
+    "qiniu": "^7.1.1",
     "raphael": "^2.2.1",
     "strip-indent": "^2.0.0",
     "swig": "^1.4.2",

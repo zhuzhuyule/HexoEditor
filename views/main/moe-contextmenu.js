@@ -112,6 +112,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 },
                 {
+                    label: '一键上传',
+                    enabled: !imgManager.isUploading,
+                    click(item, hexoWindow) {
+                        !imgManager.uploadLocalSrc();
+                    }
+                },
+                {
                     type: moeApp.useHexo ?  'separator' :'normal',
                     visible: moeApp.useHexo,
                 },
