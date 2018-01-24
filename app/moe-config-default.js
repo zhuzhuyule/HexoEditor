@@ -44,5 +44,11 @@ module.exports = {
     'hexo-auto-setting': false,
     'hexo-config-enable': false,
     'hexo-config': '',
-    'hexo-tag-paths': []
+    'hexo-tag-paths': [] ,
+    'image-source-center': '',
+    'image-web-type':'sm',
+    'image-qiniu-accessKey':'',
+    'image-qiniu-secretKey':'',
+    'image-qiniu-bucket':'',
+    'image-qiniu-url':'',
 };

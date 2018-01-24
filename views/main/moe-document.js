@@ -285,7 +285,7 @@ $(() => {
                             let relativePathOld = imgManager.relativePath(imgPathOld);
                             let relativePathNew = imgManager.relativePath(imgPathNew);
                             editor.setValue(editor.getValue().replace(new RegExp('\\]\\(/' + relativePathOld, 'g'), '](/' + relativePathNew))
-                            imgManager.updateFile(nameNew);
+                            imgManager.renameDirPath(nameNew);
                         })
                     })
                 }
@@ -361,7 +361,7 @@ $(() => {
                 editor.setValue(hexoWindow.content);
                 hexoWindow.changed = false;
                 //更新字典
-                imgManager.updateImgage(path.basename(relativePath),newName);
+                imgManager.renameImage(path.basename(relativePath),newName);
                 //更新结果提示
                 renameForm.classList.remove('show');
                 window.popMessageShell(e, {

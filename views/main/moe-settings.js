@@ -185,6 +185,46 @@ function setCustomCSSs(val) {
     }
 }
 
+function setTabSize(val) {
+    window.editor.setOption('tabSize', parseInt(val));
+    window.editor.setOption('indentUnit', parseInt(val));
+    window.editor.refresh();
+}
+
+function setSourceCenter(val) {
+    if(imgManager ){
+        imgManager.updateBase();
+    }
+}
+
+function setImageWebType(val) {
+}
+
+function SetQiNiuAccessKey(val) {
+    if(imgManager && imgManager.qiniuServer){
+        imgManager.qiniuServer.update(val)
+    }
+}
+
+function SetQiNiuSecretKey(val) {
+    if(imgManager && imgManager.qiniuServer){
+        imgManager.qiniuServer.update('',val)
+    }
+}
+
+
+function SetQiNiuBucket(val) {
+    if(imgManager && imgManager.qiniuServer){
+        imgManager.qiniuServer.update('','',val)
+    }
+}
+
+function SetQiNiuWeb(val) {
+    if(imgManager && imgManager.qiniuServer){
+        imgManager.qiniuServer.update('','','',val)
+    }
+}
+
 tryRun(setEditorFont, moeApp.config.get('editor-font'));
 tryRun(setShowLineNumber, !!moeApp.config.get('editor-ShowLineNumber'));
 tryRun(setScrollTogether, moeApp.config.get('scroll-Together'));
@@ -213,7 +253,7 @@ ipcRenderer.on('setting-changed', (e, arg) => {
         tryRun(setEditorFontSize, arg.val);
     } else if (arg.key === 'editor-line-height') {
         tryRun(setEditorLineHeight, arg.val);
-    } else if (arg.key === 'image-path') {
+    } else if (arg.key === 'image-source-center') {
         tryRun(setImagePath, arg.val);
     } else if (arg.key === 'math') {
         tryRun(setMath, arg.val);
@@ -235,5 +275,17 @@ ipcRenderer.on('setting-changed', (e, arg) => {
         tryRun(setHexoTagPaths, arg.val);
     } else if (arg.key === 'custom-csss') {
         tryRun(setCustomCSSs, arg.val);
+    } else if (arg.key === 'image-source-center') {
+        tryRun(setSourceCenter, arg.val);
+    } else if (arg.key === 'image-web-type') {
+        tryRun(setImageWebType, arg.val);
+    } else if (arg.key === 'image-qiniu-accessKey') {
+        tryRun(SetQiNiuAccessKey, arg.val);
+    } else if (arg.key === 'image-qiniu-secretKey') {
+        tryRun(SetQiNiuSecretKey, arg.val);
+    } else if (arg.key === 'image-qiniu-bucket') {
+        tryRun(SetQiNiuBucket, arg.val);
+    } else if (arg.key === 'image-qiniu-url') {
+        tryRun(SetQiNiuWeb, arg.val);
     }
 });

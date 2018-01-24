@@ -85,8 +85,8 @@ Previewer.prototype.render = function (content, MoeMark, options, callback) {
                 if (!fs.existsSync(src)) {
                     srcLocal = imgManager.resolvePath(src)|| '';
                     //首先查询用户设置目录
-                    if (!srcLocal && moeApp.config.get('image-path')) {
-                        srcLocal = path.join(moeApp.config.get('image-path'), src);
+                    if (!srcLocal && moeApp.config.get('image-source-center')) {
+                        srcLocal = path.join(moeApp.config.get('image-source-center'), src);
                         if (!fs.existsSync(srcLocal))
                             srcLocal = '';
                     }

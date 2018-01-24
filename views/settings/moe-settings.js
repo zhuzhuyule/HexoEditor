@@ -76,18 +76,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Image Path
-    let defImagePath =  document.querySelector('.settings-item[data-key="image-path"]');
-    defImagePath.value = moeApp.config.get('image-path');
-    document.querySelector('#image-path-button').addEventListener('click', () => {
-        dialog.showOpenDialog(window.hexoWindow, {properties: ['openDirectory']}, (dirPath) => {
-            if (!dirPath || dirPath.length === 0) return;
-            defImagePath.value = dirPath;
-            moeApp.config.set('image-path', dirPath.replace(/\\/g, '/'));
-            ipcRenderer.send('image-path', {key: "image-path", val: dirPath});
-        });
-    });
-
     // Custom render themes
     let renderThemeSelect = document.querySelector('select[data-key="render-theme"]');
 
@@ -234,11 +222,12 @@ document.addEventListener('DOMContentLoaded', () => {
             ]
         }, (fileName) => {
             if (!fileName || fileName.length === 0) return;
-            moeApp.config.set('hexo-config', fileName);
-            console.log(fileName);
-            if (hexoConfigInput.value !== fileName)
+            fileName = fileName[0];
+            if (hexoConfigInput.value !== fileName){
+                moeApp.config.set('hexo-config', fileName);
                 ipcRenderer.send('setting-changed', {key: 'hexo-config', val: fileName});
-            hexoConfigInput.value = fileName;
+                hexoConfigInput.value = fileName;
+            }
         });
     });
 
@@ -465,4 +454,164 @@ document.addEventListener('DOMContentLoaded', () => {
             )
         }
     })
+
+
+    //
+    let imageSourceButton = document.querySelector('#image-source-center-btn');
+    let imageSourceInput = document.querySelector('#image-source-center');
+    imageSourceInput.value = moeApp.config.get(imageSourceInput.id);
+    imageSourceButton.addEventListener('click', () => {
+        dialog.showOpenDialog(window.hexoWindow, {
+            properties: ['openDirectory'],
+            filters: [
+                {name: __('All Files'), extensions: ['yml']},
+                {name: __('All Files'), extensions: ['*']}
+            ]
+        }, (fileName) => {
+            if (!fileName || fileName.length === 0) return;
+            fileName = fileName[0];
+            if (imageSourceInput.value !== fileName){
+                moeApp.config.set(imageSourceInput.id, fileName);
+                ipcRenderer.send('setting-changed', {key: imageSourceInput.id, val: fileName});
+                imageSourceInput.value = fileName;
+            }
+        });
+    });
+
+    let imageTabItem = document.querySelector('.item[data-tab="image"]');
+    let imageTabContents = document.querySelector('.panel[data-tab="image"]');
+    let imageType = imageTabContents.querySelector('#image-web-type');
+    let imageAccessKey = imageTabContents.querySelector('#image-qiniu-accessKey');
+    let imageSecretKey = imageTabContents.querySelector('#image-qiniu-secretKey');
+    let imageBucket = imageTabContents.querySelector('#image-qiniu-bucket');
+    let imageBaseWeb = imageTabContents.querySelector('#image-qiniu-url');
+
+    function hasQiNiuServer() {
+        if (imageAccessKey.value && imageSecretKey.value && !global.qiniuServer) {
+            global.qiniuServer = new (require('../main/hexo-qiniu'))(imageAccessKey.value, imageSecretKey.value)
+            return true;
+        }
+        return global.qiniuServer;
+    }
+
+    function checkBuckets() {
+        if (hasQiNiuServer()) {
+            let oldBucket = moeApp.config.get(imageBucket.id);
+            qiniuServer.getBuckets((response) => {
+                imageBucket.innerHTML = '';
+                if (response.code == 200) {
+                    response.data.forEach((name) => {
+                        let option = document.createElement('option');
+                        option.value = name;
+                        option.innerText = name;
+                        imageBucket.appendChild(option);
+                        if ((option.value == oldBucket)) {
+                            option.selected = true;
+                            imageBucket.value = option.value;
+                        }
+                    })
+                    if (!imageBucket.value && imageBucket.firstChild){
+                        imageBucket.value = imageBucket.firstChild.value;
+                    }
+                    let event = new Event('change');
+                    imageBucket.dispatchEvent(event);
+                } else {
+                }
+            })
+        }
+    }
+    function checkURLs(bucket) {
+        if (hasQiNiuServer()) {
+            let oldurl = moeApp.config.get(imageBaseWeb.id);
+            qiniuServer.getBucketsUrl(bucket,(response) => {
+                if (response.code == 200) {
+                    imageBaseWeb.innerHTML = '';
+                    response.data.forEach((url) => {
+                        let option = document.createElement('option');
+                        option.value = `https://${url}/`;
+                        option.innerText = url;
+                        imageBaseWeb.appendChild(option);
+                        if ((option.value == oldurl)) {
+                            option.selected = true;
+                            imageBaseWeb.value = oldurl;
+                        }
+                    })
+                    if (!imageBaseWeb.value && imageBaseWeb.firstChild){
+                        imageBaseWeb.value = imageBaseWeb.firstChild.value;
+                    }
+                    let event = new Event('change');
+                    imageBaseWeb.dispatchEvent(event);
+                } else {
+                }
+            })
+        }
+    }
+
+    imageType.addEventListener('change', function (e) {
+        moeApp.config.set(imageType.id, imageType.value);
+        let imageQiNiuItems = imageTabContents.querySelectorAll('tr[data-type="image-qiniu"]')
+        if (imageType.value == 'qiniu') {
+            imageAccessKey.value = moeApp.config.get(imageAccessKey.id);
+            imageSecretKey.value = moeApp.config.get(imageSecretKey.id);
+            checkBuckets();
+            imageQiNiuItems.forEach((item) => {
+                item.style.display = 'table-row'
+            })
+        } else {
+            imageQiNiuItems.forEach((item) => {
+                item.style.display = 'none'
+            })
+            ipcRenderer.send('setting-changed', {key: imageType.id, val: imageType.value});
+        }
+        imageTabItem.click();
+    })
+
+    imageAccessKey.addEventListener('blur',()=>{
+        imageAccessKey.type = 'password';
+        if (imageAccessKey.value && imageAccessKey.value == 40 && imageSecretKey.value && imageSecretKey.value == 40){
+            if (hasQiNiuServer()){
+                qiniuServer.update(imageAccessKey.value,imageSecretKey.value)
+                ipcRenderer.send('setting-changed', {key: imageAccessKey.id, val: imageAccessKey.value});
+
+            }
+            let event = new Event('change');
+            imageBucket.dispatchEvent(event);
+        }
+    })
+    imageAccessKey.addEventListener('focus',()=>{
+        imageAccessKey.type = 'type';
+    })
+    imageSecretKey.addEventListener('blur',()=>{
+        imageSecretKey.type = 'password';
+        if (imageAccessKey.value && imageAccessKey.value == 40 && imageSecretKey.value && imageSecretKey.value == 40){
+            if (hasQiNiuServer()){
+                qiniuServer.update(imageAccessKey.value,imageSecretKey.value)
+                ipcRenderer.send('setting-changed', {key: imageSecretKey.id, val: imageSecretKey.value});
+            }
+            let event = new Event('change');
+            imageBucket.dispatchEvent(event);
+        }
+    })
+
+    imageSecretKey.addEventListener('focus',()=>{
+        imageSecretKey.type = 'type';
+    })
+
+    imageBucket.addEventListener('change', function (e) {
+        moeApp.config.set(imageBucket.id, imageBucket.value);
+        checkURLs(imageBucket.value);
+        ipcRenderer.send('setting-changed', {key: imageBucket.id, val: imageBucket.value});
+    })
+
+    imageBaseWeb.addEventListener('change', function (e) {
+        moeApp.config.set(imageBaseWeb.id, imageBaseWeb.value);
+        ipcRenderer.send('setting-changed', {key: imageBaseWeb.id, val: imageBaseWeb.value});
+    })
+
+    let type =  moeApp.config.get(imageType.id);
+    if (type == 'qiniu') {
+        imageType.value = type;
+        let event = new Event('change');
+        imageType.dispatchEvent(event);
+    }
 });

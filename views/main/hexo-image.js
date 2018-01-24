@@ -60,8 +60,8 @@ class ImgManager {
 
     updateBase() {
         let rootPaht = '';
-        if (moeApp.config.get('image-path')) {
-            rootPaht = moeApp.config.get('image-path');
+        if (moeApp.config.get('image-source-center')) {
+            rootPaht = moeApp.config.get('image-source-center');
         } else if (moeApp.useHexo && hexo.config.__basedir) {
             rootPaht = path.join(hexo.config.__basedir, 'source', 'images');
         } else {
@@ -96,6 +96,18 @@ class ImgManager {
                 return path.resolve(this.imgBasePath, '..', p).replace(/\\/g, '/');
         }
         return path.resolve(this.imgBasePath, p).replace(/\\/g, '/');
+    }
+    getQiNiuServer(){
+        if(!this.qiniuServer){
+            this.qiniuServer = new (require('./hexo-qiniu'))();
+            this.qiniuServer.update(
+                moeApp.config.get('image-qiniu-accessKey'),
+                moeApp.config.get('image-qiniu-secretKey'),
+                moeApp.config.get('image-qiniu-bucket'),
+                moeApp.config.get('image-qiniu-url')
+            );
+        }
+        return this.qiniuServer;
     }
 
     getImage(img) {
@@ -175,11 +187,11 @@ class ImgManager {
         return this.getImageOfPath(imageAbsolutePath, md5ID)
     }
 
-    updateImgage(imgName, newImgName) {
+    renameImage(imgName, newImgName) {
         this.updateDictionary(imgName + '$', newImgName)
     }
 
-    updateFile(fileName) {
+    renameDirPath(fileName) {
         this.updateDictionary('/' + this.filename + '/', '/' + fileName + '/')
         this.filename = fileName;
     }
@@ -205,7 +217,7 @@ class ImgManager {
         xhr.send();
     }
 
-    uploadSm(file, callback) {
+    asyncUploadToSm(imgPath, file, callback) {
         let formdata = new FormData();
         formdata.append('smfile', file);
         let xhr = new XMLHttpRequest();
@@ -216,48 +228,83 @@ class ImgManager {
                 if (xhr.status === 200) {
                     // 成功，通过responseText拿到响应的文本:
                     if (typeof callback === "function") {
-                        callback(file.name, JSON.parse(xhr.responseText))
+                        callback(imgPath, JSON.parse(xhr.responseText))
                     }
                 } else {
                     // 失败，根据响应码判断失败原因:
                     if (typeof callback === "function") {
-                        callback(file.name, {code: xhr.status})
+                        callback(imgPath, {code: xhr.status})
                     }
                 }
-            } else {
-                // HTTP请求还在继续...
             }
         }
-        xhr.upload.onprogress = (e) => {
-            console.log(Math.floor(100 * e.loaded / e.total) + '%');
-        }
+        // xhr.upload.onprogress = (e) => {
+        //     console.log(Math.floor(100 * e.loaded / e.total) + '%');
+        // }
         xhr.send(formdata)
     }
 
-    uploadQiNiu(imgPath, callback) {
-        require('./hexo-qiniu')(this.relativePath(imgPath).slice(1),imgPath,callback)
+    asyncUploadToQiNiu(imgPath, callback) {
+        this.getQiNiuServer().uploadFile(imgPath,this.relativePath(imgPath).slice(1),callback);
     }
 
-    uploadPath(imgPath, callback) {
-        if (!this.isQiNiu){
-            this.uploadQiNiu(imgPath,callback)
+    asyncUploadFile(imgPath, callback) {
+        if (this.isQiNiu){
+            this.asyncUploadToQiNiu(imgPath,callback)
         } else {
             let file = new File([fs.readFileSync(imgPath)], md5(imgPath) + path.extname(imgPath), {type: 'image/' + path.extname(imgPath).slice(1)});
-            return this.uploadSm(file, callback);
+            return this.asyncUploadToSm(imgPath,file, callback);
         }
     }
 
     uploadLocalSrc() {
         this.isUploading = true;
         this.timeout = 0;
-        this.isQiNiu = moeApp.config.get('image-config-qiniu');
+        this.isQiNiu = moeApp.config.get('image-web-type') == 'qiniu';
 
         let finishedCount = 0;
         let uploadList = new Map();
         let successList = new Map();
         let errorList = new Map();
 
-        function replaceSrc() {
+        function checktime(isBreak) {
+            clearTimeout(imgManager.timeout);
+            if (!isBreak)
+                imgManager.timeout = setTimeout(() => {
+                    uploadEnd(true);
+                }, 30000)
+        }
+
+        document.querySelector('#right-panel').querySelectorAll('img[localimg="true"]').forEach((item) => {
+            let filePath = decodeURI(item.src).replace(/^file:\/\/\//, '');
+            if (fs.existsSync(filePath)) {
+                uploadList.set(filePath, filePath);
+            } else {
+                errorList.set(filePath, 'No Find File.');
+            }
+        })
+
+        checktime();
+        uploadList.forEach((filepath) => {
+            imgManager.asyncUploadFile(filepath, uploadRequest)
+        })
+
+        function uploadRequest(fileID, response) {
+            finishedCount++;
+            console.log(finishedCount + '/' + uploadList.size)
+            if (response.code == 'success') {
+                successList.set(fileID, response)
+            } else {
+                errorList.set(fileID, response.error)
+            }
+            if (finishedCount >= uploadList.size) {
+                checktime(true);
+                uploadEnd(false);
+                return;
+            }
+            checktime();
+        }
+        function updateSrc() {
             let value = editor.getValue();
             successList.forEach((v, k) => {
                 value = value.replace(new RegExp(imgManager.relativePath(k), 'g'), v.data.url);
@@ -269,10 +316,9 @@ class ImgManager {
             hexoWindow.content = value;
             hexoWindow.changed = true;
         }
-
         function uploadEnd(isTimeout) {
             try {
-                replaceSrc();
+                updateSrc();
                 let errMsg = '';
                 errorList.forEach((v, k) => {
                     errMsg += k + ':' + __(v) + '</br>';
@@ -295,45 +341,6 @@ class ImgManager {
             } finally {
                 imgManager.isUploading = false;
             }
-        }
-
-        function checktime(isBreak) {
-            clearTimeout(imgManager.timeout);
-            if (!isBreak)
-                imgManager.timeout = setTimeout(() => {
-                    uploadEnd(true);
-                }, 30000)
-        }
-
-        document.querySelector('#right-panel').querySelectorAll('img[localimg="true"]').forEach((item) => {
-            let filePath = item.src.replace(/^file:\/\/\//, '');
-            if (fs.existsSync(filePath)) {
-                uploadList.set(md5(filePath), filePath);
-            } else {
-                errorList.set(filePath, 'No Find File.');
-            }
-        })
-
-        checktime();
-        uploadList.forEach((filepath) => {
-            imgManager.uploadPath(filepath, uploadRequest)
-        })
-
-        function uploadRequest(fileID, response) {
-            finishedCount++;
-            console.log(finishedCount + '/' + uploadList.size)
-            fileID = path.basename(fileID, path.extname(fileID));
-            if (response.code == 'success') {
-                successList.set(uploadList.get(fileID), response)
-            } else {
-                errorList.set(uploadList.get(fileID), response.error)
-            }
-            if (finishedCount >= uploadList.size) {
-                checktime(true);
-                uploadEnd(false);
-                return;
-            }
-            checktime();
         }
     }
 }

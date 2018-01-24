@@ -172,6 +172,7 @@ const strings = {
         "File Rename": "File Rename",
         "Hexo Auto": "Auto Hexo Setting",
         "Hexo": "Hexo",
+        "Hexo Mode": "Hexo Mode",
         "Extend Highlight": "Extend Highlight",
         "Hexo Config": "Hexo Config",
         "Hexo tags": "Tag Templates",
@@ -210,6 +211,17 @@ const strings = {
         "Prompt": "Prompt",
         "Never": "Never",
 
+        "Image": "Image",
+        "Source Center": "Source Center",
+        "Web Type": "Web Type",
+        "WebSM": "WebSM",
+        "QiNiu": "QiNiu",
+        "AccessKey": "Access Key",
+        "SecretKey": "Secret Key",
+        "Bucket": "Bucket",
+        "BaseWeb": "Base Web",
+
+
         "Undo": "Undo",
         "Redo": "Redo",
         "Cut": "Cut",
@@ -236,6 +248,7 @@ const strings = {
         "Toggle Developer Tools": "Toggle Developer Tools",
         "Preference": "Preference",
 
+        "No Find File.": "No Find File.",
         "Upload Finished": "Upload Finished.",
         "Access Denied.": "Access Denied.",
         "Upload file count limit.": "Upload file count limit.",
@@ -318,6 +331,7 @@ const strings = {
         "File Rename": "同步文件名",
         "Hexo Auto": "Hexo自动设置",
         "Hexo": "Hexo",
+        "Hexo Mode": "Hexo模式",
         "Extend Highlight": "自定义代码块",
         "Hexo Config": "Hexo配置文件",
         "Hexo tags": "Tag模板目录",
@@ -357,6 +371,15 @@ const strings = {
         "Prompt": "询问",
         "Never": "从不",
 
+        "Image": "图片",
+        "Source Center": "默认资源库",
+        "Web Type": "云图类型",
+        "WebSM": "SM.MS 图床",
+        "QiNiu": "七牛云",
+        "AccessKey": "Access Key",
+        "SecretKey": "Secret Key",
+        "Bucket": "存储空间",
+        "BaseWeb": "域名",
 
         "Undo": "撤销",
         "Redo": "重做",
@@ -384,6 +407,7 @@ const strings = {
         "Toggle Developer Tools": "切换开发者工具",
         "Preference": "偏好设置",
 
+        "No Find File.": "未找到文件.",
         "Upload Finished": "上传完成.",
         "Access Denied.": "服务器拒绝访问.",
         "Upload file count limit.": "超出上传文件数量.",
