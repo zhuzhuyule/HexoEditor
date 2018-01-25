@@ -1,6 +1,6 @@
 class qiniuServer {
     constructor(acessKey, secretKey) {
-        this.qiniu = require('qiniu');
+        this.qiniu = require('./qiniu/index');
         this.bucket = '';
         this.qiniu.conf.ACCESS_KEY = acessKey;
         this.qiniu.conf.SECRET_KEY = secretKey;
@@ -103,7 +103,7 @@ class qiniuServer {
     getBucketsFiles(buketName, prefix, callback) {
         if (!buketName) return;
         const url_api_bukets = require('util').format(
-            'https://rsf.qbox.me/list?bucket=%s&marker=&limit=1000&prefix=%s&delimiter=/', buketName, prefix || '')
+            'https://rsf.qbox.me/list?bucket=%s&marker=&limit=1&prefix=%s&delimiter=/', buketName, prefix || '')
         let xhr = new XMLHttpRequest();
         xhr.open('get', url_api_bukets);
         xhr.setRequestHeader('Authorization', this.getAccessToken(url_api_bukets));
@@ -136,25 +136,22 @@ class qiniuServer {
         var extra = new this.qiniu.form_up.PutExtra();
         let qiniuServer = this;
         formUploader.putFile(token, serverFileName, localFile, extra,
-            function (respErr, respBody, respInfo) {
-                console.log( respBody);
-                if (respErr) {
-                    throw respErr;
-                }
-                if (respInfo.statusCode == 200 || respInfo.statusCode == 579) {
-                    let response = {
+            function (statusCode,response, responseText) {
+                console.log( response);
+                if (statusCode == 200 || statusCode == 579) {
+                    let result = {
                         code: 'success',
                         data: {
-                            url: qiniuServer.url + respBody.key
+                            url: qiniuServer.url + response.key
                         }
                     }
-                    callback(localFile, response);
+                    callback(localFile, result);
                 } else {
-                    console.log(respInfo.statusCode);
-                    let response = {
-                        error: respInfo.statusCode + respBody,
+                    console.log(statusCode);
+                    let result = {
+                        error: statusCode + responseText,
                     }
-                    callback(localFile, response);
+                    callback(localFile, result);
                 }
             });
     }

@@ -26,6 +26,7 @@ window.hexoWindow = moeApp.hexoWindow;
 window.clipboard = require('electron').clipboard;
 window.fs = require('fs');
 window.path = require('path');
+window.url = require('url');
 
 $(() => {
     const dialog = require('electron').remote.dialog;
@@ -225,23 +226,7 @@ $(() => {
     var prastDataKey = (process.platform === 'darwin' ? "Cmd" : "Ctrl") + "-V";
     editor.options.extraKeys[prastDataKey] = pasteData;
 
-    const holder = document
-    holder.ondragover = () => {
-        return false;
-    }
-    holder.ondragleave = holder.ondragend = () => {
-        return false;
-    }
-    holder.ondrop = (e) => {
-        e.stopPropagation()
-        e.preventDefault()
-        for (let f of e.dataTransfer.files) {
-            replaceImgSelection(editor, (editor.getSelection() || ''),imgManager.getImageOfFile(f));
-        }
-        return false;
-    }
-
-    window.changeFileName = (force) => {
+     window.changeFileName = (force) => {
         if (!force && hexoWindow.defName !== hexoWindow.fileName)
             return;
 
@@ -275,9 +260,9 @@ $(() => {
                 document.getElementsByTagName('title')[0].innerText = 'HexoEditor - ' + nameNew + ext;
 
                 //修改文章中的Image链接
-                let imgPathOld = path.join(imgManager.imgBasePath,nameOld).replace(/\\/g,'/');
+                let imgPathOld = path.join(imgManager.imgBaseDir,nameOld).replace(/\\/g,'/');
                 if (fs.existsSync(imgPathOld)) {
-                    let imgPathNew = path.join(imgManager.imgBasePath,nameNew).replace(/\\/g,'/');
+                    let imgPathNew = path.join(imgManager.imgBaseDir,nameNew).replace(/\\/g,'/');
                     fs.rename(imgPathOld, imgPathNew, err => {
                         if (err) console.error(err);
                         fs.stat(imgFilePathNew, (err, stats) => {
@@ -433,6 +418,24 @@ $(() => {
             editordiv.classList.remove('ctrl')
         }
     })
+    function bindDrag(element) {
+        element.ondragover = () => {
+            return false;
+        }
+        element.ondragleave = element.ondragend = () => {
+            return false;
+        }
+        element.ondrop = (e) => {
+            e.stopPropagation()
+            e.preventDefault()
+            for (let f of e.dataTransfer.files) {
+                replaceImgSelection(editor, (editor.getSelection() || ''),imgManager.getImageOfFile(f));
+            }
+            return false;
+        }
+    }
+    bindDrag(document);
+    bindDrag(editordiv);
 
     window.onfocus = (e) => {
         if (hexoWindow.fileName === '' || !fs.existsSync(hexoWindow.fileName))

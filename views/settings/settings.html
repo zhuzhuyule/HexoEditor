@@ -182,7 +182,7 @@
                             <tr>
                                 <td width="30%" class="l10n">Hexo Config</td>
                                 <td width="70%">
-                                    <input type="text" class="settings-item" disabled="disabled"  data-key="hexo-config" style="width: calc(100% - 25px);">
+                                    <input type="text" class="settings-item" readonly  data-key="hexo-config" style="width: calc(100% - 25px);">
                                     <div style="display: inline-block; margin-left: -1px; position: absolute; " id="hexo-config-btn">
                                         <button class="button-add-remove button-add" ><i class="fa fa-folder-o" aria-hidden="true"></i></button>
                                     </div>
@@ -291,7 +291,7 @@
                             <tr>
                                 <td width="40%" class="l10n">Source Center</td>
                                 <td width="60%">
-                                    <input class="settings-item-image" disabled="disabled" id="image-source-center" type="url" style="width: calc(100% - 25px);"/>
+                                    <input class="settings-item-image" readonly id="image-source-center" type="url" style="width: calc(100% - 25px);"/>
                                     <div style="display: inline-block; margin-left: -1px; position: absolute; " id="image-source-center-btn">
                                     <button class="button-add-remove button-add" ><i class="fa fa-folder-o" aria-hidden="true"></i></button>
 
@@ -329,7 +329,8 @@
                             <tr data-type="image-qiniu" style="display:none">
                                 <td width="40%" class="l10n">BaseWeb</td>
                                 <td width="60%">
-                                    <select class="settings-item-image" id="image-qiniu-url">
+                                    <input class="settings-item-image" id="image-qiniu-url-protocol" readonly style="transition: width .5s;  width:53px" />
+                                    <select class="settings-item-image" id="image-qiniu-url" style="transition: width .5s;width: calc(100% - 54px);">
                                     </select>
                                 </td>
                             </tr>

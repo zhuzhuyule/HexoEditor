@@ -17,26 +17,6 @@
  *  along with Moeditor. If not, see <http://www.gnu.org/licenses/>.
  */
 
-window.mkdirsSync = (dirpath, mode) => {
-    if (!fs.existsSync(dirpath)) {
-        var pathtmp;
-        dirpath.split(path.sep).forEach(function (dirname) {
-            if (pathtmp) {
-                pathtmp = path.join(pathtmp, dirname);
-            }
-            else {
-                pathtmp = dirname;
-            }
-            if (!fs.existsSync(pathtmp)) {
-                if (!fs.mkdirSync(pathtmp, mode)) {
-                    return false;
-                }
-            }
-        });
-    }
-    return true;
-}
-
 window.md5 = (text) => {
     return require('crypto').createHash('md5').update(text).digest('hex');
 };
@@ -48,7 +28,8 @@ class ImgManager {
         this.imgPathToDel = {};
         this.imgMD5IDList = {};
         this.imgPathIDList = {};
-        this.imgBasePath = '';
+        this.imgBaseDir = '';
+        this.imgPathDir = '';
         this.type = {
             png: '.png',
             jpg: '.jpg',
@@ -68,24 +49,45 @@ class ImgManager {
             rootPaht = hexoWindow.directory;
         }
         rootPaht = rootPaht.replace(/\\/g, '/');
-        if (this.imgBasePath && this.imgBasePath !== rootPaht) {
-            const oldPath = path.join(this.imgBasePath, this.fileName);
+        this.imgPathDir = path.join(rootPaht, this.fileName);
+        if (this.imgBaseDir && this.imgBaseDir !== rootPaht) {
+            const oldPath = path.join(this.imgBaseDir, this.fileName);
             if (fs.existsSync(oldPath)) {
                 try {
-                    fs.renameSync(oldPath, path.join(rootPaht, this.fileName));
+                    fs.renameSync(oldPath, this.imgPathDir);
                 } catch (e) {
-                    fs.renameSync(oldPath, path.join(rootPaht, this.fileName));
+                    fs.renameSync(oldPath, this.imgPathDir);
                 }
-                this.updateDictionary(this.imgBasePath, rootPaht)
+                this.updateDictionary(this.imgBaseDir, rootPaht)
             }
         }
-        this.imgBasePath = rootPaht;
+        this.imgBaseDir = rootPaht;
+    }
+
+    mkdirsSync(dirpath, mode) {
+        if (!fs.existsSync(dirpath)) {
+            var pathtmp;
+            dirpath.split(path.sep).forEach(function (dirname) {
+                if (pathtmp) {
+                    pathtmp = path.join(pathtmp, dirname);
+                }
+                else {
+                    pathtmp = dirname;
+                }
+                if (!fs.existsSync(pathtmp)) {
+                    if (!fs.mkdirSync(pathtmp, mode)) {
+                        return false;
+                    }
+                }
+            });
+        }
+        return true;
     }
 
     relativePath(p) {
         if (hexoWindow.useHexo)
-            return '/images/' + path.relative(this.imgBasePath, p).replace(/\\/g, '/');
-        return '/' + path.relative(this.imgBasePath, p).replace(/\\/g, '/');
+            return '/images/' + path.relative(this.imgBaseDir, p).replace(/\\/g, '/');
+        return '/' + path.relative(this.imgBaseDir, p).replace(/\\/g, '/');
     }
 
     resolvePath(p) {
@@ -93,28 +95,22 @@ class ImgManager {
             p = '.' + p;
         if (hexoWindow.useHexo) {
             if ([0, 1].includes(p.indexOf('images/')))
-                return path.resolve(this.imgBasePath, '..', p).replace(/\\/g, '/');
+                return path.resolve(this.imgBaseDir, '..', p).replace(/\\/g, '/');
         }
-        return path.resolve(this.imgBasePath, p).replace(/\\/g, '/');
+        return path.resolve(this.imgBaseDir, p).replace(/\\/g, '/');
     }
-    getQiNiuServer(){
-        if(!this.qiniuServer){
+
+    getQiNiuServer() {
+        if (!this.qiniuServer) {
             this.qiniuServer = new (require('./hexo-qiniu'))();
             this.qiniuServer.update(
                 moeApp.config.get('image-qiniu-accessKey'),
                 moeApp.config.get('image-qiniu-secretKey'),
                 moeApp.config.get('image-qiniu-bucket'),
-                moeApp.config.get('image-qiniu-url')
+                moeApp.config.get('image-qiniu-url-protocol') + moeApp.config.get('image-qiniu-url') + '/'
             );
         }
         return this.qiniuServer;
-    }
-
-    getImage(img) {
-        if (typeof img === "string") {
-            return this.getImageOfPath(img)
-        }
-        return this.getImageOfObj(img)
     }
 
     getImageOfPath(imgPath, md5ID) {
@@ -124,7 +120,7 @@ class ImgManager {
             if (this.imgPathIDList[imgPath]) {
                 relativePath = this.imgPathIDList[imgPath];
             } else {
-                relativePath = '/' + path.relative(this.imgBasePath, imgPath).replace(/\\/g, '/');
+                relativePath = '/' + path.relative(this.imgBaseDir, imgPath).replace(/\\/g, '/');
                 this.imgPathIDList[imgPath] = relativePath;
                 if (md5ID) {
                     this.imgMD5IDList[md5ID] = imgPath;
@@ -136,20 +132,32 @@ class ImgManager {
 
     getImageOfFile(file) {
         let imgPath = file.path;
-
         if (fs.existsSync(imgPath)) {
-            imgPath = imgPath.replace(/\\/g, '/');
             let relativePath = '';
-            if (this.imgPathIDList[imgPath]) {
-                relativePath = this.imgPathIDList[imgPath];
-            } else {
-                relativePath = '/' + path.relative(this.imgBasePath, imgPath).replace(/\\/g, '/');
-                this.imgPathIDList[imgPath] = relativePath;
-                if (md5ID) {
-                    this.imgMD5IDList[md5ID] = imgPath;
+            try {
+                if (imgPath.indexOf(this.imgPathDir) != 0) {
+                    let imageAbsolutePath = path.join(this.imgPathDir, path.basename(imgPath));
+                    if (!fs.existsSync(imageAbsolutePath))
+                        if (!fs.existsSync(this.imgPathDir))
+                            this.mkdirsSync(this.imgPathDir);
+                    fs.writeFileSync(imageAbsolutePath, fs.readFileSync(imgPath));
+                    imgPath = imageAbsolutePath;
                 }
+
+                imgPath = imgPath.replace(/\\/g, '/');
+                if (this.imgPathIDList[imgPath]) {
+                    relativePath = this.imgPathIDList[imgPath];
+                } else {
+                    relativePath = '/' + path.relative(this.imgBaseDir, imgPath).replace(/\\/g, '/');
+                    this.imgPathIDList[imgPath] = relativePath;
+                    if (md5ID) {
+                        this.imgMD5IDList[md5ID] = imgPath;
+                    }
+                }
+            } catch (e) {
+            } finally {
+                return relativePath
             }
-            return relativePath
         }
     }
 
@@ -172,17 +180,17 @@ class ImgManager {
         ext = (ext && this.type[ext.toLowerCase().replace(/^\./, '')]) || '.png';
 
         let count = 0;
-        let imageAbsolutePath = path.join(this.imgBasePath, this.fileName, imageName + ext);
+        let imageAbsolutePath = path.join(this.imgPathDir, imageName + ext);
         do {
             if (count > 0)
-                imageAbsolutePath = path.join(this.imgBasePath, this.fileName, imageName + count + ext);
+                imageAbsolutePath = path.join(this.imgPathDir, imageName + count + ext);
             count += 1;
             if (count > 50) {
-                imageAbsolutePath = path.join(this.imgBasePath, this.fileName, imageName + require('moment')().format('YYYYMMDDhhmmssSSS') + ext);
+                imageAbsolutePath = path.join(this.imgPathDir, imageName + require('moment')().format('YYYYMMDDhhmmssSSS') + ext);
                 break;
             }
         } while (fs.existsSync(imageAbsolutePath));
-        mkdirsSync(path.dirname(imageAbsolutePath));
+        this.mkdirsSync(path.dirname(imageAbsolutePath));
         fs.writeFileSync(imageAbsolutePath, imgObject);
         return this.getImageOfPath(imageAbsolutePath, md5ID)
     }
@@ -204,16 +212,16 @@ class ImgManager {
         }
     }
 
-    uploadDelAll(){
-        Object.keys(this.imgPathToDel).forEach(k=>{
+    uploadDelAll() {
+        Object.keys(this.imgPathToDel).forEach(k => {
             imgManager.uploadDel(imgManager.imgPathToDel[k])
             delete imgManager.imgPathToDel[k];
         })
     }
 
-    uploadDel(fileHash){
+    uploadDel(fileHash) {
         let xhr = new XMLHttpRequest();
-        xhr.open('post', 'https://sm.ms/delete/'+fileHash);
+        xhr.open('post', 'https://sm.ms/delete/' + fileHash);
         xhr.send();
     }
 
@@ -284,10 +292,14 @@ class ImgManager {
             }
         })
 
-        checktime();
-        uploadList.forEach((filepath) => {
-            imgManager.asyncUploadFile(filepath, uploadRequest)
-        })
+        if (uploadList.size > 0) {
+            checktime();
+            uploadList.forEach((filepath) => {
+                imgManager.asyncUploadFile(filepath, uploadRequest)
+            })
+        } else {
+            uploadEnd();
+        }
 
         function uploadRequest(fileID, response) {
             finishedCount++;
@@ -304,6 +316,7 @@ class ImgManager {
             }
             checktime();
         }
+
         function updateSrc() {
             let value = editor.getValue();
             successList.forEach((v, k) => {
@@ -316,6 +329,7 @@ class ImgManager {
             hexoWindow.content = value;
             hexoWindow.changed = true;
         }
+
         function uploadEnd(isTimeout) {
             try {
                 updateSrc();

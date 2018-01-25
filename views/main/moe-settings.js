@@ -220,8 +220,15 @@ function SetQiNiuBucket(val) {
 }
 
 function SetQiNiuWeb(val) {
+    if (val && val.oldURL && val.newURL){
+        let content = editor.getValue();
+        content = content.replace(new RegExp(val.oldURL,'g'),val.newURL);
+        editor.setValue(content);
+        hexoWindow.changed = true;
+        hexoWindow.content = content;
+    }
     if(imgManager && imgManager.qiniuServer){
-        imgManager.qiniuServer.update('','','',val)
+        imgManager.qiniuServer.update('','','',val.newURL)
     }
 }
 

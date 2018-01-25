@@ -54,9 +54,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 {
                     label: __('Paste'),
-                    enabled: inEditor && (require('electron').clipboard.readText().length !== 0||
+                    enabled: inEditor && (require('electron').clipboard.readText().length !== 0 ||
                         !clipboard.readImage().isEmpty()),
-                    click(item, hexoWindow){
+                    click(item, hexoWindow) {
                         pasteData();
                     }
                 },
@@ -64,8 +64,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     label: __('Delete'),
                     enabled: inEditor && window.editor.doc.somethingSelected(),
                     click(item, hexoWindow) {
-                        hexoWindow.webContents.sendInputEvent({ type: 'keyDown', modifiers: [], keyCode: 'Delete' });
-                        hexoWindow.webContents.sendInputEvent({ type: 'keyUp', modifiers: [], keyCode: 'Delete' });
+                        hexoWindow.webContents.sendInputEvent({type: 'keyDown', modifiers: [], keyCode: 'Delete'});
+                        hexoWindow.webContents.sendInputEvent({type: 'keyUp', modifiers: [], keyCode: 'Delete'});
                     }
                 },
                 {
@@ -112,6 +112,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 },
                 {
+                    type: 'separator',
+                },
+                {
                     label: '一键上传',
                     enabled: !imgManager.isUploading,
                     click(item, hexoWindow) {
@@ -119,7 +122,88 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 },
                 {
-                    type: moeApp.useHexo ?  'separator' :'normal',
+                    label: __('Quick Open'),
+                    submenu: [
+                        {
+                            label: __('OpenPathPost'),
+                            enabled: !!hexoWindow.fileName ,
+                            click(item, hexoWindow) {
+                                const shell = require('electron').shell
+                                shell.showItemInFolder(hexoWindow.fileName)
+                            }
+                        },
+                        {
+                            label: __('OpenPathPostSrc'),
+                            enabled: !!(imgManager && imgManager.imgBaseDir),
+                            click(item, hexoWindow) {
+                                const shell = require('electron').shell;
+                                let dir = path.join(imgManager.imgPathDir);
+                                if (fs.existsSync(dir))
+                                    shell.showItemInFolder(path.join(dir, '*'));
+                                else
+                                    shell.showItemInFolder(dir);
+                            }
+                        },
+                        {
+                            label: __('OpenPathSrcCenter'),
+                            enabled: !!(imgManager && imgManager.imgBaseDir),
+                            click(item, hexoWindow) {
+                                const shell = require('electron').shell;
+                                shell.showItemInFolder(path.join(imgManager.imgBaseDir, '*'))
+                            }
+                        },
+                        {
+                            label: __('OpenPathHEXO'),
+                            enabled: moeApp.useHexo,
+                            click(item, hexoWindow) {
+                                const shell = require('electron').shell
+                                shell.showItemInFolder(path.join(hexo.config.__basedir, '*'))
+                            }
+                        },
+                        {
+                            type: 'separator',
+                        },
+                        {
+                            label: __('WebIndex'),
+                            enabled: moeApp.useHexo && (!!hexo.config.url),
+                            click(item, hexoWindow) {
+                                const shell = require('electron').shell;
+                                let weburl = hexo.config.url;
+                                weburl = (weburl.startsWith('http://') || weburl.startsWith('https://') ? weburl : 'http://' + weburl);
+                                weburl = url.parse(weburl);
+                                weburl.path = hexo.config.root || '/';
+                                shell.openExternal(weburl.href);
+                            }
+                        },
+                        {
+                            label: __('WebLocalIndex'),
+                            enabled: moeApp.useHexo && (shellServer.shellProcess != null),
+                            click(item, hexoWindow) {
+                                const shell = require('electron').shell;
+                                let weburl = url.parse('http://localhost:4000');
+                                weburl.hostname = moeApp.hexo.config.server.ip || 'localhost';
+                                weburl.port = moeApp.hexo.config.server.port || 4000;
+                                shell.openExternal(weburl.href);
+                            }
+                        },
+                        {
+                            label: __('WebQiNiuSource'),
+                            click(item, hexoWindow) {
+                                const shell = require('electron').shell;
+                                shell.openExternal(`https://portal.qiniu.com/bucket/${moeApp.config.get('image-qiniu-bucket')}/resource`)
+                            }
+                        },
+                        {
+                            label: __('WebSMMS'),
+                            click(item, hexoWindow) {
+                                const shell = require('electron').shell;
+                                shell.openExternal(`https://sm.ms/`)
+                            }
+                        }
+                    ]
+                },
+                {
+                    type: moeApp.useHexo ? 'separator' : 'normal',
                     visible: moeApp.useHexo,
                 },
                 {
@@ -135,13 +219,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             label: __('File Rename'),
                             click(item, hexoWindow) {
                                 window.changeFileName(true);
-                            }
-                        },
-                        {
-                            label: __('HEXOOpenPath'),
-                            click(item, hexoWindow) {
-                                const shell = require('electron').shell
-                                shell.showItemInFolder(path.join(hexo.config.__basedir, '*'))
                             }
                         },
                         {

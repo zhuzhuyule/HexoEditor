@@ -177,7 +177,6 @@ const strings = {
         "Hexo Config": "Hexo Config",
         "Hexo tags": "Tag Templates",
 
-        "HEXOOpenPath": "Open Work Path",
         "HEXOQuickPublish": "Quick Deploy",
         "HEXOServer": "Start Server",
         "HEXOClean": "Clean Cache",
@@ -229,6 +228,16 @@ const strings = {
         "Paste": "Paste",
         "Delete": "Delete",
         "Select All": "Select All",
+
+        "Quick Open":"Quick Open",
+        "OpenPathPost":"Open Post Path",
+        "OpenPathPostSrc":"Open Post Src Path",
+        "OpenPathSrcCenter":"Open Src Center Path",
+        "OpenPathHEXO":"Open Work Path",
+        "WebIndex":"Open Your Index",
+        "WebLocalIndex":"Open Server Index",
+        "WebQiNiuSource":"Open QiNiu Source Index",
+        "WebSMMS":"Open SM.MS",
 
         "Services": "Services",
         "Hide": "Hide",
@@ -336,7 +345,6 @@ const strings = {
         "Hexo Config": "Hexo配置文件",
         "Hexo tags": "Tag模板目录",
 
-        "HEXOOpenPath": "打开项目",
         "HEXOQuickPublish": "一键部署",
         "HEXOServer": "启动服务器",
         "HEXOClean": "清除缓存文件",
@@ -388,6 +396,16 @@ const strings = {
         "Paste": "粘贴",
         "Delete": "删除",
         "Select All": "全选",
+
+        "Quick Open":"快速打开",
+        "OpenPathPost":"编辑文件",
+        "OpenPathPostSrc":"文件引用资源",
+        "OpenPathSrcCenter":"资源中心",
+        "OpenPathHEXO":"Hexo项目",
+        "WebIndex":"主页",
+        "WebLocalIndex":"本地主页",
+        "WebQiNiuSource":"七牛存储空间",
+        "WebSMMS":"SM.MS主页",
 
         "Services": "服务",
         "Hide": "隐藏",

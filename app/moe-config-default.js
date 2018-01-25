@@ -50,5 +50,6 @@ module.exports = {
     'image-qiniu-accessKey':'',
     'image-qiniu-secretKey':'',
     'image-qiniu-bucket':'',
+    'image-qiniu-url-protocol': 'https://',
     'image-qiniu-url':'',
 };

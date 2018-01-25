@@ -484,6 +484,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let imageAccessKey = imageTabContents.querySelector('#image-qiniu-accessKey');
     let imageSecretKey = imageTabContents.querySelector('#image-qiniu-secretKey');
     let imageBucket = imageTabContents.querySelector('#image-qiniu-bucket');
+    let imageBaseWebProtocol = imageTabContents.querySelector('#image-qiniu-url-protocol');
     let imageBaseWeb = imageTabContents.querySelector('#image-qiniu-url');
 
     function hasQiNiuServer() {
@@ -528,7 +529,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     imageBaseWeb.innerHTML = '';
                     response.data.forEach((url) => {
                         let option = document.createElement('option');
-                        option.value = `https://${url}/`;
+                        option.value = url;
                         option.innerText = url;
                         imageBaseWeb.appendChild(option);
                         if ((option.value == oldurl)) {
@@ -603,9 +604,35 @@ document.addEventListener('DOMContentLoaded', () => {
         ipcRenderer.send('setting-changed', {key: imageBucket.id, val: imageBucket.value});
     })
 
+
+    function protocolChange(){
+        if (imageBaseWebProtocol.value == 'http://'){
+            imageBaseWebProtocol.style.width = '53px';
+            imageBaseWeb.style.width = 'calc(100% - 57px)';
+            imageBaseWebProtocol.value = 'https://';
+        } else {
+            imageBaseWebProtocol.style.width = '47px';
+            imageBaseWeb.style.width = 'calc(100% - 51px)';
+            imageBaseWebProtocol.value = 'http://';
+        }
+    }
+    imageBaseWebProtocol.value = moeApp.config.get('image-qiniu-url-protocol');
+    protocolChange();
+    imageBaseWebProtocol.addEventListener('click',()=>{
+        protocolChange();
+        imageBaseWeb.dispatchEvent(new Event('change'));
+    })
+
     imageBaseWeb.addEventListener('change', function (e) {
+        let protocol = moeApp.config.get(imageBaseWebProtocol.id)
+        let oldURL =  moeApp.config.get(imageBaseWeb.id);
+        let value = {
+            oldURL: (oldURL ? protocol + oldURL: ''),
+            newURL: (imageBaseWeb.value ? imageBaseWebProtocol.value + imageBaseWeb.value: '')
+        };
+        moeApp.config.set(imageBaseWebProtocol.id, imageBaseWebProtocol.value);
         moeApp.config.set(imageBaseWeb.id, imageBaseWeb.value);
-        ipcRenderer.send('setting-changed', {key: imageBaseWeb.id, val: imageBaseWeb.value});
+        ipcRenderer.send('setting-changed', {key: imageBaseWeb.id, val: value});
     })
 
     let type =  moeApp.config.get(imageType.id);
