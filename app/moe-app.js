@@ -27,6 +27,7 @@ const MoeditorWindow = require('./moe-window'),
       shortcut = require('electron-localshortcut'),
       MoeditorLocale = require('./moe-l10n'),
       MoeditorShell = require('./moe-shell'),
+      QiniuServer = require('./hexo-qiniu'),
       MoeditorAbout = require('./moe-about'),
       MoeditorSettings = require('./moe-settings'),
       fs = require('fs'),
@@ -57,6 +58,7 @@ class MoeditorApplication {
 
         this.locale = new MoeditorLocale();
         this.shellServer = new MoeditorShell();
+        this.qiniuServer = new QiniuServer();
         global.__ = str => this.locale.get(str);
 
         this.flag = new Object();

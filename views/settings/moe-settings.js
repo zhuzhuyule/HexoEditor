@@ -223,7 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, (fileName) => {
             if (!fileName || fileName.length === 0) return;
             fileName = fileName[0];
-            if (hexoConfigInput.value !== fileName){
+            if (hexoConfigInput.value !== fileName) {
                 moeApp.config.set('hexo-config', fileName);
                 ipcRenderer.send('setting-changed', {key: 'hexo-config', val: fileName});
                 hexoConfigInput.value = fileName;
@@ -470,7 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, (fileName) => {
             if (!fileName || fileName.length === 0) return;
             fileName = fileName[0];
-            if (imageSourceInput.value !== fileName){
+            if (imageSourceInput.value !== fileName) {
                 moeApp.config.set(imageSourceInput.id, fileName);
                 ipcRenderer.send('setting-changed', {key: imageSourceInput.id, val: fileName});
                 imageSourceInput.value = fileName;
@@ -489,7 +489,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function hasQiNiuServer() {
         if (imageAccessKey.value && imageSecretKey.value && !global.qiniuServer) {
-            global.qiniuServer = new (require('../main/hexo-qiniu'))(imageAccessKey.value, imageSecretKey.value)
+            global.qiniuServer = moeApp.qiniuServer;
+            qiniuServer.update(
+                moeApp.config.get('image-qiniu-accessKey'),
+                moeApp.config.get('image-qiniu-secretKey'),
+                moeApp.config.get('image-qiniu-bucket'),
+                moeApp.config.get('image-qiniu-url-protocol') + moeApp.config.get('image-qiniu-url') + '/'
+            );
+            qiniuServer.update(
+                imageAccessKey.value,
+                imageSecretKey.value,
+                imageBucket.value,
+                imageBaseWebProtocol + imageBaseWeb + '/'
+            )
             return true;
         }
         return global.qiniuServer;
@@ -511,7 +523,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             imageBucket.value = option.value;
                         }
                     })
-                    if (!imageBucket.value && imageBucket.firstChild){
+                    if (!imageBucket.value && imageBucket.firstChild) {
                         imageBucket.value = imageBucket.firstChild.value;
                     }
                     let event = new Event('change');
@@ -521,10 +533,11 @@ document.addEventListener('DOMContentLoaded', () => {
             })
         }
     }
+
     function checkURLs(bucket) {
         if (hasQiNiuServer()) {
             let oldurl = moeApp.config.get(imageBaseWeb.id);
-            qiniuServer.getBucketsUrl(bucket,(response) => {
+            qiniuServer.getBucketsUrl(bucket, (response) => {
                 if (response.code == 200) {
                     imageBaseWeb.innerHTML = '';
                     response.data.forEach((url) => {
@@ -537,7 +550,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             imageBaseWeb.value = oldurl;
                         }
                     })
-                    if (!imageBaseWeb.value && imageBaseWeb.firstChild){
+                    if (!imageBaseWeb.value && imageBaseWeb.firstChild) {
                         imageBaseWeb.value = imageBaseWeb.firstChild.value;
                     }
                     let event = new Event('change');
@@ -567,34 +580,39 @@ document.addEventListener('DOMContentLoaded', () => {
         imageTabItem.click();
     })
 
-    imageAccessKey.addEventListener('blur',()=>{
+    imageAccessKey.addEventListener('blur', () => {
         imageAccessKey.type = 'password';
-        if (imageAccessKey.value && imageAccessKey.value == 40 && imageSecretKey.value && imageSecretKey.value == 40){
-            if (hasQiNiuServer()){
-                qiniuServer.update(imageAccessKey.value,imageSecretKey.value)
-                ipcRenderer.send('setting-changed', {key: imageAccessKey.id, val: imageAccessKey.value});
-
+        if (imageAccessKey.value && imageAccessKey.value.length == 40 && imageSecretKey.value && imageSecretKey.value.length == 40) {
+            let oldKey = moeApp.config.get(imageAccessKey.id);
+            if (oldKey != imageAccessKey.value) {
+                moeApp.config.set(imageAccessKey.id, imageAccessKey.value);
+                if (hasQiNiuServer()) {
+                    qiniuServer.update(imageAccessKey.value, imageSecretKey.value)
+                    ipcRenderer.send('setting-changed', {key: imageAccessKey.id, val: imageAccessKey.value});
+                    checkBuckets();
+                }
             }
-            let event = new Event('change');
-            imageBucket.dispatchEvent(event);
         }
     })
-    imageAccessKey.addEventListener('focus',()=>{
+    imageAccessKey.addEventListener('focus', () => {
         imageAccessKey.type = 'type';
     })
-    imageSecretKey.addEventListener('blur',()=>{
+    imageSecretKey.addEventListener('blur', () => {
         imageSecretKey.type = 'password';
-        if (imageAccessKey.value && imageAccessKey.value == 40 && imageSecretKey.value && imageSecretKey.value == 40){
-            if (hasQiNiuServer()){
-                qiniuServer.update(imageAccessKey.value,imageSecretKey.value)
-                ipcRenderer.send('setting-changed', {key: imageSecretKey.id, val: imageSecretKey.value});
+        if (imageAccessKey.value && imageAccessKey.value.length == 40 && imageSecretKey.value && imageSecretKey.value.length == 40) {
+            let oldKey = moeApp.config.get(imageSecretKey.id);
+            if (oldKey != imageSecretKey.value) {
+                moeApp.config.set(imageSecretKey.id, imageSecretKey.value);
+                if (hasQiNiuServer()) {
+                    qiniuServer.update(imageAccessKey.value, imageSecretKey.value)
+                    ipcRenderer.send('setting-changed', {key: imageSecretKey.id, val: imageSecretKey.value});
+                    checkBuckets();
+                }
             }
-            let event = new Event('change');
-            imageBucket.dispatchEvent(event);
         }
     })
 
-    imageSecretKey.addEventListener('focus',()=>{
+    imageSecretKey.addEventListener('focus', () => {
         imageSecretKey.type = 'type';
     })
 
@@ -605,8 +623,8 @@ document.addEventListener('DOMContentLoaded', () => {
     })
 
 
-    function protocolChange(){
-        if (imageBaseWebProtocol.value == 'http://'){
+    function protocolChange(type) {
+        if ((!type && imageBaseWebProtocol.value == 'http://') ||  type == 'https://') {
             imageBaseWebProtocol.style.width = '53px';
             imageBaseWeb.style.width = 'calc(100% - 57px)';
             imageBaseWebProtocol.value = 'https://';
@@ -616,26 +634,27 @@ document.addEventListener('DOMContentLoaded', () => {
             imageBaseWebProtocol.value = 'http://';
         }
     }
+
     imageBaseWebProtocol.value = moeApp.config.get('image-qiniu-url-protocol');
-    protocolChange();
-    imageBaseWebProtocol.addEventListener('click',()=>{
+    protocolChange(imageBaseWebProtocol.value);
+    imageBaseWebProtocol.addEventListener('click', () => {
         protocolChange();
         imageBaseWeb.dispatchEvent(new Event('change'));
     })
 
     imageBaseWeb.addEventListener('change', function (e) {
         let protocol = moeApp.config.get(imageBaseWebProtocol.id)
-        let oldURL =  moeApp.config.get(imageBaseWeb.id);
+        let oldURL = moeApp.config.get(imageBaseWeb.id);
         let value = {
-            oldURL: (oldURL ? protocol + oldURL: ''),
-            newURL: (imageBaseWeb.value ? imageBaseWebProtocol.value + imageBaseWeb.value: '')
+            oldURL: (oldURL ? protocol + oldURL : ''),
+            newURL: (imageBaseWeb.value ? imageBaseWebProtocol.value + imageBaseWeb.value : '')
         };
         moeApp.config.set(imageBaseWebProtocol.id, imageBaseWebProtocol.value);
         moeApp.config.set(imageBaseWeb.id, imageBaseWeb.value);
         ipcRenderer.send('setting-changed', {key: imageBaseWeb.id, val: value});
     })
 
-    let type =  moeApp.config.get(imageType.id);
+    let type = moeApp.config.get(imageType.id);
     if (type == 'qiniu') {
         imageType.value = type;
         let event = new Event('change');

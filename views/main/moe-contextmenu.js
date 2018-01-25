@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     type: 'separator',
                 },
                 {
-                    label: '一键上传',
+                    label: (moeApp.config.get('image-web-type')=='qiniu')? __('UploadToQiNiu'): __('UploadToSMMS'),
                     enabled: !imgManager.isUploading,
                     click(item, hexoWindow) {
                         !imgManager.uploadLocalSrc();

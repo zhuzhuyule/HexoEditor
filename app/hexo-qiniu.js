@@ -1,6 +1,6 @@
 class qiniuServer {
     constructor(acessKey, secretKey) {
-        this.qiniu = require('./qiniu/index');
+        this.qiniu = require('qiniu');
         this.bucket = '';
         this.qiniu.conf.ACCESS_KEY = acessKey;
         this.qiniu.conf.SECRET_KEY = secretKey;
@@ -50,14 +50,13 @@ class qiniuServer {
      */
     getBuckets(callback) {
         const url_api_bukets = 'https://rs.qbox.me/buckets';
+        let XMLHttpRequest = require('./tool/XMLHttpRequest').XMLHttpRequest;
         let xhr = new XMLHttpRequest();
         xhr.open('get', url_api_bukets);
         xhr.setRequestHeader('Authorization', this.getAccessToken(url_api_bukets));
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
         xhr.onreadystatechange = () => {
             if (xhr.readyState === 4) { // 成功完成
-                console.log(xhr.status)
-                console.log(xhr.responseText)
                 if (typeof callback === "function") {
                     callback({
                         code: xhr.status,
@@ -75,15 +74,13 @@ class qiniuServer {
      */
     getBucketsUrl(buketName,callback) {
         const url_api_bukets = 'https://api.qiniu.com/v6/domain/list?tbl=' + buketName;
-
+        let XMLHttpRequest = require('./tool/XMLHttpRequest').XMLHttpRequest;
         let xhr = new XMLHttpRequest();
         xhr.open('get', url_api_bukets);
         xhr.setRequestHeader('Authorization', this.getAccessToken(url_api_bukets));
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
         xhr.onreadystatechange = () => {
             if (xhr.readyState === 4) { // 成功完成
-                console.log(xhr.status)
-                console.log(xhr.responseText)
                 if (typeof callback === "function") {
                     callback({
                         code: xhr.status,
@@ -104,14 +101,13 @@ class qiniuServer {
         if (!buketName) return;
         const url_api_bukets = require('util').format(
             'https://rsf.qbox.me/list?bucket=%s&marker=&limit=1&prefix=%s&delimiter=/', buketName, prefix || '')
+        let XMLHttpRequest = require('./tool/XMLHttpRequest').XMLHttpRequest;
         let xhr = new XMLHttpRequest();
         xhr.open('get', url_api_bukets);
         xhr.setRequestHeader('Authorization', this.getAccessToken(url_api_bukets));
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
         xhr.onreadystatechange = () => {
             if (xhr.readyState === 4) { // 成功完成
-                console.log(xhr.status)
-                console.log(xhr.responseText)
                 if (typeof callback === "function") {
                     callback({
                         code: xhr.status,
@@ -136,20 +132,21 @@ class qiniuServer {
         var extra = new this.qiniu.form_up.PutExtra();
         let qiniuServer = this;
         formUploader.putFile(token, serverFileName, localFile, extra,
-            function (statusCode,response, responseText) {
-                console.log( response);
-                if (statusCode == 200 || statusCode == 579) {
+            function (error,data, responseInfo) {
+                if (error)
+                    console.log( error);
+                if (responseInfo.statusCode == 200 || responseInfo.statusCode == 579) {
                     let result = {
                         code: 'success',
                         data: {
-                            url: qiniuServer.url + response.key
+                            url: qiniuServer.url + data.key
                         }
                     }
                     callback(localFile, result);
                 } else {
-                    console.log(statusCode);
+                    console.log(responseInfo.statusCode);
                     let result = {
-                        error: statusCode + responseText,
+                        error: responseInfo.statusCode + responseInfo,
                     }
                     callback(localFile, result);
                 }
