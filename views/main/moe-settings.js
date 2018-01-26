@@ -232,6 +232,40 @@ function SetQiNiuWeb(val) {
     }
 }
 
+
+function SetCosAccessKey(val) {
+    if(imgManager && imgManager.cosServer){
+        imgManager.cosServer.update(val)
+    }
+}
+
+function SetCosSecretKey(val) {
+    if(imgManager && imgManager.cosServer){
+        imgManager.cosServer.update('',val)
+    }
+}
+
+
+function SetCosBucket(val) {
+    if(imgManager && imgManager.cosServer){
+        val = (val||"|").split('|');
+        imgManager.cosServer.update('','',val[0],val[1])
+    }
+}
+
+function SetCosWeb(val) {
+    if (val && val.oldURL && val.newURL){
+        let content = editor.getValue();
+        content = content.replace(new RegExp(val.oldURL,'g'),val.newURL);
+        editor.setValue(content);
+        hexoWindow.changed = true;
+        hexoWindow.content = content;
+    }
+    if(imgManager && imgManager.cosServer){
+        imgManager.cosServer.update('','','','',moeApp.config.get('image-cos-url-protocol'))
+    }
+}
+
 tryRun(setEditorFont, moeApp.config.get('editor-font'));
 tryRun(setShowLineNumber, !!moeApp.config.get('editor-ShowLineNumber'));
 tryRun(setScrollTogether, moeApp.config.get('scroll-Together'));
@@ -294,5 +328,13 @@ ipcRenderer.on('setting-changed', (e, arg) => {
         tryRun(SetQiNiuBucket, arg.val);
     } else if (arg.key === 'image-qiniu-url') {
         tryRun(SetQiNiuWeb, arg.val);
+    } else if (arg.key === 'image-cos-accessKey') {
+        tryRun(SetCosAccessKey, arg.val);
+    } else if (arg.key === 'image-cos-secretKey') {
+        tryRun(SetCosSecretKey, arg.val);
+    } else if (arg.key === 'image-cos-bucket') {
+        tryRun(SetCosBucket, arg.val);
+    } else if (arg.key === 'image-cos-url') {
+        tryRun(SetCosWeb, arg.val);
     }
 });

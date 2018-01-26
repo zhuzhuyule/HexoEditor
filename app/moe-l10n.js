@@ -81,7 +81,7 @@ class MoeditorLocale {
 	get(str) {
         let res;
 		if (typeof strings[this.locale] === 'undefined' || typeof strings[this.locale][str] === 'undefined') {
-            res = strings['en'][str];
+            res = strings['en'][str] || str;
             console.log('Localization of "' + str + '" in "' + this.locale + '" failed, falling back to English.');
         } else {
             res = strings[this.locale][str];
@@ -215,6 +215,7 @@ const strings = {
         "Web Type": "Web Type",
         "WebSM": "WebSM",
         "QiNiu": "QiNiu",
+        "WebCOS": "Tencent",
         "AccessKey": "Access Key",
         "SecretKey": "Secret Key",
         "Bucket": "Bucket",
@@ -229,6 +230,7 @@ const strings = {
         "Delete": "Delete",
         "Select All": "Select All",
 
+        "UploadToCOS": "Upload To COS",
         "UploadToSMMS": "Upload To SM.MS",
         "UploadToQiNiu": "Upload To QiNiu",
         "Quick Open":"Quick Open",
@@ -238,6 +240,7 @@ const strings = {
         "OpenPathHEXO":"Open Hexo Path",
         "WebIndex":"Open Your Index",
         "WebLocalIndex":"Open Local Index",
+        "WebCOSSource":"Open COS Src Index",
         "WebQiNiuSource":"Open QiNiu Src Index",
         "WebSMMS":"Open SM.MS Index",
 
@@ -386,6 +389,7 @@ const strings = {
         "Web Type": "云图类型",
         "WebSM": "SM.MS 图床",
         "QiNiu": "七牛云",
+        "WebCOS": "腾讯云",
         "AccessKey": "Access Key",
         "SecretKey": "Secret Key",
         "Bucket": "存储空间",
@@ -399,6 +403,7 @@ const strings = {
         "Delete": "删除",
         "Select All": "全选",
 
+        "UploadToCOS": "上传腾讯云",
         "UploadToSMMS": "上传SM.MS",
         "UploadToQiNiu": "上传七牛",
         "Quick Open":"快速打开",
@@ -408,7 +413,8 @@ const strings = {
         "OpenPathHEXO":"Hexo项目路径",
         "WebIndex":"主页",
         "WebLocalIndex":"本地主页",
-        "WebQiNiuSource":"七牛存储主页",
+        "WebCOSSource":"腾讯云主页",
+        "WebQiNiuSource":"七牛云主页",
         "WebSMMS":"SM.MS主页",
 
         "Services": "服务",

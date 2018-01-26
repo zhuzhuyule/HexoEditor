@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
             closeButton: '<i class="fa fa-' + (arg.btnTip||"close") + '" aria-hidden="true" title=' + __(arg.btnTip||"Close") + '></i>'
         });
         oldbiu.closeButton.addEventListener('click', function () {
-            process.nextTick(moeApp.shellServer.kill);
+            process.nextTick(moeApp.getShellServer().kill);
         });
 
         if (!drags)

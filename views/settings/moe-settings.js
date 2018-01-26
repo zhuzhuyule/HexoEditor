@@ -481,15 +481,60 @@ document.addEventListener('DOMContentLoaded', () => {
     let imageTabItem = document.querySelector('.item[data-tab="image"]');
     let imageTabContents = document.querySelector('.panel[data-tab="image"]');
     let imageType = imageTabContents.querySelector('#image-web-type');
+
+       //QiNiu
     let imageAccessKey = imageTabContents.querySelector('#image-qiniu-accessKey');
     let imageSecretKey = imageTabContents.querySelector('#image-qiniu-secretKey');
     let imageBucket = imageTabContents.querySelector('#image-qiniu-bucket');
     let imageBaseWebProtocol = imageTabContents.querySelector('#image-qiniu-url-protocol');
     let imageBaseWeb = imageTabContents.querySelector('#image-qiniu-url');
 
+    //腾讯
+    let imageCosAccessKey = imageTabContents.querySelector('#image-cos-accessKey');
+    let imageCosSecretKey = imageTabContents.querySelector('#image-cos-secretKey');
+    let imageCosBucket = imageTabContents.querySelector('#image-cos-bucket');
+    let imageCosBaseWebProtocol = imageTabContents.querySelector('#image-cos-url-protocol');
+    let imageCosBaseWeb = imageTabContents.querySelector('#image-cos-url');
+
+    imageType.addEventListener('change', function (e) {
+        moeApp.config.set(imageType.id, imageType.value);
+        let imageQiNiuItems = imageTabContents.querySelectorAll('tr[data-type="image-qiniu"]')
+        let imageCosItems = imageTabContents.querySelectorAll('tr[data-type="image-cos"]')
+        if (imageType.value == 'qiniu') {
+            imageAccessKey.value = moeApp.config.get(imageAccessKey.id);
+            imageSecretKey.value = moeApp.config.get(imageSecretKey.id);
+            checkBuckets();
+            imageCosItems.forEach((item) => {
+                item.style.display = 'none'
+            })
+            imageQiNiuItems.forEach((item) => {
+                item.style.display = 'table-row'
+            })
+        } else if (imageType.value == 'cos') {
+            imageCosAccessKey.value = moeApp.config.get(imageCosAccessKey.id);
+            imageCosSecretKey.value = moeApp.config.get(imageCosSecretKey.id);
+            checkCosBuckets();
+            imageQiNiuItems.forEach((item) => {
+                item.style.display = 'none'
+            })
+            imageCosItems.forEach((item) => {
+                item.style.display = 'table-row'
+            })
+        } else {
+            imageQiNiuItems.forEach((item) => {
+                item.style.display = 'none'
+            })
+            imageCosItems.forEach((item) => {
+                item.style.display = 'none'
+            })
+            ipcRenderer.send('setting-changed', {key: imageType.id, val: imageType.value});
+        }
+        imageTabItem.click();
+    })
+
     function hasQiNiuServer() {
         if (imageAccessKey.value && imageSecretKey.value && !global.qiniuServer) {
-            global.qiniuServer = moeApp.qiniuServer;
+            global.qiniuServer = moeApp.getQiniuServer();
             qiniuServer.update(
                 moeApp.config.get('image-qiniu-accessKey'),
                 moeApp.config.get('image-qiniu-secretKey'),
@@ -561,24 +606,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    imageType.addEventListener('change', function (e) {
-        moeApp.config.set(imageType.id, imageType.value);
-        let imageQiNiuItems = imageTabContents.querySelectorAll('tr[data-type="image-qiniu"]')
-        if (imageType.value == 'qiniu') {
-            imageAccessKey.value = moeApp.config.get(imageAccessKey.id);
-            imageSecretKey.value = moeApp.config.get(imageSecretKey.id);
-            checkBuckets();
-            imageQiNiuItems.forEach((item) => {
-                item.style.display = 'table-row'
-            })
-        } else {
-            imageQiNiuItems.forEach((item) => {
-                item.style.display = 'none'
-            })
-            ipcRenderer.send('setting-changed', {key: imageType.id, val: imageType.value});
-        }
-        imageTabItem.click();
-    })
 
     imageAccessKey.addEventListener('blur', () => {
         imageAccessKey.type = 'password';
@@ -654,8 +681,134 @@ document.addEventListener('DOMContentLoaded', () => {
         ipcRenderer.send('setting-changed', {key: imageBaseWeb.id, val: value});
     })
 
+
+    //腾讯
+    function hasCosServer() {
+        if (imageCosAccessKey.value && imageCosSecretKey.value && !global.cosServer) {
+            global.cosServer = moeApp.getCOSServer();
+            let bucketObj = moeApp.config.get('image-cos-bucket');
+            bucketObj = (bucketObj||"|").split('|');
+            cosServer.update(
+                moeApp.config.get('image-cos-accessKey'),
+                moeApp.config.get('image-cos-secretKey'),
+                bucketObj[0],
+                bucketObj[1],
+                moeApp.config.get('image-cos-url-protocol')
+            );
+            return true;
+        }
+        return global.cosServer;
+    }
+
+    function checkCosBuckets() {
+        if (hasCosServer()) {
+            let oldBucket = moeApp.config.get(imageCosBucket.id);
+            cosServer.getService((response) => {
+                imageCosBucket.innerHTML = '';
+                if (response.statusCode == 200) {
+                    response.Buckets.forEach((bucket) => {
+                        let option = document.createElement('option');
+                        option.value = bucket.Name + '|' +bucket.Location;
+                        option.innerText = '['+bucket.Location+']  ' + bucket.Name ;
+                        imageCosBucket.appendChild(option);
+                        if ((option.value == oldBucket)) {
+                            option.selected = true;
+                            imageCosBucket.value = option.value;
+                        }
+                    })
+                    if (!imageCosBucket.value && imageCosBucket.firstChild) {
+                        imageCosBucket.value = imageCosBucket.firstChild.value;
+                    }
+                    if(imageCosBucket.value) {
+                        let event = new Event('change');
+                        imageCosBucket.dispatchEvent(event);
+                    }
+                } else {
+                    console.log(response,response.error.Message) ;
+                }
+            })
+        }
+    }
+
+    imageCosAccessKey.addEventListener('blur', () => {
+        imageCosAccessKey.type = 'password';
+        if (imageCosAccessKey.value && imageCosAccessKey.value.length == 36 && imageCosSecretKey.value && imageCosSecretKey.value.length == 32) {
+            let oldKey = moeApp.config.get(imageCosAccessKey.id);
+            if (oldKey != imageCosAccessKey.value) {
+                moeApp.config.set(imageCosAccessKey.id, imageCosAccessKey.value);
+                if (hasCosServer()) {
+                    cosServer.update(imageCosAccessKey.value, imageCosSecretKey.value)
+                    ipcRenderer.send('setting-changed', {key: imageCosAccessKey.id, val: imageCosAccessKey.value});
+                    checkCosBuckets();
+                }
+            }
+        }
+    })
+    imageCosAccessKey.addEventListener('focus', () => {
+        imageCosAccessKey.type = 'type';
+    })
+    imageCosSecretKey.addEventListener('blur', () => {
+        imageCosSecretKey.type = 'password';
+        if (imageCosAccessKey.value && imageCosAccessKey.value.length == 36 && imageCosSecretKey.value && imageCosSecretKey.value.length == 32) {
+            let oldKey = moeApp.config.get(imageCosSecretKey.id);
+            if (oldKey != imageCosSecretKey.value) {
+                moeApp.config.set(imageCosSecretKey.id, imageCosSecretKey.value);
+                if (hasCosServer()) {
+                    cosServer.update(imageCosAccessKey.value, imageCosSecretKey.value)
+                    ipcRenderer.send('setting-changed', {key: imageCosSecretKey.id, val: imageCosSecretKey.value});
+                    checkCosBuckets();
+                }
+            }
+        }
+    })
+
+    imageCosSecretKey.addEventListener('focus', () => {
+        imageCosSecretKey.type = 'type';
+    })
+
+    imageCosBucket.addEventListener('change', function (e) {
+        moeApp.config.set(imageCosBucket.id, imageCosBucket.value);
+        imageCosBaseWeb.value = imageCosBucket.value.replace('|','.cos.') + '.myqcloud.com' + '/';
+        imageCosBaseWeb.title = imageCosBaseWeb.value;
+        moeApp.config.set(imageCosBaseWeb.id, imageCosBaseWeb.value);
+        ipcRenderer.send('setting-changed', {key: imageCosBucket.id, val: imageCosBucket.value});
+        imageCosBaseWeb.dispatchEvent(new Event('change'));
+    })
+
+
+    function protocolChange(type) {
+        if ((!type && imageCosBaseWebProtocol.value == 'http://') ||  type == 'https://') {
+            imageCosBaseWebProtocol.style.width = '53px';
+            imageCosBaseWeb.style.width = 'calc(100% - 57px)';
+            imageCosBaseWebProtocol.value = 'https://';
+        } else {
+            imageCosBaseWebProtocol.style.width = '47px';
+            imageCosBaseWeb.style.width = 'calc(100% - 51px)';
+            imageCosBaseWebProtocol.value = 'http://';
+        }
+    }
+
+    imageCosBaseWebProtocol.value = moeApp.config.get(imageCosBaseWebProtocol.id);
+    protocolChange(imageCosBaseWebProtocol.value);
+    imageCosBaseWebProtocol.addEventListener('click', () => {
+        protocolChange();
+        imageCosBaseWeb.dispatchEvent(new Event('change'));
+    })
+
+    imageCosBaseWeb.addEventListener('change', function (e) {
+        let protocol = moeApp.config.get(imageCosBaseWebProtocol.id)
+        let oldURL = moeApp.config.get(imageCosBaseWeb.id);
+        let value = {
+            oldURL: (oldURL ? protocol + oldURL : ''),
+            newURL: (imageCosBaseWeb.value ? imageCosBaseWebProtocol.value + imageCosBaseWeb.value : '')
+        };
+        moeApp.config.set(imageCosBaseWebProtocol.id, imageCosBaseWebProtocol.value);
+        moeApp.config.set(imageCosBaseWeb.id, imageCosBaseWeb.value);
+        ipcRenderer.send('setting-changed', {key: imageCosBaseWeb.id, val: value});
+    })
+
     let type = moeApp.config.get(imageType.id);
-    if (type == 'qiniu') {
+    if (type == 'qiniu' || type == 'cos') {
         imageType.value = type;
         let event = new Event('change');
         imageType.dispatchEvent(event);

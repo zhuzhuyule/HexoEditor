@@ -19,14 +19,13 @@
 
 'use strict'
 
-let shellServer = moeApp.shellServer;
 
 document.addEventListener('DOMContentLoaded', () => {
     const remote = require('electron').remote;
     const {Menu, MenuItem} = remote;
 
     const editor = document.getElementById('editor'), containerWrapper = document.getElementById('preview');
-
+    let shellServer = moeApp.getShellServer();
     window.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         if (editor.contains(e.target) || containerWrapper.contains(e.target)) {
@@ -35,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 {
                     label: __('Undo'),
                     enabled: window.editor.doc.historySize().undo !== 0,
-                    click(item, hexoWindow) {
+                    click(item, w) {
                         window.editor.undo();
                     }
                 },
@@ -56,14 +55,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     label: __('Paste'),
                     enabled: inEditor && (require('electron').clipboard.readText().length !== 0 ||
                         !clipboard.readImage().isEmpty()),
-                    click(item, hexoWindow) {
+                    click(item, w) {
                         pasteData();
                     }
                 },
                 {
                     label: __('Delete'),
                     enabled: inEditor && window.editor.doc.somethingSelected(),
-                    click(item, hexoWindow) {
+                    click(item, w) {
                         hexoWindow.webContents.sendInputEvent({type: 'keyDown', modifiers: [], keyCode: 'Delete'});
                         hexoWindow.webContents.sendInputEvent({type: 'keyUp', modifiers: [], keyCode: 'Delete'});
                     }
@@ -73,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 {
                     label: __('Select All'),
-                    click(item, hexoWindow) {
+                    click(item, w) {
                         if (inEditor) {
                             window.editor.execCommand('selectAll');
                         } else {
@@ -92,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     label: __('Show Number'),
                     type: 'checkbox',
                     checked: window.editor.getOption('lineNumbers'),
-                    click(item, hexoWindow) {
+                    click(item, w) {
                         let editor = document.querySelector('#editor');
                         if (item.checked) {
                             editor.classList.add('gutter');
@@ -107,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     label: __('Scroll Sync'),
                     type: 'checkbox',
                     checked: window.scrollTogether,
-                    click(item, hexoWindow) {
+                    click(item, w) {
                         window.scrollTogether = !window.scrollTogether;
                     }
                 },
@@ -115,9 +114,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     type: 'separator',
                 },
                 {
-                    label: (moeApp.config.get('image-web-type')=='qiniu')? __('UploadToQiNiu'): __('UploadToSMMS'),
+                    label: (moeApp.config.get('image-web-type')=='qiniu')? __('UploadToQiNiu'):((moeApp.config.get('image-web-type')=='cos')?__('UploadToCOS'):__('UploadToSMMS')),
                     enabled: !imgManager.isUploading,
-                    click(item, hexoWindow) {
+                    click(item, w) {
                         !imgManager.uploadLocalSrc();
                     }
                 },
@@ -127,15 +126,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         {
                             label: __('OpenPathPost'),
                             enabled: !!hexoWindow.fileName ,
-                            click(item, hexoWindow) {
-                                const shell = require('electron').shell
+                            click(item, w) {
+                                const shell = require('electron').shell;
                                 shell.showItemInFolder(hexoWindow.fileName)
                             }
                         },
                         {
                             label: __('OpenPathPostSrc'),
                             enabled: !!(imgManager && imgManager.imgBaseDir),
-                            click(item, hexoWindow) {
+                            click(item, w) {
                                 const shell = require('electron').shell;
                                 let dir = path.join(imgManager.imgPathDir);
                                 if (fs.existsSync(dir))
@@ -147,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         {
                             label: __('OpenPathSrcCenter'),
                             enabled: !!(imgManager && imgManager.imgBaseDir),
-                            click(item, hexoWindow) {
+                            click(item, w) {
                                 const shell = require('electron').shell;
                                 shell.showItemInFolder(path.join(imgManager.imgBaseDir, '*'))
                             }
@@ -155,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         {
                             label: __('OpenPathHEXO'),
                             enabled: moeApp.useHexo,
-                            click(item, hexoWindow) {
+                            click(item, w) {
                                 const shell = require('electron').shell
                                 shell.showItemInFolder(path.join(hexo.config.__basedir, '*'))
                             }
@@ -166,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         {
                             label: __('WebIndex'),
                             enabled: moeApp.useHexo && (!!hexo.config.url),
-                            click(item, hexoWindow) {
+                            click(item, w) {
                                 const shell = require('electron').shell;
                                 let weburl = hexo.config.url;
                                 weburl = (weburl.startsWith('http://') || weburl.startsWith('https://') ? weburl : 'http://' + weburl);
@@ -178,7 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         {
                             label: __('WebLocalIndex'),
                             enabled: moeApp.useHexo && (shellServer.shellProcess != null),
-                            click(item, hexoWindow) {
+                            click(item, w) {
                                 const shell = require('electron').shell;
                                 let weburl = url.parse('http://localhost:4000');
                                 weburl.hostname = moeApp.hexo.config.server.ip || 'localhost';
@@ -188,14 +187,23 @@ document.addEventListener('DOMContentLoaded', () => {
                         },
                         {
                             label: __('WebQiNiuSource'),
-                            click(item, hexoWindow) {
+                            click(item, w) {
                                 const shell = require('electron').shell;
                                 shell.openExternal(`https://portal.qiniu.com/bucket/${moeApp.config.get('image-qiniu-bucket')}/resource`)
                             }
                         },
                         {
+                            label: __('WebCOSSource'),
+                            click(item, w) {
+                                const shell = require('electron').shell;
+                                let bucketObj = moeApp.config.get('image-cos-bucket');
+                                bucketObj = (bucketObj||"|").split('|');
+                                shell.openExternal(`https://console.cloud.tencent.com/cos5/bucket/setting?type=filelist&bucketName=${bucketObj[0]}&path=&region=${bucketObj[1]}`)
+                            }
+                        },
+                        {
                             label: __('WebSMMS'),
-                            click(item, hexoWindow) {
+                            click(item, w) {
                                 const shell = require('electron').shell;
                                 shell.openExternal(`https://sm.ms/`)
                             }
@@ -207,23 +215,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     visible: moeApp.useHexo,
                 },
                 {
-                    label: "HEXO",
+                    label: "Hexo",
                     visible: moeApp.useHexo,
                     enabled: !shellServer.processRunning(),
-                    click(item, hexoWindow) {
+                    click(item, w) {
                         const shell = require('electron').shell
                         shell.showItemInFolder(path.join(hexo.config.__basedir, '*'))
                     },
                     submenu: [
                         {
                             label: __('File Rename'),
-                            click(item, hexoWindow) {
+                            click(item, w) {
                                 window.changeFileName(true);
                             }
                         },
                         {
                             label: __('HEXOQuickPublish'),
-                            click(item, hexoWindow) {
+                            click(item, w) {
                                 shellServer.generalAndDeploy();
                             }
                         },
@@ -232,31 +240,31 @@ document.addEventListener('DOMContentLoaded', () => {
                         },
                         {
                             label: __('HEXOServer'),
-                            click(item, hexoWindow) {
+                            click(item, w) {
                                 shellServer.server();
                             }
                         },
                         {
                             label: __('HEXOClean'),
-                            click(item, hexoWindow) {
+                            click(item, w) {
                                 shellServer.clean();
                             }
                         },
                         {
                             label: __('HEXOGenerate'),
-                            click(item, hexoWindow) {
+                            click(item, w) {
                                 shellServer.general();
                             }
                         },
                         {
                             label: __('HEXODeploy'),
-                            click(item, hexoWindow) {
+                            click(item, w) {
                                 shellServer.deploy();
                             }
                         },
                         {
                             label: __('HEXOKillPort'),
-                            click(item, hexoWindow) {
+                            click(item, w) {
                                 shellServer.stopServerForce();
                             }
                         }

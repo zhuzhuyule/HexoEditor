@@ -304,6 +304,7 @@
                                     <select class="settings-item-image" id="image-web-type">
                                         <option value="sm" class="l10n">WebSM</option>
                                         <option value="qiniu" class="l10n">QiNiu</option>
+                                        <option value="cos" class="l10n">WebCOS</option>
                                     </select>
                                 </td>
                             </tr>
@@ -332,6 +333,32 @@
                                     <input class="settings-item-image" id="image-qiniu-url-protocol" readonly style="transition: width .5s;  width:53px" />
                                     <select class="settings-item-image" id="image-qiniu-url" style="transition: width .5s;width: calc(100% - 54px);">
                                     </select>
+                                </td>
+                            </tr>
+                            <tr data-type="image-cos" style="display:none">
+                                <td width="30%" class="l10n">AccessKey</td>
+                                <td width="70%">
+                                    <input class="settings-item-image" type="password" id="image-cos-accessKey"/>
+                                </td>
+                            </tr>
+                            <tr data-type="image-cos" style="display:none">
+                                <td width="30%" class="l10n">SecretKey</td>
+                                <td width="70%">
+                                    <input class="settings-item-image" type="password" id="image-cos-secretKey"/>
+                                </td>
+                            </tr>
+                            <tr data-type="image-cos" style="display:none">
+                                <td width="30%" class="l10n">Bucket</td>
+                                <td width="70%">
+                                    <select class="settings-item-image" id="image-cos-bucket">
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr data-type="image-cos" style="display:none">
+                                <td width="30%" class="l10n">BaseWeb</td>
+                                <td width="70%">
+                                    <input class="settings-item-image" id="image-cos-url-protocol" readonly style="transition: width .5s;  width:53px" />
+                                    <input class="settings-item-image" id="image-cos-url" readonly style="transition: width .5s;width: calc(100% - 54px);" />
                                 </td>
                             </tr>
                         </table>

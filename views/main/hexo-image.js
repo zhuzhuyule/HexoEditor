@@ -84,7 +84,7 @@ class ImgManager {
     getQiNiuServer() {
         if (!this.qiniuServer) {
             // this.qiniuServer = new (require('./hexo-qiniu'))();
-            this.qiniuServer = moeApp.qiniuServer;
+            this.qiniuServer = moeApp.getQiniuServer();
             this.qiniuServer.update(
                 moeApp.config.get('image-qiniu-accessKey'),
                 moeApp.config.get('image-qiniu-secretKey'),
@@ -93,6 +93,23 @@ class ImgManager {
             );
         }
         return this.qiniuServer;
+    }
+
+    getCOSServer() {
+        if (!this.cosServer) {
+            // this.qiniuServer = new (require('./hexo-qiniu'))();
+            this.cosServer = moeApp.getCOSServer();
+            let bucketObj = moeApp.config.get('image-cos-bucket');
+            bucketObj = (bucketObj||"|").split('|');
+            this.cosServer.update(
+                moeApp.config.get('image-cos-accessKey'),
+                moeApp.config.get('image-cos-secretKey'),
+                bucketObj[0],
+                bucketObj[1],
+                moeApp.config.get('image-cos-url-protocol')
+            );
+        }
+        return this.cosServer;
     }
 
     getImageOfPath(imgPath, md5ID) {
@@ -238,19 +255,28 @@ class ImgManager {
         this.getQiNiuServer().uploadFile(imgPath,this.relativePath(imgPath).slice(1),callback);
     }
 
+    asyncUploadToCOS(imgPath, callback) {
+        this.getCOSServer().sliceUploadFile(imgPath,this.relativePath(imgPath).slice(1),callback);
+    }
+
     asyncUploadFile(imgPath, callback) {
-        if (this.isQiNiu){
-            this.asyncUploadToQiNiu(imgPath,callback)
-        } else {
-            let file = new File([fs.readFileSync(imgPath)], md5(imgPath) + path.extname(imgPath), {type: 'image/' + path.extname(imgPath).slice(1)});
-            return this.asyncUploadToSm(imgPath,file, callback);
+        switch (this.type){
+            case 'qiniu':
+                this.asyncUploadToQiNiu(imgPath,callback)
+                break;
+            case 'cos':
+                this.asyncUploadToCOS(imgPath,callback)
+                break;
+            default:
+                let file = new File([fs.readFileSync(imgPath)], md5(imgPath) + path.extname(imgPath), {type: 'image/' + path.extname(imgPath).slice(1)});
+                this.asyncUploadToSm(imgPath,file, callback);
         }
     }
 
     uploadLocalSrc() {
         this.isUploading = true;
         this.timeout = 0;
-        this.isQiNiu = moeApp.config.get('image-web-type') == 'qiniu';
+        this.type = moeApp.config.get('image-web-type');
 
         let finishedCount = 0;
         let uploadList = new Map();
@@ -283,9 +309,24 @@ class ImgManager {
             uploadEnd();
         }
 
-        function uploadRequest(fileID, response) {
+        /**
+         * 回调函数
+         * @param fileID
+         * @param response
+         *
+         * response={
+         *    code: 'success'|'error'
+         *    data: {
+         *        url: 'http....',
+         *        hash: '.....'
+         *          }
+         *    error: 'error'
+         * }
+         */
+        function uploadRequest(fileID, response,info) {
             finishedCount++;
             console.log(finishedCount + '/' + uploadList.size)
+            if (info) console.log(info)
             if (response.code == 'success') {
                 successList.set(fileID, response)
             } else {

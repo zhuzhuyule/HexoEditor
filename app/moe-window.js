@@ -97,15 +97,15 @@ class MoeditorWindow {
                 }
             }
 
-            console.log(this.window == moeApp.shellServer.lastWindow)
-            if (this.window == moeApp.shellServer.lastWindow)
-                process.nextTick(moeApp.shellServer.kill,false);
+            console.log(this.window == moeApp.getShellServer().lastWindow)
+            if (this.window == moeApp.getShellServer().lastWindow)
+                process.nextTick(moeApp.getShellServer().kill,false);
 
             const index = moeApp.windows.indexOf(this);
             if (index !== -1) moeApp.windows.splice(index, 1);
 
             if ( !moeApp.windows.length) {
-                process.nextTick(moeApp.shellServer.kill,false);
+                process.nextTick(moeApp.getShellServer().kill,false);
                 setTimeout(app.quit,200)
             }
         });

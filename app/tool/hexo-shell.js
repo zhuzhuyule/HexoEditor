@@ -50,17 +50,18 @@
 
 
 const Promise = require('bluebird');
-const {ipcMain} = require('electron');
-const thread_kill = require('./tool/thread_kill');
+const thread_kill = require('./thread_kill');
 const exec = require('child_process').exec;
 const util = require('util');
 
+let shellServer = false;
 class ShellServer {
     constructor() {
         this.shellProcess = null;
         this.isForce = false;
         this.oldbiu = null;
         this.drags = null;
+        shellServer = this;
     }
 
     processRunning() {
@@ -68,9 +69,9 @@ class ShellServer {
     }
 
     sendConsole(content, type, btnTip) {
-        if (moeApp.shellServer.closeMsg) return;
+        if (shellServer.closeMsg) return;
         try {
-            moeApp.shellServer.lastWindow.hexoeditorWindow.window.webContents.send('pop-message-shell', {
+            shellServer.lastWindow.hexoeditorWindow.window.webContents.send('pop-message-shell', {
                 subProcess: this.shellProcess,
                 content: content,
                 type: type,
@@ -84,52 +85,52 @@ class ShellServer {
     execCmd(command) {
         console.log('execute', command);
         let flagOK = false;
-        clearTimeout(moeApp.shellServer.timeID);
-        moeApp.shellServer.closeMsg = false;
-        moeApp.shellServer.lastWindow = require('electron').BrowserWindow.getFocusedWindow();
-        moeApp.shellServer.isForce = false;
-        moeApp.shellServer.shellProcess = exec(command, {cwd: moeApp.hexo.config.__basedir});
-        moeApp.shellServer.sendConsole('<i class="fa fa-spinner fa-pulse fa-fw margin-bottom"></i>'+__("Executing"), 'info', 'ban');
-        moeApp.shellServer.shellProcess.stderr.on('data', (data) => {
+        clearTimeout(shellServer.timeID);
+        shellServer.closeMsg = false;
+        shellServer.lastWindow = require('electron').BrowserWindow.getFocusedWindow();
+        shellServer.isForce = false;
+        shellServer.shellProcess = exec(command, {cwd: moeApp.hexo.config.__basedir});
+        shellServer.sendConsole('<i class="fa fa-spinner fa-pulse fa-fw margin-bottom"></i>'+__("Executing"), 'info', 'ban');
+        shellServer.shellProcess.stderr.on('data', (data) => {
             console.log(data);
         });
-        moeApp.shellServer.shellProcess.stdout.on('data', (data) => {
-            clearTimeout(moeApp.shellServer.timeID);
+        shellServer.shellProcess.stdout.on('data', (data) => {
+            clearTimeout(shellServer.timeID);
             console.log(data);
             if ( /INFO  Hexo is running at https?:\/+/.test(data) ) {
                 flagOK = true;
-                moeApp.shellServer.sendConsole('<i class="fa fa-spinner fa-pulse fa-fw margin-bottom"></i>'+__('ServerStart'), 'info', 'stop');
+                shellServer.sendConsole('<i class="fa fa-spinner fa-pulse fa-fw margin-bottom"></i>'+__('ServerStart'), 'info', 'stop');
                 require('electron').shell.openExternal(data.match(/INFO  Hexo is running at (https?:\/+[^\/]+\/). Press Ctrl.C to stop./i)[1])
             } else {
-                moeApp.shellServer.timeID = setTimeout(() => {
+                shellServer.timeID = setTimeout(() => {
                     if (!flagOK) {
-                        moeApp.shellServer.kill(moeApp.shellServer.shellProcess)
+                        shellServer.kill(shellServer.shellProcess)
                         flagOK = -1;
                     }
                 }, 10000)
             }
         });
-        moeApp.shellServer.shellProcess.on('close', (code, signal) => {
+        shellServer.shellProcess.on('close', (code, signal) => {
             if (flagOK === -1)
-                moeApp.shellServer.sendConsole(__('Operation Execution Timeout'), 'danger', 'close');
-            else if (moeApp.shellServer.isForce)
-                moeApp.shellServer.sendConsole(__('Operation Canceled'), 'success', 'check');
+                shellServer.sendConsole(__('Operation Execution Timeout'), 'danger', 'close');
+            else if (shellServer.isForce)
+                shellServer.sendConsole(__('Operation Canceled'), 'success', 'check');
             else if (code == 0)
-                moeApp.shellServer.sendConsole(__('Operation Finished'), 'success', 'check');
-            moeApp.shellServer.shellProcess = null;
+                shellServer.sendConsole(__('Operation Finished'), 'success', 'check');
+            shellServer.shellProcess = null;
         });
-        moeApp.shellServer.shellProcess.on('error', err => {
-            if (moeApp.shellServer.shellProcess)
-                moeApp.shellServer.sendConsole(err, 'danger', 'close')
+        shellServer.shellProcess.on('error', err => {
+            if (shellServer.shellProcess)
+                shellServer.sendConsole(err, 'danger', 'close')
             console.error(err);
         })
     }
 
     kill(subProcess) {
-        moeApp.shellServer.isForce = true;
-        moeApp.shellServer.closeMsg = (typeof subProcess === "boolean");
+        shellServer.isForce = true;
+        shellServer.closeMsg = (typeof subProcess === "boolean");
         if (!subProcess)
-            subProcess = moeApp.shellServer.shellProcess
+            subProcess = shellServer.shellProcess
         if (subProcess)
             thread_kill(subProcess.pid, function (err) {
                 console.error(err);
@@ -137,8 +138,8 @@ class ShellServer {
     }
 
     checkPort(ip, port) {
-        moeApp.shellServer.isForce = false;
-        moeApp.shellServer.closeMsg = false;
+        shellServer.isForce = false;
+        shellServer.closeMsg = false;
         return new Promise(function (resolve, reject) {
             if (port > 65535 || port < 1) {
                 return reject(new Error('Port number ' + port + ' is invalid. Try a number between 1 and 65535.'));
@@ -156,7 +157,7 @@ class ShellServer {
 
     serverFail(err) {
         if (err.code === 'EADDRINUSE') { // 端口Ip地址占用
-            moeApp.shellServer.sendConsole(util.format(__('PortOccupied'),err.address,err.port), 'danger', 'close');
+            shellServer.sendConsole(util.format(__('PortOccupied'),err.address,err.port), 'danger', 'close');
         }
     }
 

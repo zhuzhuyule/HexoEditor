@@ -15,6 +15,8 @@ class qiniuServer {
      * @param url
      */
     update(acessKey, secretKey, bucket, url) {
+        acessKey = acessKey || moeApp.config.get('image-qiniu-accessKey');
+        secretKey = secretKey || moeApp.config.get('image-qiniu-secretKey');
         this.qiniu.conf.ACCESS_KEY = acessKey;
         this.qiniu.conf.SECRET_KEY = secretKey;
         this.mac = new this.qiniu.auth.digest.Mac(acessKey, secretKey);
@@ -50,7 +52,7 @@ class qiniuServer {
      */
     getBuckets(callback) {
         const url_api_bukets = 'https://rs.qbox.me/buckets';
-        let XMLHttpRequest = require('./tool/XMLHttpRequest').XMLHttpRequest;
+        let XMLHttpRequest = require('./XMLHttpRequest').XMLHttpRequest;
         let xhr = new XMLHttpRequest();
         xhr.open('get', url_api_bukets);
         xhr.setRequestHeader('Authorization', this.getAccessToken(url_api_bukets));
@@ -74,7 +76,7 @@ class qiniuServer {
      */
     getBucketsUrl(buketName,callback) {
         const url_api_bukets = 'https://api.qiniu.com/v6/domain/list?tbl=' + buketName;
-        let XMLHttpRequest = require('./tool/XMLHttpRequest').XMLHttpRequest;
+        let XMLHttpRequest = require('./XMLHttpRequest').XMLHttpRequest;
         let xhr = new XMLHttpRequest();
         xhr.open('get', url_api_bukets);
         xhr.setRequestHeader('Authorization', this.getAccessToken(url_api_bukets));
@@ -101,7 +103,7 @@ class qiniuServer {
         if (!buketName) return;
         const url_api_bukets = require('util').format(
             'https://rsf.qbox.me/list?bucket=%s&marker=&limit=1&prefix=%s&delimiter=/', buketName, prefix || '')
-        let XMLHttpRequest = require('./tool/XMLHttpRequest').XMLHttpRequest;
+        let XMLHttpRequest = require('./XMLHttpRequest').XMLHttpRequest;
         let xhr = new XMLHttpRequest();
         xhr.open('get', url_api_bukets);
         xhr.setRequestHeader('Authorization', this.getAccessToken(url_api_bukets));
@@ -132,23 +134,25 @@ class qiniuServer {
         var extra = new this.qiniu.form_up.PutExtra();
         let qiniuServer = this;
         formUploader.putFile(token, serverFileName, localFile, extra,
-            function (error,data, responseInfo) {
-                if (error)
-                    console.log( error);
-                if (responseInfo.statusCode == 200 || responseInfo.statusCode == 579) {
-                    let result = {
+            function (respErr, respBody, respInfo) {
+                console.log( respBody);
+                if (respErr) {
+                    throw respErr;
+                }
+                if (respInfo.statusCode == 200 || respInfo.statusCode == 579) {
+                    let response = {
                         code: 'success',
                         data: {
-                            url: qiniuServer.url + data.key
+                            url: qiniuServer.url + respBody.key
                         }
                     }
-                    callback(localFile, result);
+                    callback(localFile, response);
                 } else {
-                    console.log(responseInfo.statusCode);
-                    let result = {
-                        error: responseInfo.statusCode + responseInfo,
+                    console.log(respInfo.statusCode);
+                    let response = {
+                        error: respInfo.statusCode + respBody,
                     }
-                    callback(localFile, result);
+                    callback(localFile, response);
                 }
             });
     }

@@ -22,32 +22,52 @@
 'use strict';
 
 const MoeditorWindow = require('./moe-window'),
-      MoeditorAction = require('./moe-action'),
-      MoeditorFile = require('./moe-file'),
-      shortcut = require('electron-localshortcut'),
-      MoeditorLocale = require('./moe-l10n'),
-      MoeditorShell = require('./moe-shell'),
-      QiniuServer = require('./hexo-qiniu'),
-      MoeditorAbout = require('./moe-about'),
-      MoeditorSettings = require('./moe-settings'),
-      fs = require('fs'),
-      path = require('path');
+    MoeditorAction = require('./moe-action'),
+    MoeditorFile = require('./moe-file'),
+    shortcut = require('electron-localshortcut'),
+    MoeditorLocale = require('./moe-l10n'),
+    MoeditorAbout = require('./moe-about'),
+    MoeditorSettings = require('./moe-settings'),
+    fs = require('fs'),
+    path = require('path');
+
+let shellServer = false;
+let qiniuServer = false;
+let cosServer = false;
 
 class MoeditorApplication {
-	constructor() {
-		this.windows = new Array();
+    constructor() {
+        this.windows = new Array();
         this.hexoWindow = null;
-	}
+    }
 
-	open(fileName,defName) {
+    open(fileName, defName) {
         if (typeof fileName === 'undefined') {
-            this.windows.push(new MoeditorWindow(process.cwd(),defName));
+            this.windows.push(new MoeditorWindow(process.cwd(), defName));
         } else {
-            this.windows.push(new MoeditorWindow(fileName,defName));
+            this.windows.push(new MoeditorWindow(fileName, defName));
         }
-	}
+    }
 
-	run() {
+    getShellServer() {
+        if (!shellServer)
+            shellServer = new (require('./tool/hexo-shell'))();
+        return shellServer;
+    }
+
+    getQiniuServer() {
+        if (!qiniuServer)
+            qiniuServer = new (require('./tool/hexo-qiniu'))();
+        return qiniuServer;
+    }
+
+    getCOSServer() {
+        if (!cosServer)
+            cosServer = new (require('./tool/hexo-cos'))();
+        return cosServer;
+    }
+
+    run() {
         global.Const = require('./moe-const');
 
         app.setName(Const.name);
@@ -57,8 +77,6 @@ class MoeditorApplication {
         this.Const = Const;
 
         this.locale = new MoeditorLocale();
-        this.shellServer = new MoeditorShell();
-        this.qiniuServer = new QiniuServer();
         global.__ = str => this.locale.get(str);
 
         this.flag = new Object();
@@ -92,7 +110,7 @@ class MoeditorApplication {
         if (typeof this.osxOpenFile === 'string') docs.push(this.osxOpenFile);
 
         if (docs.length == 0) this.open();
-		else for (var i = 0; i < docs.length; i++) {
+        else for (var i = 0; i < docs.length; i++) {
             docs[i] = path.resolve(docs[i]);
             this.addRecentDocument(docs[i]);
             this.open(docs[i]);
@@ -102,7 +120,7 @@ class MoeditorApplication {
         else this.registerShortcuts();
 
         this.listenSettingChanges();
-	}
+    }
 
     registerAppMenu() {
         require('./moe-menu')(
@@ -225,24 +243,24 @@ class MoeditorApplication {
         app.addRecentDocument(path);
     }
 
-    getHighlightThemesDir(){
+    getHighlightThemesDir() {
         const currTheme = this.config.get('render-theme')
         let themedir = 'github'
-        if (!(currTheme == '*GitHub' || currTheme == '*No Theme')){
+        if (!(currTheme == '*GitHub' || currTheme == '*No Theme')) {
             if (currTheme.startsWith('*'))
                 themedir = currTheme.slice(1).toLowerCase();
             else
                 themedir = currTheme.toLowerCase();
         }
-        themedir = path.join(moeApp.Const.path+'/views/highlightThemes/',themedir);
-	    return (fs.existsSync(themedir)? themedir : '');
+        themedir = path.join(moeApp.Const.path + '/views/highlightThemes/', themedir);
+        return (fs.existsSync(themedir) ? themedir : '');
     }
 
-    getHexo(){
+    getHexo() {
         return this.hexo;
     }
 
-    setHexo(hexo){
+    setHexo(hexo) {
         this.hexo = hexo;
     }
 }

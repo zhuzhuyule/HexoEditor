@@ -52,4 +52,9 @@ module.exports = {
     'image-qiniu-bucket':'',
     'image-qiniu-url-protocol': 'http://',
     'image-qiniu-url':'',
+    'image-cos-accessKey':'',
+    'image-cos-secretKey':'',
+    'image-cos-bucket':'|',
+    'image-cos-url-protocol': 'http://',
+    'image-cos-url':'',
 };
