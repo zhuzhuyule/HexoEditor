@@ -7,31 +7,36 @@
 
 const path = require('path');
 const fs = require('fs');
+const userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36';
 
 class Smms {
     constructor() {
         this.__ = require('lodash');
         this.FormData = require('form-data');
+        this.request = require('request');
+    }
+
+    del(fileHash) {
+        this.request('https://sm.ms/delete/'+ fileHash)
     }
 
     /**
      * 生成File对象
      * @param filename
      * @param serverName
-     * @returns {File}
+     * @returns {FormData}
      */
-    getFormData(filename,serverName) {
+    getFormData(filename, serverName) {
         let buffer = fs.readFileSync(filename);
         let type = path.extname(filename)
         type = (type && type.slice(1)) || 'jpg';
         let form = new this.FormData();
-        form.append('smfile', buffer,{
+        form.append('smfile', buffer, {
             filename: serverName || path.basename(filename),
             contentType: 'image/' + type
         });
         return form;
     }
-
 
     /**
      * 上传文件
@@ -50,17 +55,14 @@ class Smms {
      *      msg: 'error message'                              //一般只有报错才使用到
      *   }
      */
-    uploadFile(localFile,serverFileName,callback) {
-        var formData = this.getFormData(localFile,serverFileName);
-        var request = require('request')({
+    uploadFile(localFile, serverFileName, callback) {
+        var formData = this.getFormData(localFile, serverFileName);
+        var request = this.request({
             url: "https://sm.ms/api/upload",
             method: 'POST',
-            headers: this.__.extend({}, formData.getHeaders(), {
-                'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36',
-            })
-        },(error,res,body)=>{
+            headers: this.__.extend({}, formData.getHeaders(), {'user-agent': userAgent})
+        }, (error, res, body) => {
             if (typeof callback === "function") {
-                console.log(body)
                 let response = JSON.parse(body);
                 let result = {id: localFile};
                 if (res.statusCode == 200) {

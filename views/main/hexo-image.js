@@ -89,7 +89,6 @@ class ImgManager {
     }
     getQiNiuServer() {
         if (!this.qiniuServer) {
-            // this.qiniuServer = new (require('./hexo-qiniu'))();
             this.qiniuServer = moeApp.getQiniuServer();
             this.qiniuServer.update(
                 moeApp.config.get('image-qiniu-accessKey'),
@@ -103,7 +102,6 @@ class ImgManager {
 
     getCOSServer() {
         if (!this.cosServer) {
-            // this.qiniuServer = new (require('./hexo-qiniu'))();
             this.cosServer = moeApp.getCOSServer();
             let bucketObj = moeApp.config.get('image-cos-bucket');
             bucketObj = (bucketObj||"|").split('|');
@@ -219,16 +217,11 @@ class ImgManager {
 
     uploadDelAll() {
         Object.keys(this.imgPathToDel).forEach(k => {
-            imgManager.uploadDel(imgManager.imgPathToDel[k])
+            this.getSmmsServer().del(imgManager.imgPathToDel[k])
             delete imgManager.imgPathToDel[k];
         })
     }
 
-    uploadDel(fileHash) {
-        let xhr = new XMLHttpRequest();
-        xhr.open('post', 'https://sm.ms/delete/' + fileHash);
-        xhr.send();
-    }
 
     asyncUploadToSmms(imgPath, callback) {
         this.getSmmsServer().uploadFile(imgPath,'',callback);

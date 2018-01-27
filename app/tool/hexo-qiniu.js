@@ -6,7 +6,7 @@
 
 class qiniuServer {
     constructor(acessKey, secretKey) {
-        this.XMLHttpRequest = require('./XMLHttpRequest').XMLHttpRequest;
+        this.request = require('request');
         this.qiniu = require('qiniu');
         this.bucket = '';
         this.qiniu.conf.ACCESS_KEY = acessKey;
@@ -59,21 +59,24 @@ class qiniuServer {
      */
     getBuckets(callback) {
         const url_api_bukets = 'https://rs.qbox.me/buckets';
-        let xhr = new this.XMLHttpRequest();
-        xhr.open('get', url_api_bukets);
-        xhr.setRequestHeader('Authorization', this.getAccessToken(url_api_bukets));
-        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-        xhr.onreadystatechange = () => {
-            if (xhr.readyState === 4) { // 成功完成
-                if (typeof callback === "function") {
-                    callback({
-                        statusCode: xhr.status,
-                        data: JSON.parse(xhr.responseText)
-                    })
-                }
+        var request = this.request({
+            url: url_api_bukets,
+            method: 'GET',
+            headers: {
+                'Authorization': this.getAccessToken(url_api_bukets),
+                'Content-Type': 'application/x-www-form-urlencoded'
             }
-        }
-        xhr.send();
+        }, (error, res, body) => {
+            if (typeof callback === "function") {
+                callback({
+                    statusCode: res.statusCode,
+                    data: JSON.parse(body)
+                })
+            } else {
+                console.log(res)
+            }
+        });
+        return;
     }
 
     /**
@@ -82,21 +85,23 @@ class qiniuServer {
      */
     getBucketsUrl(buketName, callback) {
         const url_api_bukets = 'https://api.qiniu.com/v6/domain/list?tbl=' + buketName;
-        let xhr = new this.XMLHttpRequest();
-        xhr.open('get', url_api_bukets);
-        xhr.setRequestHeader('Authorization', this.getAccessToken(url_api_bukets));
-        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-        xhr.onreadystatechange = () => {
-            if (xhr.readyState === 4) { // 成功完成
-                if (typeof callback === "function") {
-                    callback({
-                        statusCode: xhr.status,
-                        data: JSON.parse(xhr.responseText)
-                    })
-                }
+        var request = this.request({
+            url: url_api_bukets,
+            method: 'GET',
+            headers: {
+                'Authorization': this.getAccessToken(url_api_bukets),
+                'Content-Type': 'application/x-www-form-urlencoded'
             }
-        }
-        xhr.send();
+        }, (error, res, body) => {
+            if (typeof callback === "function") {
+                callback({
+                    statusCode: res.statusCode,
+                    data: JSON.parse(body)
+                })
+            } else {
+                console.log(res)
+            }
+        });
     }
 
     /**
@@ -108,21 +113,23 @@ class qiniuServer {
         if (!buketName) return;
         const url_api_bukets = require('util').format(
             'https://rsf.qbox.me/list?bucket=%s&marker=&limit=1&prefix=%s&delimiter=/', buketName, prefix || '')
-        let xhr = new this.XMLHttpRequest();
-        xhr.open('get', url_api_bukets);
-        xhr.setRequestHeader('Authorization', this.getAccessToken(url_api_bukets));
-        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-        xhr.onreadystatechange = () => {
-            if (xhr.readyState === 4) { // 成功完成
-                if (typeof callback === "function") {
-                    callback({
-                        statusCode: xhr.status,
-                        data: JSON.parse(xhr.responseText)
-                    })
-                }
+        var request = this.request({
+            url: url_api_bukets,
+            method: 'GET',
+            headers: {
+                'Authorization': this.getAccessToken(url_api_bukets),
+                'Content-Type': 'application/x-www-form-urlencoded'
             }
-        }
-        xhr.send();
+        }, (error, res, body) => {
+            if (typeof callback === "function") {
+                callback({
+                    statusCode: res.statusCode,
+                    data: JSON.parse(body)
+                })
+            } else {
+                console.log(res)
+            }
+        });
     }
 
     /**

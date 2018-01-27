@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('main').classList.remove('notransition');
         setTimeout(() => {
             document.getElementById('main').classList.add('notransition');
+            window.editor.refresh();
         }, 500);
     }
 
