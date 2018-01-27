@@ -81,6 +81,12 @@ class ImgManager {
         return path.resolve(this.imgBaseDir, p).replace(/\\/g, '/');
     }
 
+    getSmmsServer() {
+        if (!this.smmsServer) {
+            this.smmsServer = moeApp.getSmmsServer();
+        }
+        return this.smmsServer;
+    }
     getQiNiuServer() {
         if (!this.qiniuServer) {
             // this.qiniuServer = new (require('./hexo-qiniu'))();
@@ -224,31 +230,8 @@ class ImgManager {
         xhr.send();
     }
 
-    asyncUploadToSm(imgPath, file, callback) {
-        let formdata = new FormData();
-        formdata.append('smfile', file);
-        let xhr = new XMLHttpRequest();
-        xhr.open('post', 'https://sm.ms/api/upload');
-        xhr.onreadystatechange = () => {
-            if (xhr.readyState === 4) { // 成功完成
-                // 判断响应结果:
-                if (xhr.status === 200) {
-                    // 成功，通过responseText拿到响应的文本:
-                    if (typeof callback === "function") {
-                        callback(imgPath, JSON.parse(xhr.responseText))
-                    }
-                } else {
-                    // 失败，根据响应码判断失败原因:
-                    if (typeof callback === "function") {
-                        callback(imgPath, {code: xhr.status})
-                    }
-                }
-            }
-        }
-        // xhr.upload.onprogress = (e) => {
-        //     console.log(Math.floor(100 * e.loaded / e.total) + '%');
-        // }
-        xhr.send(formdata)
+    asyncUploadToSmms(imgPath, callback) {
+        this.getSmmsServer().uploadFile(imgPath,'',callback);
     }
 
     asyncUploadToQiNiu(imgPath, callback) {
@@ -268,8 +251,7 @@ class ImgManager {
                 this.asyncUploadToCOS(imgPath,callback)
                 break;
             default:
-                let file = new File([fs.readFileSync(imgPath)], md5(imgPath) + path.extname(imgPath), {type: 'image/' + path.extname(imgPath).slice(1)});
-                this.asyncUploadToSm(imgPath,file, callback);
+                this.asyncUploadToSmms(imgPath, callback);
         }
     }
 
@@ -313,24 +295,27 @@ class ImgManager {
          * 回调函数
          * @param fileID
          * @param response
-         *
-         * response={
-         *    code: 'success'|'error'
-         *    data: {
-         *        url: 'http....',
-         *        hash: '.....'
-         *          }
-         *    error: 'error'
+         *   response = {
+         *      id: 'localFileAbsolutePath',                      //传入文件本地绝对路径
+         *      statusCode: 200|int,                              //服务器代码，200:正常，其他:报错
+         *      data: {
+         *        localname: 'abc.png',                           //本地文件名
+         *        storename: '5a6bea876702d.png',                 //服务器文件名，SM.MS随机生成
+         *        path: '/abc/abc/5a6bea876702d.png',             //服务器路径
+         *        url: 'https://...../abc/abc/5a6bea876702d.png'  //图片地址
+         *      },
+         *      msg: 'error message'                              //一般只有报错才使用到
+         *      errorlist: 'url'                                  //一般只有报错才使用到
+         *   }
          * }
          */
-        function uploadRequest(fileID, response,info) {
+        function uploadRequest(response) {
             finishedCount++;
             console.log(finishedCount + '/' + uploadList.size)
-            if (info) console.log(info)
-            if (response.code == 'success') {
-                successList.set(fileID, response)
+            if (response.statusCode == 200) {
+                successList.set(response.id, response)
             } else {
-                errorList.set(fileID, response.error)
+                errorList.set(response.id, response)
             }
             if (finishedCount >= uploadList.size) {
                 checktime(true);
@@ -342,10 +327,10 @@ class ImgManager {
 
         function updateSrc() {
             let value = editor.getValue();
-            successList.forEach((v, k) => {
-                value = value.replace(new RegExp(imgManager.relativePath(k), 'g'), v.data.url);
-                imgManager.imgPathToUrl[k] = v.data.url;
-                imgManager.imgPathToDel[k] = v.data.hash;
+            successList.forEach((response) => {
+                value = value.replace(new RegExp(imgManager.relativePath(response.id), 'g'), response.data.url);
+                imgManager.imgPathToUrl[response.id] = response.data.url;
+                imgManager.imgPathToDel[response.id] = response.data.hash;
             })
 
             editor.setValue(value);
@@ -357,8 +342,8 @@ class ImgManager {
             try {
                 updateSrc();
                 let errMsg = '';
-                errorList.forEach((v, k) => {
-                    errMsg += k + ':' + __(v) + '</br>';
+                errorList.forEach((response) => {
+                    errMsg += response.id + ':' + __(response.msg) + '</br>';
                 })
                 if (isTimeout) errMsg += 'Upload time out.';
                 if (errMsg) {

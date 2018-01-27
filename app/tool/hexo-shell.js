@@ -1,49 +1,7 @@
 /*
-*  This file is part of Moeditor.
+*  This file is part of HexoEditor.
 *
-*  Copyright (c) 2016 Menci <huanghaorui301@gmail.com>
-*  Copyright (c) 2016 lucaschimweg
-*  Copyright (c) 2016 douglaseccker
-*  Copyright (c) 2016 PifyZ
-*  Copyright (c) 2016 Hyuchia
-*  Copyright (c) 2016 welksonramos
-*  Copyright (c) 2016 caiocdasilva
-*  Copyright (c) 2016 lawgsy <lawgsy@gmail.com>
-*
-*  Moeditor is free software: you can redistribute it and/or modify
-*  it under the terms of the GNU General Public License as published by
-*  the Free Software Foundation, either version 3 of the License, or
-*  (at your option) any later version.
-*
-*  Moeditor is distributed in the hope that it will be useful,
-*  but WITHOUT ANY WARRANTY; without even the implied warranty of
-*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*  GNU General Public License for more details.
-*
-*  You should have received a copy of the GNU General Public License
-*  along with Moeditor. If not, see <http://www.gnu.org/licenses/>.
-*
-*  The translation providers:
-*   - en: Menci
-*   - zh_CN: Menci
-*   - de: lucaschimweg
-*   - pt: douglaseccker & welksonramos & caiocdasilva
-*   - fr: PifyZ
-*   - es: Hyuchia
-*   - nl: lawgsy
-*   - it: iamsisar
-*
-*  If you want to help translate this app, please copy the `en` items of the
-*  `strings` constant as the template, and fill each item with the translated
-*  string. The `_name` item in a language is the language's name.
-*
-*  You can translate for a language (e.g. en) or a language with specified
-*  region (e.g. zh_CN). The app will choose the language with specified region
-*  first, fallback to only language when the former is unavailable, and fallback
-*  to English when they are all unavailable.
-*
-*  Send a PR to us after translating.
-*
+*  Copyright (c) 2018 zhuzhuyule
 */
 
 'use strict'

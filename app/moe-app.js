@@ -34,6 +34,7 @@ const MoeditorWindow = require('./moe-window'),
 let shellServer = false;
 let qiniuServer = false;
 let cosServer = false;
+let smmsServer = false;
 
 class MoeditorApplication {
     constructor() {
@@ -53,6 +54,12 @@ class MoeditorApplication {
         if (!shellServer)
             shellServer = new (require('./tool/hexo-shell'))();
         return shellServer;
+    }
+
+    getSmmsServer() {
+        if (!smmsServer)
+            smmsServer = new (require('./tool/hexo-smms'))();
+        return smmsServer;
     }
 
     getQiniuServer() {

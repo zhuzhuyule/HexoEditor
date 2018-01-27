@@ -482,7 +482,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let imageTabContents = document.querySelector('.panel[data-tab="image"]');
     let imageType = imageTabContents.querySelector('#image-web-type');
 
-       //QiNiu
+    //QiNiu
     let imageAccessKey = imageTabContents.querySelector('#image-qiniu-accessKey');
     let imageSecretKey = imageTabContents.querySelector('#image-qiniu-secretKey');
     let imageBucket = imageTabContents.querySelector('#image-qiniu-bucket');
@@ -532,6 +532,7 @@ document.addEventListener('DOMContentLoaded', () => {
         imageTabItem.click();
     })
 
+    //QiNiu
     function hasQiNiuServer() {
         if (imageAccessKey.value && imageSecretKey.value && !global.qiniuServer) {
             global.qiniuServer = moeApp.getQiniuServer();
@@ -557,7 +558,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let oldBucket = moeApp.config.get(imageBucket.id);
             qiniuServer.getBuckets((response) => {
                 imageBucket.innerHTML = '';
-                if (response.code == 200) {
+                if (response.statusCode == 200) {
                     response.data.forEach((name) => {
                         let option = document.createElement('option');
                         option.value = name;
@@ -583,7 +584,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (hasQiNiuServer()) {
             let oldurl = moeApp.config.get(imageBaseWeb.id);
             qiniuServer.getBucketsUrl(bucket, (response) => {
-                if (response.code == 200) {
+                if (response.statusCode == 200) {
                     imageBaseWeb.innerHTML = '';
                     response.data.forEach((url) => {
                         let option = document.createElement('option');
@@ -682,7 +683,7 @@ document.addEventListener('DOMContentLoaded', () => {
     })
 
 
-    //腾讯
+    //Tencent
     function hasCosServer() {
         if (imageCosAccessKey.value && imageCosSecretKey.value && !global.cosServer) {
             global.cosServer = moeApp.getCOSServer();

@@ -1,5 +1,12 @@
+/*
+*  This file is part of HexoEditor.
+*
+*  Copyright (c) 2018 zhuzhuyule
+*/
+
 class qiniuServer {
     constructor(acessKey, secretKey) {
+        this.XMLHttpRequest = require('./XMLHttpRequest').XMLHttpRequest;
         this.qiniu = require('qiniu');
         this.bucket = '';
         this.qiniu.conf.ACCESS_KEY = acessKey;
@@ -20,8 +27,8 @@ class qiniuServer {
         this.qiniu.conf.ACCESS_KEY = acessKey;
         this.qiniu.conf.SECRET_KEY = secretKey;
         this.mac = new this.qiniu.auth.digest.Mac(acessKey, secretKey);
-        this.bucket = bucket||this.bucket||'';
-        this.url = url||this.url||'';
+        this.bucket = bucket || this.bucket || '';
+        this.url = url || this.url || '';
     }
 
     /**
@@ -52,8 +59,7 @@ class qiniuServer {
      */
     getBuckets(callback) {
         const url_api_bukets = 'https://rs.qbox.me/buckets';
-        let XMLHttpRequest = require('./XMLHttpRequest').XMLHttpRequest;
-        let xhr = new XMLHttpRequest();
+        let xhr = new this.XMLHttpRequest();
         xhr.open('get', url_api_bukets);
         xhr.setRequestHeader('Authorization', this.getAccessToken(url_api_bukets));
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
@@ -61,7 +67,7 @@ class qiniuServer {
             if (xhr.readyState === 4) { // 成功完成
                 if (typeof callback === "function") {
                     callback({
-                        code: xhr.status,
+                        statusCode: xhr.status,
                         data: JSON.parse(xhr.responseText)
                     })
                 }
@@ -74,10 +80,9 @@ class qiniuServer {
      * 异步获取空间地址URL列表
      * @param buketName     空间名（必传）
      */
-    getBucketsUrl(buketName,callback) {
+    getBucketsUrl(buketName, callback) {
         const url_api_bukets = 'https://api.qiniu.com/v6/domain/list?tbl=' + buketName;
-        let XMLHttpRequest = require('./XMLHttpRequest').XMLHttpRequest;
-        let xhr = new XMLHttpRequest();
+        let xhr = new this.XMLHttpRequest();
         xhr.open('get', url_api_bukets);
         xhr.setRequestHeader('Authorization', this.getAccessToken(url_api_bukets));
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
@@ -85,7 +90,7 @@ class qiniuServer {
             if (xhr.readyState === 4) { // 成功完成
                 if (typeof callback === "function") {
                     callback({
-                        code: xhr.status,
+                        statusCode: xhr.status,
                         data: JSON.parse(xhr.responseText)
                     })
                 }
@@ -103,8 +108,7 @@ class qiniuServer {
         if (!buketName) return;
         const url_api_bukets = require('util').format(
             'https://rsf.qbox.me/list?bucket=%s&marker=&limit=1&prefix=%s&delimiter=/', buketName, prefix || '')
-        let XMLHttpRequest = require('./XMLHttpRequest').XMLHttpRequest;
-        let xhr = new XMLHttpRequest();
+        let xhr = new this.XMLHttpRequest();
         xhr.open('get', url_api_bukets);
         xhr.setRequestHeader('Authorization', this.getAccessToken(url_api_bukets));
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
@@ -112,7 +116,7 @@ class qiniuServer {
             if (xhr.readyState === 4) { // 成功完成
                 if (typeof callback === "function") {
                     callback({
-                        code: xhr.status,
+                        statusCode: xhr.status,
                         data: JSON.parse(xhr.responseText)
                     })
                 }
@@ -125,9 +129,21 @@ class qiniuServer {
      * 异步上传单个文件
      * @param localFile         本地文件全路径
      * @param serverFileName    服务器保存名称（可带地址）
-     * @param callback          上传完成响应回调
+     * @param callback  callback(response)    //回调函数
+     *   response = {
+     *      id: 'localFileAbsolutePath',                      //传入文件本地绝对路径
+     *      statusCode: 200|int,                              //服务器代码，200:正常，其他:报错
+     *      data: {
+     *        localname: 'abc.png',                           //本地文件名
+     *        storename: '5a6bea876702d.png',                 //服务器文件名，SM.MS随机生成
+     *        path: '/abc/abc/5a6bea876702d.png',             //服务器路径
+     *        url: 'https://...../abc/abc/5a6bea876702d.png'  //图片地址
+     *      },
+     *      msg: 'error message'                              //一般只有报错才使用到
+     *      errorlist: 'url'                                  //一般只有报错才使用到
+     *   }
      */
-    uploadFile(localFile,serverFileName, callback) {
+    uploadFile(localFile, serverFileName, callback) {
         //生成上传 Token
         let token = this.getUptoken(this.bucket, serverFileName);
         var formUploader = new this.qiniu.form_up.FormUploader(this.qiniu.conf);
@@ -135,24 +151,24 @@ class qiniuServer {
         let qiniuServer = this;
         formUploader.putFile(token, serverFileName, localFile, extra,
             function (respErr, respBody, respInfo) {
-                console.log( respBody);
-                if (respErr) {
-                    throw respErr;
-                }
-                if (respInfo.statusCode == 200 || respInfo.statusCode == 579) {
-                    let response = {
-                        code: 'success',
-                        data: {
+                if (typeof  callback == 'function') {
+                    let result = {id: localFile};
+                    if (respInfo.statusCode == 200 || respInfo.statusCode == 579) {
+                        result.statusCode = 200;
+                        result.data = {
+                            localname: path.basename(localFile),
+                            storename: path.basename(serverFileName),
+                            path: respBody.key,
                             url: qiniuServer.url + respBody.key
                         }
+                        result.msg = '';
+                        result.errorlist = '';
+                    } else {
+                        result.msg = respInfo.statusCode + respBody.error;
+                        result.errorlist = 'https://developer.qiniu.com/kodo/api/3928/error-responses#2';
                     }
-                    callback(localFile, response);
                 } else {
-                    console.log(respInfo.statusCode);
-                    let response = {
-                        error: respInfo.statusCode + respBody,
-                    }
-                    callback(localFile, response);
+                    console.log(respBody)
                 }
             });
     }

@@ -1,3 +1,9 @@
+/*
+*  This file is part of HexoEditor.
+*
+*  Copyright (c) 2018 zhuzhuyule
+*/
+
 let fs = require('fs');
 let path = require('path');
 
@@ -165,6 +171,23 @@ class COSServer {
             }*/
             if (typeof cb === 'function')
                 cb(err || data);
+
+            if (typeof cb === "function") {
+                let result = {id: localFile};
+                if (err){
+                    result.statusCode = err.statusCode;
+                    result.msg = err.error.message;
+                } else{
+                    result.statusCode = data.statusCode;
+                    result.data = {
+                        localname: path.basename(localFile),
+                        storename: path.basename(serverFile),
+                        path: serverFile,
+                        url: config.Protocol + data.Location.replace(/https?:\/\//,''),
+                    }
+                }
+                cb(result)
+            }
         });
     }
 
@@ -190,23 +213,25 @@ class COSServer {
             *  Bucket: "myblog",
             *  ETag: "",
             *  Key: "test.png",
-            *  Location: "",
+            *  Location: "url",
             *  statusCode: 200,
             *  headers: {}
             }*/
-            if (typeof cb === 'function'){
-                let response = {};
+            if (typeof cb === "function") {
+                let result = {id: localFile};
                 if (err){
-                    response.code = 'error';
-                    response.error = err.error.message;
+                    result.statusCode = err.statusCode;
+                    result.msg = err.error.message;
                 } else{
-                    response.code = 'success';
-                    response.data = {
+                    result.statusCode = data.statusCode;
+                    result.data = {
+                        localname: path.basename(localFile),
+                        storename: path.basename(serverFile),
+                        path: data.Key,
                         url: config.Protocol + data.Location,
-                        hash: data.Key
                     }
                 }
-                cb(localFile,response,data);
+                cb(result)
             }
         });
     }
