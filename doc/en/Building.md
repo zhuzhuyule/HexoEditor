@@ -14,8 +14,8 @@ npm config set registry "https://registry.npm.taobao.org"
 npm config set electron_mirror "https://npm.taobao.org/mirrors/electron/"
 
 git clone https://github.com/zhuzhuyule/HexoEditor.git
-npm instal -g elctron@1.8.1
-npm instal
+npm install -g elctron@1.8.1
+npm install
 npm start
 ```
 
