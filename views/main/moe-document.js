@@ -467,6 +467,7 @@ $(() => {
 
                 if (!flag) {
                     hexoWindow.changed = true;
+                    hexoWindow.fileContent = content;
                     hexoWindow.window.setDocumentEdited(true);
                     return;
                 }
