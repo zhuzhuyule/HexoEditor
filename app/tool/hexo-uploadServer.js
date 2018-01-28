@@ -1,0 +1,303 @@
+module.exports = (function () {
+    const path = require('path');
+    let isUploading = false;
+    let imgType = {
+        "png": '.png',
+        "jpg": '.jpg',
+        "jpeg": '.jpg',
+        "bmp": '.bmp',
+        ".png": '.png',
+        ".jpg": '.jpg',
+        ".jpeg": '.jpg',
+        ".bmp": '.bmp'
+    }
+    //help varible
+    let smmsServer, qiniuServer, cosServer;
+    let finishedCount, totalCount, pathIndex;
+    let statusList, successList, errorList;
+    let timeout,startDate;
+    let typeServer;
+    let typeBack;
+    //
+    let baseDir, uploadArray,finishedCallback;
+
+    function getSmmsServer() {
+        if (!smmsServer) {
+            smmsServer = new (require('./hexo-smms'))();
+        }
+        return smmsServer;
+    }
+
+    function getQiNiuServer() {
+        if (!qiniuServer) {
+            qiniuServer = new (require('./hexo-qiniu'))();
+            qiniuServer.update(
+                moeApp.config.get('image-qiniu-accessKey'),
+                moeApp.config.get('image-qiniu-secretKey'),
+                moeApp.config.get('image-qiniu-bucket'),
+                moeApp.config.get('image-qiniu-url-protocol') + moeApp.config.get('image-qiniu-url') + '/'
+            );
+        }
+        return qiniuServer;
+    }
+
+    function getCOSServer() {
+        if (!cosServer) {
+            cosServer = new (require('./hexo-cos'))();
+            let bucketObj = moeApp.config.get('image-cos-bucket');
+            bucketObj = (bucketObj || "|").split('|');
+            cosServer.update(
+                moeApp.config.get('image-cos-accessKey'),
+                moeApp.config.get('image-cos-secretKey'),
+                bucketObj[0],
+                bucketObj[1],
+                moeApp.config.get('image-cos-url-protocol')
+            );
+        }
+        return cosServer;
+    }
+
+    function asyncUploadToSmms(imgPath, callback) {
+        statusList[imgPath] = {type: 0};
+        getSmmsServer().uploadFile(imgPath, '', callback);
+    }
+
+    function asyncUploadToQiNiu(imgPath,serverName, callback) {
+        getQiNiuServer().uploadFile(imgPath, serverName, callback);
+    }
+
+    function asyncUploadToCOS(imgPath,serverName, callback) {
+        getCOSServer().sliceUploadFile(imgPath, serverName, callback);
+    }
+
+    function relativePath(p) {
+        return path.relative(baseDir, p).replace(/\\/g, '/');
+    }
+
+    function asyncUploadFile(imgPath, callback) {
+        switch (typeServer) {
+            case 'qiniu':
+                asyncUploadToQiNiu(imgPath,relativePath(imgPath), callback)
+                break;
+            case 'cos':
+                asyncUploadToCOS(imgPath,relativePath(imgPath), callback)
+                break;
+            default: {
+                if (typeBack > 2) {
+                    if (statusList[imgPath]) {
+                        if (statusList[imgPath].typeServer == 'qiniu') {
+                            asyncUploadToQiNiu(imgPath,statusList[imgPath].pathname , callback)
+                        } else {
+                            asyncUploadToCOS(imgPath,statusList[imgPath].pathname , callback)
+                        }
+                    } else {
+                        asyncUploadToSmms(imgPath, callback);
+                    }
+                }
+            }
+        }
+    }
+
+    function checktime(isBreak) {
+        clearTimeout(timeout);
+        if (!isBreak)
+            timeout = setTimeout(() => {
+                uploadEnd(true);
+            }, 30000)
+    }
+
+    /**
+     * 回调函数
+     * @param fileID
+     * @param result
+     *   response = {
+     *      id: 'localFileAbsolutePath',              //传入文件本地绝对路径
+     *      type: '1|2|10|20|100|200',                //1|2 Smms; 10|20 Qiniu; 100|200 Cos  (1:失败，2：成功)
+     *      statusCode: 200|int,                      //服务器代码，200:正常，其他:报错
+     *      data: {
+     *        localname: 'abc.png',                   //本地文件名
+     *        storename: '5a6bea876702d.png',         //服务器文件名，SM.MS随机生成
+     *        path: '/abc/abc/5a6bea876702d.png',     //服务器路径
+     *        url: 'https://...../abc/abc/5a6bea876702d.png'  //图片地址
+     *        hash: 'asdf7sdf8asdf78'                 //删除Hash
+     *      },
+     *      msg: 'error message'                      //一般只有报错才使用到
+     *      errorlist: 'url'                          //一般只有报错才使用到,报错列表是个官网地址
+     *   }
+     * }
+     */
+
+
+    function uploaded(response) {
+        let result = response;
+        let uploadNext = true;
+        let imgPath = result.id;
+        if (typeServer == 'smms' && typeBack > 2) {  //是否需要备份
+            console.log(result.statusCode,result.data.path,result.data.url)
+            statusList[imgPath].type += result.type;
+            if (statusList[imgPath].type == 2) {  //Smsm
+                statusList[imgPath].hash = result.data.hash;
+                statusList[imgPath].url = result.data.url;
+                if (result.data.path.startsWith('/'))
+                    statusList[imgPath].pathname = result.data.path.slice(1);
+                else
+                    statusList[imgPath].pathname = result.data.path;
+                uploadNext = backUpload(result)
+            } else if (statusList[imgPath].type == 22) {   //Qiniu
+                uploadNext = backUpload(result)
+            }
+
+            if (!uploadNext)
+                asyncUploadFile(imgPath, uploaded);
+        }
+
+        if (uploadNext){
+            finishedCount++;
+            console.log(finishedCount + '/' + totalCount);
+            if (typeServer == 'smms' && typeBack > 2){
+                if (statusList[imgPath].type == typeBack) {
+                    result.data.hash = statusList[imgPath].hash;
+                    result.data.url = statusList[imgPath].url;
+                    successList.set(imgPath, result)
+                } else {
+                    errorList.set(imgPath, result)
+                }
+            } else {
+                if (result.statusCode == 200) {
+                    successList.set(imgPath, result)
+                } else {
+                    errorList.set(imgPath, result)
+                }
+            }
+
+            if(pathIndex < totalCount){
+                asyncUploadFile(uploadArray[pathIndex], uploaded)
+                pathIndex++;
+            } else if (finishedCount == totalCount){
+                checktime(true);
+                uploadEnd();
+                return;
+            }
+        }
+        checktime();
+    }
+
+    function backUpload(response) {
+        let imgPath = response.id;
+        if (typeBack == 22) {
+            if (statusList[imgPath].type == 2) {
+                statusList[imgPath].typeServer = 'qiniu';
+                return false;
+            } else {
+                statusList[imgPath].typeServer = ''
+                return true;
+            }
+        } else if (typeBack == 202) {
+            if (statusList[imgPath].type == 2) {
+                statusList[imgPath].typeServer = 'cos';
+                return false;
+            } else {
+                statusList[imgPath].typeServer = ''
+                return true;
+            }
+        } else if (typeBack == 222) {
+            if (statusList[imgPath].type == 2) {
+                statusList[imgPath].typeServer = 'qiniu';
+                return false;
+            } else if (statusList[imgPath].type == 22) {
+                statusList[imgPath].typeServer = 'cos';
+                return false;
+            } else {
+                statusList[imgPath].typeServer = ''
+                return true;
+            }
+        }
+    }
+
+    function uploadEnd(isTimeout) {
+        try {
+            if (isTimeout)
+                errorList.set('Upload time out!',{msg:'Place check your net!'});
+        } finally {
+            console.log('upload end ! use time: ',new Date() - startDate)
+            console.log(successList.size,errorList.size)
+            finishedCallback(successList,errorList);
+            isUploading = false;
+        }
+    }
+
+    class UploadServer {
+        constructor() {
+            isUploading = false;
+        }
+        isLoading(){
+            return isUploading;
+        }
+        //Qiniu
+        updateQiniu(acessKey, secretKey, bucket, url) {
+            getQiNiuServer().update(acessKey, secretKey, bucket, url)
+        }
+        getQiniuAccessToken(url) {
+            getQiNiuServer().getAccessToken(url)
+        }
+        getQiniuBuckets(callback){
+            getQiNiuServer().getBuckets(callback)
+        }
+        getQiniuBucketsUrl(buketName, callback){
+            getQiNiuServer().getBucketsUrl(buketName, callback)
+        }
+
+        //Cos
+        updateCos(acessKey, secretKey, bucket, region,protocol){
+            getCOSServer().update(acessKey, secretKey, bucket, region,protocol)
+        }
+        getCosService(cb){
+            getCOSServer().getService(cb)
+        }
+        getCosFileURL(key, cb){
+            getCOSServer().getFileURL(key, cb)
+        }
+        getCosBucketLocation(cb){
+            getCOSServer(). getBucketLocation(cb)
+        }
+        deleteObject(fileanme, cb){
+            getCOSServer().deleteObject(fileanme, cb)
+        }
+
+        //upload file
+        upload(pathArray, srcDir, callback) {
+            if (isUploading || typeof callback !== 'function')
+                return;
+            if (!(pathArray instanceof Array))
+                return;
+            startDate = new Date();
+            isUploading = true;
+            baseDir = srcDir;
+            uploadArray = pathArray;
+            finishedCallback = callback;
+            totalCount = uploadArray.length;
+            finishedCount = 0;
+            timeout = 0;
+            typeServer = moeApp.config.get('image-web-type');
+            typeBack = moeApp.config.get('image-back-type');
+
+            if (!successList) successList = new Map();
+            successList.clear();
+            if (!errorList) errorList = new Map();
+            errorList.clear();
+            if (!statusList) statusList = new Map();
+            statusList.clear();
+
+            if (totalCount > 0) {
+                checktime();
+                let len = (totalCount > 5) ? 5 : totalCount;
+                for (pathIndex = 0; pathIndex < len; pathIndex++) {
+                    asyncUploadFile(uploadArray[pathIndex], uploaded)
+                }
+            } else {
+                uploadEnd();
+            }
+        }
+    }
+    return UploadServer;
+})();

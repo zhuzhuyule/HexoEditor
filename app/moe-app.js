@@ -32,9 +32,7 @@ const MoeditorWindow = require('./moe-window'),
     path = require('path');
 
 let shellServer = false;
-let qiniuServer = false;
-let cosServer = false;
-let smmsServer = false;
+let uploadServer = false;
 
 class MoeditorApplication {
     constructor() {
@@ -56,22 +54,10 @@ class MoeditorApplication {
         return shellServer;
     }
 
-    getSmmsServer() {
-        if (!smmsServer)
-            smmsServer = new (require('./tool/hexo-smms'))();
-        return smmsServer;
-    }
-
-    getQiniuServer() {
-        if (!qiniuServer)
-            qiniuServer = new (require('./tool/hexo-qiniu'))();
-        return qiniuServer;
-    }
-
-    getCOSServer() {
-        if (!cosServer)
-            cosServer = new (require('./tool/hexo-cos'))();
-        return cosServer;
+    getUploadServer() {
+        if (!uploadServer)
+            uploadServer = new (require('./tool/hexo-uploadServer'))();
+        return uploadServer;
     }
 
     run() {

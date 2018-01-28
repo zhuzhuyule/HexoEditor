@@ -30,6 +30,26 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         if (editor.contains(e.target) || containerWrapper.contains(e.target)) {
             const inEditor = editor.contains(e.target);
+            // label: (moeApp.config.get('image-web-type')=='qiniu')? __('UploadToQiNiu'):((moeApp.config.get('image-web-type')=='cos')?__('UploadToCOS'):__('UploadToSMMS')),
+            //     enabled: moeApp.config.get('image-web-type')&&!imgManager.isUploading,
+            //     click(item, w) {
+            //     !imgManager.uploadLocalSrc();
+            // }
+            let imageType = moeApp.config.get('image-web-type');
+            let imageMenuLable = '';
+            let imageMenuEnable = true;
+            if ( imageType=='qiniu') {
+                imageMenuLable =  __('UploadToQiNiu');
+                imageMenuEnable = !moeApp.getUploadServer().isLoading() && !!moeApp.config.get('image-qiniu-url')
+            }else
+            if ( imageType=='cos') {
+                imageMenuLable = __('UploadToCOS');
+                imageMenuEnable = !moeApp.getUploadServer().isLoading() && !!moeApp.config.get('image-cos-url')
+            }else {
+                imageMenuLable = __('UploadToSMMS');
+                imageMenuEnable = !moeApp.getUploadServer().isLoading()
+            }
+
             const template = [
                 {
                     label: __('Undo'),
@@ -114,8 +134,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     type: 'separator',
                 },
                 {
-                    label: (moeApp.config.get('image-web-type')=='qiniu')? __('UploadToQiNiu'):((moeApp.config.get('image-web-type')=='cos')?__('UploadToCOS'):__('UploadToSMMS')),
-                    enabled: !imgManager.isUploading,
+                    label: imageMenuLable,
+                    enabled: imageMenuEnable,
                     click(item, w) {
                         !imgManager.uploadLocalSrc();
                     }

@@ -4,6 +4,7 @@
 *  Copyright (c) 2018 zhuzhuyule
 */
 
+const path = require('path');
 class qiniuServer {
     constructor(acessKey, secretKey) {
         this.request = require('request');
@@ -159,8 +160,9 @@ class qiniuServer {
         formUploader.putFile(token, serverFileName, localFile, extra,
             function (respErr, respBody, respInfo) {
                 if (typeof  callback == 'function') {
-                    let result = {id: localFile};
+                    let result = {type:10,id: localFile};
                     if (respInfo.statusCode == 200 || respInfo.statusCode == 579) {
+                        result.type = 20;
                         result.statusCode = 200;
                         result.data = {
                             localname: path.basename(localFile),
@@ -174,6 +176,7 @@ class qiniuServer {
                         result.msg = respInfo.statusCode + respBody.error;
                         result.errorlist = 'https://developer.qiniu.com/kodo/api/3928/error-responses#2';
                     }
+                    callback(result)
                 } else {
                     console.log(respBody)
                 }

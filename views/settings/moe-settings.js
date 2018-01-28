@@ -482,6 +482,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let imageTabContents = document.querySelector('.panel[data-tab="image"]');
     let imageType = imageTabContents.querySelector('#image-web-type');
 
+    //SM.MS
+    let imageSmmsBackQiniu = imageTabContents.querySelector('#image-back-type-qiniu');
+    let imageSmmsBackCos = imageTabContents.querySelector('#image-back-type-cos');
+
     //QiNiu
     let imageAccessKey = imageTabContents.querySelector('#image-qiniu-accessKey');
     let imageSecretKey = imageTabContents.querySelector('#image-qiniu-secretKey');
@@ -498,12 +502,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     imageType.addEventListener('change', function (e) {
         moeApp.config.set(imageType.id, imageType.value);
+        let imageSmmsItems = imageTabContents.querySelectorAll('tr[data-type="image-smms"]')
         let imageQiNiuItems = imageTabContents.querySelectorAll('tr[data-type="image-qiniu"]')
         let imageCosItems = imageTabContents.querySelectorAll('tr[data-type="image-cos"]')
         if (imageType.value == 'qiniu') {
             imageAccessKey.value = moeApp.config.get(imageAccessKey.id);
             imageSecretKey.value = moeApp.config.get(imageSecretKey.id);
             checkBuckets();
+            imageSmmsItems.forEach((item) => {
+                item.style.display = 'none'
+            })
             imageCosItems.forEach((item) => {
                 item.style.display = 'none'
             })
@@ -514,6 +522,9 @@ document.addEventListener('DOMContentLoaded', () => {
             imageCosAccessKey.value = moeApp.config.get(imageCosAccessKey.id);
             imageCosSecretKey.value = moeApp.config.get(imageCosSecretKey.id);
             checkCosBuckets();
+            imageSmmsItems.forEach((item) => {
+                item.style.display = 'none'
+            })
             imageQiNiuItems.forEach((item) => {
                 item.style.display = 'none'
             })
@@ -527,36 +538,95 @@ document.addEventListener('DOMContentLoaded', () => {
             imageCosItems.forEach((item) => {
                 item.style.display = 'none'
             })
+            imageSmmsItems.forEach((item) => {
+                item.style.display = 'table-row'
+            })
             ipcRenderer.send('setting-changed', {key: imageType.id, val: imageType.value});
         }
         imageTabItem.click();
     })
 
-    //QiNiu
-    function hasQiNiuServer() {
-        if (imageAccessKey.value && imageSecretKey.value && !global.qiniuServer) {
-            global.qiniuServer = moeApp.getQiniuServer();
-            qiniuServer.update(
-                moeApp.config.get('image-qiniu-accessKey'),
-                moeApp.config.get('image-qiniu-secretKey'),
-                moeApp.config.get('image-qiniu-bucket'),
-                moeApp.config.get('image-qiniu-url-protocol') + moeApp.config.get('image-qiniu-url') + '/'
-            );
-            qiniuServer.update(
-                imageAccessKey.value,
-                imageSecretKey.value,
-                imageBucket.value,
-                imageBaseWebProtocol + imageBaseWeb + '/'
-            )
-            return true;
+    function hasUploadServer() {
+        if (!global.uploadServer) {
+            global.uploadServer = moeApp.getUploadServer();
+            return global.uploadServer;
         }
-        return global.qiniuServer;
+        return global.uploadServer;
     }
 
+    //SM.MS
+    var backtype = moeApp.config.get('image-back-type');
+    if ([222, 22].includes(backtype)) {
+        imageSmmsBackQiniu.value = 1;
+        imageSmmsBackQiniu.innerHTML = '<i class="fa fa-check-square-o" aria-hidden="true"></i>'
+    } else {
+        imageSmmsBackQiniu.value = 0;
+        imageSmmsBackQiniu.innerHTML = '<i class="fa fa-square-o" aria-hidden="true"></i>'
+    }
+    if ([222, 202].includes(backtype)) {
+        imageSmmsBackCos.value = 1;
+        imageSmmsBackCos.innerHTML = '<i class="fa fa-check-square-o" aria-hidden="true"></i>'
+    } else {
+        imageSmmsBackCos.value = 0;
+        imageSmmsBackCos.innerHTML = '<i class="fa fa-square-o" aria-hidden="true"></i>'
+    }
+
+    imageSmmsBackQiniu.addEventListener('click', () => {
+        var backtype = moeApp.config.get('image-back-type');
+        if (imageSmmsBackQiniu.value == 0) {
+            if (moeApp.config.get(imageBaseWeb.id)){
+                imageSmmsBackQiniu.value = 1;
+                imageSmmsBackQiniu.innerHTML = '<i class="fa fa-check-square-o" aria-hidden="true"></i>'
+                if (backtype> 200)
+                    backtype = 222;
+                else
+                    backtype = 22;
+            } else {
+                let imageQiNiuItems = imageTabContents.querySelectorAll('tr[data-type="image-qiniu"]');
+                imageQiNiuItems.forEach((item) => {
+                    item.style.display = 'table-row'
+                })
+                imageTabItem.click();
+            }
+        } else {
+            imageSmmsBackQiniu.value = 0;
+            imageSmmsBackQiniu.innerHTML = '<i class="fa fa-square-o" aria-hidden="true"></i>'
+            if (backtype> 200)
+                backtype = 202;
+            else
+                backtype = 2;
+        }
+        moeApp.config.set('image-back-type',backtype);
+    })
+    imageSmmsBackCos.addEventListener('click', () => {
+        var backtype = moeApp.config.get('image-back-type');
+        if (imageSmmsBackCos.value == 0) {
+            if (moeApp.config.get(imageBaseWeb.id)) {
+                imageSmmsBackCos.value = 1;
+                imageSmmsBackCos.innerHTML = '<i class="fa fa-check-square-o" aria-hidden="true"></i>'
+                if (backtype < 23)
+                    backtype += 200;
+            } else {
+                let imageCosItems = imageTabContents.querySelectorAll('tr[data-type="image-cos"]')
+                imageCosItems.forEach((item) => {
+                    item.style.display = 'table-row'
+                })
+                imageTabItem.click();
+            }
+        } else {
+            imageSmmsBackCos.value = 0;
+            imageSmmsBackCos.innerHTML = '<i class="fa fa-square-o" aria-hidden="true"></i>'
+            if (backtype> 200)
+                backtype -= 200;
+        }
+        moeApp.config.set('image-back-type',backtype);
+    })
+
+    //QiNiu
     function checkBuckets() {
-        if (hasQiNiuServer()) {
+        if (hasUploadServer()) {
             let oldBucket = moeApp.config.get(imageBucket.id);
-            qiniuServer.getBuckets((response) => {
+            uploadServer.getQiniuBuckets((response) => {
                 imageBucket.innerHTML = '';
                 if (response.statusCode == 200) {
                     response.data.forEach((name) => {
@@ -581,9 +651,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function checkURLs(bucket) {
-        if (hasQiNiuServer()) {
+        if (hasUploadServer()) {
             let oldurl = moeApp.config.get(imageBaseWeb.id);
-            qiniuServer.getBucketsUrl(bucket, (response) => {
+            uploadServer.getQiniuBucketsUrl(bucket, (response) => {
                 if (response.statusCode == 200) {
                     imageBaseWeb.innerHTML = '';
                     response.data.forEach((url) => {
@@ -614,8 +684,8 @@ document.addEventListener('DOMContentLoaded', () => {
             let oldKey = moeApp.config.get(imageAccessKey.id);
             if (oldKey != imageAccessKey.value) {
                 moeApp.config.set(imageAccessKey.id, imageAccessKey.value);
-                if (hasQiNiuServer()) {
-                    qiniuServer.update(imageAccessKey.value, imageSecretKey.value)
+                if (hasUploadServer()) {
+                    uploadServer.updateQiniu(imageAccessKey.value, imageSecretKey.value)
                     ipcRenderer.send('setting-changed', {key: imageAccessKey.id, val: imageAccessKey.value});
                     checkBuckets();
                 }
@@ -631,8 +701,8 @@ document.addEventListener('DOMContentLoaded', () => {
             let oldKey = moeApp.config.get(imageSecretKey.id);
             if (oldKey != imageSecretKey.value) {
                 moeApp.config.set(imageSecretKey.id, imageSecretKey.value);
-                if (hasQiNiuServer()) {
-                    qiniuServer.update(imageAccessKey.value, imageSecretKey.value)
+                if (hasUploadServer()) {
+                    uploadServer.updateQiniu(imageAccessKey.value, imageSecretKey.value)
                     ipcRenderer.send('setting-changed', {key: imageSecretKey.id, val: imageSecretKey.value});
                     checkBuckets();
                 }
@@ -652,7 +722,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     function protocolChange(type) {
-        if ((!type && imageBaseWebProtocol.value == 'http://') ||  type == 'https://') {
+        if ((!type && imageBaseWebProtocol.value == 'http://') || type == 'https://') {
             imageBaseWebProtocol.style.width = '53px';
             imageBaseWeb.style.width = 'calc(100% - 57px)';
             imageBaseWebProtocol.value = 'https://';
@@ -684,33 +754,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     //Tencent
-    function hasCosServer() {
-        if (imageCosAccessKey.value && imageCosSecretKey.value && !global.cosServer) {
-            global.cosServer = moeApp.getCOSServer();
-            let bucketObj = moeApp.config.get('image-cos-bucket');
-            bucketObj = (bucketObj||"|").split('|');
-            cosServer.update(
-                moeApp.config.get('image-cos-accessKey'),
-                moeApp.config.get('image-cos-secretKey'),
-                bucketObj[0],
-                bucketObj[1],
-                moeApp.config.get('image-cos-url-protocol')
-            );
-            return true;
-        }
-        return global.cosServer;
-    }
-
     function checkCosBuckets() {
-        if (hasCosServer()) {
+        if (hasUploadServer()) {
             let oldBucket = moeApp.config.get(imageCosBucket.id);
-            cosServer.getService((response) => {
+            uploadServer.getCosService((response) => {
                 imageCosBucket.innerHTML = '';
                 if (response.statusCode == 200) {
                     response.Buckets.forEach((bucket) => {
                         let option = document.createElement('option');
-                        option.value = bucket.Name + '|' +bucket.Location;
-                        option.innerText = '['+bucket.Location+']  ' + bucket.Name ;
+                        option.value = bucket.Name + '|' + bucket.Location;
+                        option.innerText = '[' + bucket.Location + ']  ' + bucket.Name;
                         imageCosBucket.appendChild(option);
                         if ((option.value == oldBucket)) {
                             option.selected = true;
@@ -720,12 +773,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!imageCosBucket.value && imageCosBucket.firstChild) {
                         imageCosBucket.value = imageCosBucket.firstChild.value;
                     }
-                    if(imageCosBucket.value) {
+                    if (imageCosBucket.value) {
                         let event = new Event('change');
                         imageCosBucket.dispatchEvent(event);
                     }
                 } else {
-                    console.log(response,response.error.Message) ;
+                    console.log(response, response.error.Message);
                 }
             })
         }
@@ -737,8 +790,8 @@ document.addEventListener('DOMContentLoaded', () => {
             let oldKey = moeApp.config.get(imageCosAccessKey.id);
             if (oldKey != imageCosAccessKey.value) {
                 moeApp.config.set(imageCosAccessKey.id, imageCosAccessKey.value);
-                if (hasCosServer()) {
-                    cosServer.update(imageCosAccessKey.value, imageCosSecretKey.value)
+                if (hasUploadServer()) {
+                    uploadServer.updateCos(imageCosAccessKey.value, imageCosSecretKey.value)
                     ipcRenderer.send('setting-changed', {key: imageCosAccessKey.id, val: imageCosAccessKey.value});
                     checkCosBuckets();
                 }
@@ -754,8 +807,8 @@ document.addEventListener('DOMContentLoaded', () => {
             let oldKey = moeApp.config.get(imageCosSecretKey.id);
             if (oldKey != imageCosSecretKey.value) {
                 moeApp.config.set(imageCosSecretKey.id, imageCosSecretKey.value);
-                if (hasCosServer()) {
-                    cosServer.update(imageCosAccessKey.value, imageCosSecretKey.value)
+                if (hasUploadServer()) {
+                    uploadServer.updateCos(imageCosAccessKey.value, imageCosSecretKey.value)
                     ipcRenderer.send('setting-changed', {key: imageCosSecretKey.id, val: imageCosSecretKey.value});
                     checkCosBuckets();
                 }
@@ -769,7 +822,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     imageCosBucket.addEventListener('change', function (e) {
         moeApp.config.set(imageCosBucket.id, imageCosBucket.value);
-        imageCosBaseWeb.value = imageCosBucket.value.replace('|','.cos.') + '.myqcloud.com' + '/';
+        imageCosBaseWeb.value = imageCosBucket.value.replace('|', '.cos.') + '.myqcloud.com' + '/';
         imageCosBaseWeb.title = imageCosBaseWeb.value;
         moeApp.config.set(imageCosBaseWeb.id, imageCosBaseWeb.value);
         ipcRenderer.send('setting-changed', {key: imageCosBucket.id, val: imageCosBucket.value});
@@ -778,7 +831,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     function protocolChange(type) {
-        if ((!type && imageCosBaseWebProtocol.value == 'http://') ||  type == 'https://') {
+        if ((!type && imageCosBaseWebProtocol.value == 'http://') || type == 'https://') {
             imageCosBaseWebProtocol.style.width = '53px';
             imageCosBaseWeb.style.width = 'calc(100% - 57px)';
             imageCosBaseWebProtocol.value = 'https://';

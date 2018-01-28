@@ -111,7 +111,7 @@ class COSServer {
             Key: serverFile,
             Output: localName,
             onProgress: function (progressData) {
-                console.log(JSON.stringify(progressData));
+                // console.log(JSON.stringify(progressData));
             }
         }, function (err, data) {
             if (typeof cb === 'function')
@@ -155,7 +155,7 @@ class COSServer {
                 TaskId = tid;
             },
             onProgress: function (progressData) {
-                console.log(JSON.stringify(progressData));
+                // console.log(JSON.stringify(progressData));
             },
             // 格式1. 传入文件内容
             // Body: fs.readFileSync(filepath),
@@ -173,11 +173,13 @@ class COSServer {
                 cb(err || data);
 
             if (typeof cb === "function") {
-                let result = {id: localFile};
+                let result = {type: 100,id: localFile};
                 if (err){
+                    result.type = 100;
                     result.statusCode = err.statusCode;
                     result.msg = err.error.message;
                 } else{
+                    result.type = 200;
                     result.statusCode = data.statusCode;
                     result.data = {
                         localname: path.basename(localFile),
@@ -203,10 +205,10 @@ class COSServer {
                 TaskId = tid;
             },
             onHashProgress: function (progressData) {
-                console.log(JSON.stringify(progressData));
+                // console.log(JSON.stringify(progressData));
             },
             onProgress: function (progressData) {
-                console.log(JSON.stringify(progressData));
+                // console.log(JSON.stringify(progressData));
             },
         }, function (err, data) {
             /*data = {
@@ -218,11 +220,12 @@ class COSServer {
             *  headers: {}
             }*/
             if (typeof cb === "function") {
-                let result = {id: localFile};
+                let result = {type: 100,id: localFile};
                 if (err){
                     result.statusCode = err.statusCode;
                     result.msg = err.error.message;
                 } else{
+                    result.type = 200;
                     result.statusCode = data.statusCode;
                     result.data = {
                         localname: path.basename(localFile),

@@ -50,7 +50,8 @@ class Smms {
      *        localname: 'abc.png',                           //本地文件名
      *        storename: '5a6bea876702d.png',                 //服务器文件名，SM.MS随机生成
      *        path: '/abc/abc/5a6bea876702d.png',             //服务器路径
-     *        url: 'https://...../abc/abc/5a6bea876702d.png'  //图片地址
+     *        url: 'https://...../abc/abc/5a6bea876702d.png', //图片地址
+     *        hash: 'sd8fsd8766d90sdf9'                       //删除hash
      *      },
      *      msg: 'error message'                              //一般只有报错才使用到
      *   }
@@ -64,15 +65,17 @@ class Smms {
         }, (error, res, body) => {
             if (typeof callback === "function") {
                 let response = JSON.parse(body);
-                let result = {id: localFile};
+                let result = {type:1,id: localFile};
                 if (res.statusCode == 200) {
                     result.statusCode = (response.code == 'success' ? 200 : -1);
                     if (result.statusCode == 200) {
+                        result.type = 2;
                         result.data = {
                             localname: response.data.filename,
                             storename: response.data.storename,
                             path: response.data.path,
-                            url: response.data.url
+                            url: response.data.url,
+                            hash: response.data.hash
                         }
                         result.msg = '';
                     } else {

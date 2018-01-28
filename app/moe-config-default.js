@@ -57,4 +57,5 @@ module.exports = {
     'image-cos-bucket':'|',
     'image-cos-url-protocol': 'http://',
     'image-cos-url':'',
+    'image-back-type': 2
 };
