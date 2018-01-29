@@ -2,6 +2,8 @@ window.md5 = (text) => {
     return require('crypto').createHash('md5').update(text).digest('hex');
 };
 
+let uploadList = [];
+
 class ImgManager {
     constructor() {
         this.postName = path.basename(hexoWindow.fileName, path.extname(hexoWindow.fileName)) || hexoWindow.ID || "";
@@ -187,9 +189,49 @@ class ImgManager {
         }
     }
 
+    abortUploading() {
+        var typeServer = moeApp.config.get('image-web-type');
+        var typeBack = moeApp.config.get('image-back-type');
+        switch (typeServer) {
+            case 'smms': {
+                uploadList.forEach((response) => {
+                        response.data.data.forEach((item) => {
+                            this.getUploadServer().del(item.hash);
+                            if (typeBack > 220 || typeBack == 22)
+                                this.getUploadServer().deleteQiniuFile(item.path.slice(1));
+                            if (typeBack > 200)
+                                this.getUploadServer().deleteCosFile(item.path.slice(1));
+                        })
+                    }
+                );
+                this.getUploadServer().clearSmmsList();
+                break;
+            }
+            case 'qiniu': {
+                uploadList.forEach((response) => {
+                        response.data.data.forEach((item) => {
+                            this.getUploadServer().deleteQiniuFile(item.path.slice(1));
+                        })
+                    }
+                );
+                break;
+            }
+            case 'cos': {
+                uploadList.forEach((response) => {
+                        response.data.data.forEach((item) => {
+                            this.getUploadServer().deleteCosFile(item.path.slice(1));
+                        })
+                    }
+                );
+                break;
+            }
+        }
+
+    }
+
     uploadDelAll() {
         Object.keys(this.imgPathToDelHash).forEach(k => {
-            this.getSmmsServer().del(imgManager.imgPathToDelHash[k])
+            this.getUploadServer().del(imgManager.imgPathToDelHash[k])
             delete imgManager.imgPathToDelHash[k];
         })
     }
@@ -201,47 +243,79 @@ class ImgManager {
             let filePath = decodeURI(item.src).replace(/^file:\/\/\//, '');
             if (fs.existsSync(filePath)) {
                 arr.push(filePath);
-            } else {
             }
-        })
-
-        this.getUploadServer().upload(arr,this.imgBaseDir,(success,error)=>{
-            updateSrc(success)
-            updateError(error)
+        });
+        let statuContentItem = document.querySelector('#status-content');
+        statuContentItem.innerText = '';
+        statuContentItem.style.opacity = 1;
+        let content = '';
+        let order = 0;
+        let serverType = {
+            smms: 'WebSM',
+            qiniu: 'QiNiu',
+            cos: 'WebCOS'
+        }
+        this.getUploadServer().upload(arr, this.imgBaseDir, (info, success, error) => {
+            if (info.order > order) {
+                order = info.order;
+                if (info.isLoading) {
+                    content = `[${info.finishedCount}/${info.totalCount}]`;
+                    content += `"${info.response.id}" uploaded to ${__(serverType[info.serverType])} finished!`;
+                    if (info.nextPath)
+                        content += `And uploading "${info.nextPath}"`;
+                    statuContentItem.innerText = content;
+                } else {
+                    updateSrc(success)
+                    updateError(error)
+                    content = `[${info.finishedCount}/${info.totalCount}]`;
+                    content += `Upload End! Success: ${success.length} | Failed: ${error.length}|`;
+                    statuContentItem.innerText = content;
+                    setTimeout(() => {
+                        statuContentItem.style.opacity = 0;
+                    }, 5000)
+                }
+            }
         });
 
         function updateError(errorList) {
-                let errMsg = '';
-                errorList.forEach((response) => {
+            let errMsg = '';
+            let maxIndex = errorList.length - 1;
+            if (maxIndex >= 0) {
+                errorList.forEach((response, index) => {
                     errMsg += response.id + ':' + __(response.msg) + '</br>';
+                    if (maxIndex == index) {
+                        window.popMessageShell(null, {
+                            content: errMsg,
+                            type: 'danger',
+                            autoHide: false
+                        })
+                    }
                 })
-                if (errMsg) {
-                    window.popMessageShell(null, {
-                        content: errMsg,
-                        type: 'danger',
-                        autoHide: false
-                    })
-                } else {
-                    window.popMessageShell(null, {
-                        content: __('All Files') + ' ' + __('Upload Finished'),
-                        type: 'success',
-                        btnTip: 'check',
-                        autoHide: true
-                    });
-                }
+            } else {
+                window.popMessageShell(null, {
+                    content: __('All Files') + ' ' + __('Upload Finished'),
+                    type: 'success',
+                    btnTip: 'check',
+                    autoHide: true
+                });
+            }
         }
 
         function updateSrc(successList) {
-            var content = editor.getValue();
-            successList.forEach((response) => {
+            let content = editor.getValue();
+            let maxIndex = successList.length - 1;
+            successList.forEach((response, index) => {
+                uploadList.push(response);
                 content = content.replace(new RegExp(imgManager.imgPathToMarkURL[response.id], 'g'), response.data.url);
                 imgManager.imgPathToUrlPath[response.id] = response.data.path;
                 imgManager.imgPathToMarkURL[response.id] = response.data.url;
-                imgManager.imgPathToDelHash[response.id] = response.data.hash||'';
-            })
-            editor.setValue(content);
-            hexoWindow.content = content;
-            hexoWindow.changed = true;
+                imgManager.imgPathToDelHash[response.id] = (response.data.hash || '');
+                if (maxIndex == index) {
+                    editor.setValue(content);
+                    hexoWindow.content = content;
+                    hexoWindow.changed = true;
+                }
+            });
         }
     }
 }

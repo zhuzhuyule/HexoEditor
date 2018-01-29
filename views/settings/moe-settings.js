@@ -213,6 +213,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let hexoConfigEnableButton = document.querySelector('input[data-key="hexo-config-enable"]');
     let hexoConfigLoadButton = document.querySelector('#hexo-config-btn');
     let hexoConfigInput = document.querySelector('input[data-key="hexo-config"]');
+
+    hexoConfigEnableButton.addEventListener('click',()=>{
+        moeApp.config.set('hexo-config-enable', hexoConfigEnableButton.checked);
+        ipcRenderer.send('setting-changed', {key: 'hexo-config-enable', val: hexoConfigEnableButton.checked});
+    })
     hexoConfigLoadButton.addEventListener('click', () => {
         dialog.showOpenDialog(window.hexoWindow, {
             properties: ['openFile'],
@@ -421,37 +426,42 @@ document.addEventListener('DOMContentLoaded', () => {
             isFindStyle = newCustomeTheme(themes[hexoTheme])
         }
         //未配置主题，自动配置
-        let classDir = path.join(hexoConfig.__basedir, hexoConfig.public_dir, 'css');
-        if (!isFindStyle) {
-            if (fs.existsSync(classDir) && fs.lstatSync(classDir).isDirectory()) {
-                isFindStyle = newCustomeTheme(classDir);
+        let classDir = '';
+        if (hexoConfig.__basedir && fs.existsSync(hexoConfig.__basedir)){
+            if(hexoConfig.public_dir){
+                classDir = path.join(hexoConfig.__basedir, hexoConfig.public_dir, 'css');
             }
-        }
-        if (isFindStyle) {
-            for (let item in themes) {
-                if (themes.hasOwnProperty(item) && themes[item] == classDir) {
-                    delete themes[item];
+            if (!isFindStyle) {
+                if (fs.existsSync(classDir) && fs.lstatSync(classDir).isDirectory()) {
+                    isFindStyle = newCustomeTheme(classDir);
                 }
             }
-
-            themes[hexoTheme] = classDir;
-            moeApp.config.set('custom-render-themes', themes);
-            moeApp.config.set("render-theme", hexoTheme);
-
-            reloadRenderThemeSelect(hexoTheme);
-            reloadHighlightSelect(hexoTheme);
-        } else {
-            dialog.showMessageBox(
-                window.hexoWindow,
-                {
-                    type: 'warning',
-                    title: __('Waring'),
-                    message: __("WaringNoFile"),
-                    detail: __("WaringNoFileDetail1") + classDir + __("WaringNoFileDetail2")
-                },
-                function (res) {
+            if (isFindStyle) {
+                for (let item in themes) {
+                    if (themes.hasOwnProperty(item) && themes[item] == classDir) {
+                        delete themes[item];
+                    }
                 }
-            )
+
+                themes[hexoTheme] = classDir;
+                moeApp.config.set('custom-render-themes', themes);
+                moeApp.config.set("render-theme", hexoTheme);
+
+                reloadRenderThemeSelect(hexoTheme);
+                reloadHighlightSelect(hexoTheme);
+            } else {
+                dialog.showMessageBox(
+                    window.hexoWindow,
+                    {
+                        type: 'warning',
+                        title: __('Waring'),
+                        message: __("WaringNoFile"),
+                        detail: __("WaringNoFileDetail1") + classDir + __("WaringNoFileDetail2")
+                    },
+                    function (res) {
+                    }
+                )
+            }
         }
     })
 

@@ -65,6 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     ipcRenderer.on('pop-message-shell',popMessageShell)  ;
 
+
     ipcRenderer.on('refresh-editor', function () {
         let hexoWindow  = window.hexoWindow;
         if (hexoWindow.fileName !== '') {

@@ -111,7 +111,7 @@ function setHighlightTheme(val) {
         link.id = 'highlight-theme';
     }
     let file = path.join(themedir, `${val}.css`);
-    link.href = fs.existsSync(file) ? file : '';
+    link.href = (fs.existsSync(file) ? file : '');
 
     link = document.getElementById('highlight-theme-index');
     if (!link) {
@@ -120,8 +120,12 @@ function setHighlightTheme(val) {
         link.rel = 'stylesheet';
         link.id = 'highlight-theme-index';
     }
-    file = path.join(themedir, 'index.css');
-    link.href = fs.existsSync(file) ? file : '';
+    if ( val == 'none'){
+        link.href = '';
+    } else{
+        file = path.join(themedir, 'index.css');
+        link.href = (fs.existsSync(file) ? file : '');
+    }
 }
 
 function setRenderTheme(val) {
@@ -158,6 +162,7 @@ function setHexoConfigEnable(val) {
 };
 
 function setHexoConfig(val) {
+    imgManager.updateBase();
     hexo.changeConfig();
     window.updatePreview(true);
 };

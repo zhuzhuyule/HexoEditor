@@ -134,6 +134,26 @@ class qiniuServer {
     }
 
     /**
+     * 删除文件
+     * @param key
+     * @param callback
+     */
+    deleteFile(key,callback){
+        var config = new this.qiniu.conf.Config();
+        var bucketManager = new this.qiniu.rs.BucketManager(this.mac, config);
+        bucketManager.delete(this.bucket, key, function(error, res, body) {
+            if (typeof callback === "function") {
+                callback({
+                    statusCode: res.statusCode,
+                    data: JSON.parse(body)
+                })
+            } else {
+                console.log(res)
+            }
+        });
+    }
+
+    /**
      * 异步上传单个文件
      * @param localFile         本地文件全路径
      * @param serverFileName    服务器保存名称（可带地址）
@@ -161,22 +181,27 @@ class qiniuServer {
             function (respErr, respBody, respInfo) {
                 if (typeof  callback == 'function') {
                     let result = {type:10,id: localFile};
-                    if (respInfo.statusCode == 200 || respInfo.statusCode == 579) {
-                        result.type = 20;
-                        result.statusCode = 200;
-                        result.data = {
-                            localname: path.basename(localFile),
-                            storename: path.basename(serverFileName),
-                            path: respBody.key,
-                            url: qiniuServer.url + respBody.key
+                    try {
+                        if (respInfo.statusCode == 200 || respInfo.statusCode == 579) {
+                            result.type = 20;
+                            result.statusCode = 200;
+                            result.data = {
+                                localname: path.basename(localFile),
+                                storename: path.basename(serverFileName),
+                                path: respBody.key,
+                                url: qiniuServer.url + respBody.key
+                            }
+                            result.msg = '';
+                            result.errorlist = '';
+                        } else {
+                            result.msg = respInfo.statusCode + respBody.error;
+                            result.errorlist = 'https://developer.qiniu.com/kodo/api/3928/error-responses#2';
                         }
-                        result.msg = '';
-                        result.errorlist = '';
-                    } else {
-                        result.msg = respInfo.statusCode + respBody.error;
-                        result.errorlist = 'https://developer.qiniu.com/kodo/api/3928/error-responses#2';
+                    }catch (e){
+                        console.log(respBody)
+                    }finally {
+                        callback(result)
                     }
-                    callback(result)
                 } else {
                     console.log(respBody)
                 }

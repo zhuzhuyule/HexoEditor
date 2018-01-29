@@ -15,11 +15,12 @@ module.exports = (function () {
     let smmsServer, qiniuServer, cosServer;
     let finishedCount, totalCount, pathIndex;
     let statusList, successList, errorList;
-    let timeout,startDate;
+    let timeout, startDate;
     let typeServer;
     let typeBack;
+    let order;
     //
-    let baseDir, uploadArray,finishedCallback;
+    let baseDir, uploadArray, finishedCallback;
 
     function getSmmsServer() {
         if (!smmsServer) {
@@ -62,11 +63,11 @@ module.exports = (function () {
         getSmmsServer().uploadFile(imgPath, '', callback);
     }
 
-    function asyncUploadToQiNiu(imgPath,serverName, callback) {
+    function asyncUploadToQiNiu(imgPath, serverName, callback) {
         getQiNiuServer().uploadFile(imgPath, serverName, callback);
     }
 
-    function asyncUploadToCOS(imgPath,serverName, callback) {
+    function asyncUploadToCOS(imgPath, serverName, callback) {
         getCOSServer().sliceUploadFile(imgPath, serverName, callback);
     }
 
@@ -77,18 +78,18 @@ module.exports = (function () {
     function asyncUploadFile(imgPath, callback) {
         switch (typeServer) {
             case 'qiniu':
-                asyncUploadToQiNiu(imgPath,relativePath(imgPath), callback)
+                asyncUploadToQiNiu(imgPath, relativePath(imgPath), callback)
                 break;
             case 'cos':
-                asyncUploadToCOS(imgPath,relativePath(imgPath), callback)
+                asyncUploadToCOS(imgPath, relativePath(imgPath), callback)
                 break;
             default: {
                 if (typeBack > 2) {
                     if (statusList[imgPath]) {
                         if (statusList[imgPath].typeServer == 'qiniu') {
-                            asyncUploadToQiNiu(imgPath,statusList[imgPath].pathname , callback)
+                            asyncUploadToQiNiu(imgPath, statusList[imgPath].pathname, callback)
                         } else {
-                            asyncUploadToCOS(imgPath,statusList[imgPath].pathname , callback)
+                            asyncUploadToCOS(imgPath, statusList[imgPath].pathname, callback)
                         }
                     } else {
                         asyncUploadToSmms(imgPath, callback);
@@ -98,12 +99,11 @@ module.exports = (function () {
         }
     }
 
-    function checktime(isBreak) {
+    function checktime() {
         clearTimeout(timeout);
-        if (!isBreak)
-            timeout = setTimeout(() => {
-                uploadEnd(true);
-            }, 30000)
+        timeout = setTimeout(() => {
+            uploadEnd(true);
+        }, 30000)
     }
 
     /**
@@ -129,11 +129,13 @@ module.exports = (function () {
 
 
     function uploaded(response) {
+        order++;
         let result = response;
         let uploadNext = true;
         let imgPath = result.id;
+        let nextType = '';
         if (typeServer == 'smms' && typeBack > 2) {  //是否需要备份
-            console.log(result.statusCode,result.data.path,result.data.url)
+            console.log(result.statusCode, result.data.path, result.data.url)
             statusList[imgPath].type += result.type;
             if (statusList[imgPath].type == 2) {  //Smsm
                 statusList[imgPath].hash = result.data.hash;
@@ -146,35 +148,51 @@ module.exports = (function () {
             } else if (statusList[imgPath].type == 22) {   //Qiniu
                 uploadNext = backUpload(result)
             }
-
-            if (!uploadNext)
-                asyncUploadFile(imgPath, uploaded);
+            nextType = statusList[imgPath].serverType;
         }
 
-        if (uploadNext){
+        let info = {
+            order: order,
+            isLoading: (finishedCount !== totalCount),
+            finishedCount: finishedCount,
+            totalCount: totalCount,
+            useTime: new Date() - startDate,
+            timeout: false,
+            serverType: typeServer,
+            response: response,
+            nextPath: imgPath,
+            nextType: nextType
+        }
+
+
+        if (!uploadNext) {
+            asyncUploadFile(imgPath, uploaded);
+            finishedCallback(info, successList, errorList);
+        } else {
             finishedCount++;
             console.log(finishedCount + '/' + totalCount);
-            if (typeServer == 'smms' && typeBack > 2){
+            if (typeServer == 'smms' && typeBack > 2) {
                 if (statusList[imgPath].type == typeBack) {
                     result.data.hash = statusList[imgPath].hash;
                     result.data.url = statusList[imgPath].url;
-                    successList.set(imgPath, result)
+                    successList.push(result)
                 } else {
-                    errorList.set(imgPath, result)
+                    errorList.push(result)
                 }
             } else {
                 if (result.statusCode == 200) {
-                    successList.set(imgPath, result)
+                    successList.push(result)
                 } else {
-                    errorList.set(imgPath, result)
+                    errorList.push(result)
                 }
             }
 
-            if(pathIndex < totalCount){
-                asyncUploadFile(uploadArray[pathIndex], uploaded)
+            if (pathIndex < totalCount) {
+                info.nextPath = uploadArray[pathIndex];
+                finishedCallback(info, successList, errorList);
+                asyncUploadFile(info.nextPath, uploaded)
                 pathIndex++;
-            } else if (finishedCount == totalCount){
-                checktime(true);
+            } else if (finishedCount == totalCount) {
                 uploadEnd();
                 return;
             }
@@ -216,12 +234,21 @@ module.exports = (function () {
 
     function uploadEnd(isTimeout) {
         try {
+            clearTimeout(timeout);
             if (isTimeout)
-                errorList.set('Upload time out!',{msg:'Place check your net!'});
+                errorList.set('Upload time out!', {msg: 'Place check your net!'});
         } finally {
-            console.log('upload end ! use time: ',new Date() - startDate)
-            console.log(successList.size,errorList.size)
-            finishedCallback(successList,errorList);
+            console.log('upload end ! use time: ', new Date() - startDate)
+            let info = {
+                order: order,
+                isLoading: false,
+                finishedCount: finishedCount,
+                totalCount: totalCount,
+                useTime: new Date() - startDate,
+                timeout: !!isTimeout,
+                serverType: typeServer
+            }
+            finishedCallback(info, successList, errorList);
             isUploading = false;
         }
     }
@@ -230,37 +257,59 @@ module.exports = (function () {
         constructor() {
             isUploading = false;
         }
-        isLoading(){
+
+        isLoading() {
             return isUploading;
         }
+        //SM.MS
+        del(hash){
+            getSmmsServer().del(hash)
+        }
+        clearSmmsList(){
+            getSmmsServer().clear()
+        }
+        getSmmsList(callback){
+            getSmmsServer().getList(callback);
+        }
+
         //Qiniu
         updateQiniu(acessKey, secretKey, bucket, url) {
             getQiNiuServer().update(acessKey, secretKey, bucket, url)
         }
+
         getQiniuAccessToken(url) {
             getQiNiuServer().getAccessToken(url)
         }
-        getQiniuBuckets(callback){
+
+        getQiniuBuckets(callback) {
             getQiNiuServer().getBuckets(callback)
         }
-        getQiniuBucketsUrl(buketName, callback){
+
+        getQiniuBucketsUrl(buketName, callback) {
             getQiNiuServer().getBucketsUrl(buketName, callback)
         }
 
-        //Cos
-        updateCos(acessKey, secretKey, bucket, region,protocol){
-            getCOSServer().update(acessKey, secretKey, bucket, region,protocol)
+        deleteQiniuFile(fileanme, cb) {
+            getQiNiuServer().deleteFile(fileanme, cb)
         }
-        getCosService(cb){
+        //Cos
+        updateCos(acessKey, secretKey, bucket, region, protocol) {
+            getCOSServer().update(acessKey, secretKey, bucket, region, protocol)
+        }
+
+        getCosService(cb) {
             getCOSServer().getService(cb)
         }
-        getCosFileURL(key, cb){
+
+        getCosFileURL(key, cb) {
             getCOSServer().getFileURL(key, cb)
         }
-        getCosBucketLocation(cb){
-            getCOSServer(). getBucketLocation(cb)
+
+        getCosBucketLocation(cb) {
+            getCOSServer().getBucketLocation(cb)
         }
-        deleteObject(fileanme, cb){
+
+        deleteCosFile(fileanme, cb) {
             getCOSServer().deleteObject(fileanme, cb)
         }
 
@@ -278,13 +327,12 @@ module.exports = (function () {
             totalCount = uploadArray.length;
             finishedCount = 0;
             timeout = 0;
+            order = 0;
             typeServer = moeApp.config.get('image-web-type');
             typeBack = moeApp.config.get('image-back-type');
 
-            if (!successList) successList = new Map();
-            successList.clear();
-            if (!errorList) errorList = new Map();
-            errorList.clear();
+            successList = []
+            errorList = [];
             if (!statusList) statusList = new Map();
             statusList.clear();
 
@@ -299,5 +347,6 @@ module.exports = (function () {
             }
         }
     }
+
     return UploadServer;
 })();

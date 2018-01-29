@@ -16,8 +16,47 @@ class Smms {
         this.request = require('request');
     }
 
+    clear() {
+        this.request({
+            url: 'https://sm.ms/clear/',
+            method: 'GET',
+            headers: {'user-agent': userAgent}
+        })
+    }
+
     del(fileHash) {
-        this.request('https://sm.ms/delete/'+ fileHash)
+        this.request({
+            url: 'https://sm.ms/delete/' + fileHash,
+            method: 'GET',
+            headers: {'user-agent': userAgent}
+        }, (error, res, body) => {
+            var content = body;
+            if (content) {
+                content = content.match(/<div class="container"><div[^>]*>([^<]*)</)
+                if (content != null)
+                    content = fileHash + ' : ' + content[1];
+            }
+            console.log(content)
+        })
+    }
+
+    getList(callback) {
+        this.request({
+            url: "https://sm.ms/api/list",
+            method: 'GET',
+            headers: {'user-agent': userAgent}
+        }, (error, res, body) => {
+            if (typeof callback === "function") {
+                if (res.statusCode == 200)
+                    callback({
+                        statusCode: res.statusCode,
+                        data: (typeof(body) == 'string') ? JSON.parse(body) : body
+                    });
+                else {
+                    console.log(body)
+                }
+            }
+        })
     }
 
     /**
@@ -65,7 +104,7 @@ class Smms {
         }, (error, res, body) => {
             if (typeof callback === "function") {
                 let response = JSON.parse(body);
-                let result = {type:1,id: localFile};
+                let result = {type: 1, id: localFile};
                 if (res.statusCode == 200) {
                     result.statusCode = (response.code == 'success' ? 200 : -1);
                     if (result.statusCode == 200) {

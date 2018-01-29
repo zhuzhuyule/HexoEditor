@@ -23,7 +23,7 @@
     --spaceY: 30px;
 }
 
-.notransition, .notransition *:not(.CodeMirror-cursors):not(.CodeMirror-lines):not(.CodeMirror-sizer):not(.CodeMirror-vscrollbar) {
+.notransition, .notransition *:not(.transition):not(.CodeMirror-cursors):not(.CodeMirror-lines):not(.CodeMirror-sizer):not(.CodeMirror-vscrollbar) {
     transition: none !important;
 }
 
@@ -41,6 +41,17 @@ html, body {
     height: 100%;
     overflow: hidden;
     -webkit-user-select: none;
+}
+
+body{
+    background: #fff !important;
+    overflow-x: hidden !important;
+    margin: 0 !important;
+    -webkit-user-select: none !important;
+    cursor: default !important;
+    width: calc(100% - 2px) !important;
+    height: calc(100% - 2px) !important;
+    border: 1px solid #d2d2d2 !important;
 }
 
 #side-menu {
@@ -114,12 +125,11 @@ html, body {
 
 #main {
     transition: all 500ms ease-in-out;
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: calc(100% - 2px);
-    height: calc(100% - 2px);
-    border: 1px solid rgba(128, 128, 128, 0.3);
+    position: fixed !important;
+    left: 1px !important;
+    top: 1px !important;
+    width: calc(100% - 2px) !important;
+    height: calc(100% - 2px) !important;
 }
 
 #main-container {
@@ -294,31 +304,6 @@ html, body {
     line-height: 2;
 }
 
-#cover-bottom-left {
-    position: absolute;
-    left: 0;
-    width: calc(50% - 10px);
-    height: 100%;
-    padding-left: 10px;
-}
-
-#cover-bottom-right {
-    position: absolute;
-    right: 0;
-    width: calc(50% - 10px);
-    height: 100%;
-    padding-right: 10px;
-    text-align: right;
-}
-
-#cover-bottom .button-bottom.hover {
-    color: #cecece;
-}
-
-#cover-bottom .button-bottom:active {
-    color: #dcdcdc;
-}
-
 /*#editor * {
     transition: all 500ms ease-in-out;
 }*/
@@ -358,7 +343,7 @@ body[settings-editor-font="sans"] #editor  * {
 @media screen and (min-width: 875px){
     .read #container {
         max-width: 1200px !important;
-        width: 70% !important;
+        width: calc(100% - 45px * 2) !important;
     }
 }
 
@@ -580,8 +565,48 @@ div#cover-bottom {
 }
 
 
+
 #editor.ctrl span.cm-string.cm-url:hover {
     text-decoration: underline;
     color: blue;
     cursor: pointer;
+}
+
+#cover-bottom-tools{
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+
+#cover-bottom-left {
+    padding-left: 10px;
+    z-index: 1;
+}
+#cover-bottom-status{
+    flex: 1;
+    z-index: 1;
+    line-height: 25px;
+    padding-left: 10px;
+}
+#cover-bottom-status #status-content{
+    flex: 1;
+    font-size: 13px;
+    line-height: 25px;
+    color: #808080;
+    opacity: 1;
+    transition: opacity 1s;
+}
+
+#cover-bottom-right {
+    padding-right: 10px;
+    z-index: 1;
+}
+
+#cover-bottom .button-bottom.hover {
+    color: #cecece;
+}
+
+#cover-bottom .button-bottom:active {
+    color: #dcdcdc;
 }

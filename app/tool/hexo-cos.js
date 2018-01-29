@@ -121,10 +121,11 @@ class COSServer {
 
     deleteObject(fileanme, cb) {
         this.cos.deleteObject({
-            Bucket: config.Bucket, // Bucket 格式：test-1250000000
+            Bucket: config.Bucket,
             Region: config.Region,
             Key: fileanme
         }, function (err, data) {
+            console.log(data)
             if (typeof cb === 'function')
                 cb(err || data);
         });
