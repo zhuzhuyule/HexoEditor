@@ -65,7 +65,7 @@ body{
     cursor: default;
     z-index: 1;
     position: absolute;
-    /*border-right: 1px solid #ccc;*/
+    border-right: 1px solid #d2d2d2;
 }
 
 #side-menu #logo {
