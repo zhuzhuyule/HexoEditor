@@ -195,13 +195,11 @@ class ImgManager {
         switch (typeServer) {
             case 'smms': {
                 uploadList.forEach((response) => {
-                        response.data.data.forEach((item) => {
-                            this.getUploadServer().del(item.hash);
-                            if (typeBack > 220 || typeBack == 22)
-                                this.getUploadServer().deleteQiniuFile(item.path.slice(1));
-                            if (typeBack > 200)
-                                this.getUploadServer().deleteCosFile(item.path.slice(1));
-                        })
+                        this.getUploadServer().del(response.data.hash);
+                        if (typeBack > 220 || typeBack == 22)
+                            this.getUploadServer().deleteQiniuFile(response.data.path);
+                        if (typeBack > 200)
+                            this.getUploadServer().deleteCosFile(response.data.path);
                     }
                 );
                 this.getUploadServer().clearSmmsList();
@@ -209,18 +207,14 @@ class ImgManager {
             }
             case 'qiniu': {
                 uploadList.forEach((response) => {
-                        response.data.data.forEach((item) => {
-                            this.getUploadServer().deleteQiniuFile(item.path.slice(1));
-                        })
+                        this.getUploadServer().deleteQiniuFile(response.data.path);
                     }
                 );
                 break;
             }
             case 'cos': {
                 uploadList.forEach((response) => {
-                        response.data.data.forEach((item) => {
-                            this.getUploadServer().deleteCosFile(item.path.slice(1));
-                        })
+                        this.getUploadServer().deleteCosFile(response.data.path);
                     }
                 );
                 break;

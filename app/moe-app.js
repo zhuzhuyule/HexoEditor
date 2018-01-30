@@ -21,6 +21,7 @@
 
 'use strict';
 
+global.log4js = require('log4js');
 const MoeditorWindow = require('./moe-window'),
     MoeditorAction = require('./moe-action'),
     MoeditorFile = require('./moe-file'),
@@ -38,6 +39,21 @@ class MoeditorApplication {
     constructor() {
         this.windows = new Array();
         this.hexoWindow = null;
+        log4js.configure({
+            appenders: {
+                out: {type: 'stdout', level: 'all'},//设置是否在控制台打印日志
+                debugs: {type: 'file', filename: './logs/debug.log', level: 'debug',maxLogSize: 1024*1024*5},
+                infos: {type: 'file', filename: './logs/log.log', level: 'debug',maxLogSize: 1024*1024*5},
+                errors: { type: 'file', filename: './logs/error.log' ,maxLogSize: 1024*1024*2},
+                debug: { type: 'logLevelFilter', appender: 'debugs', level: 'debug' },
+                info: { type: 'logLevelFilter', appender: 'infos', level: 'info' },
+                error: { type: 'logLevelFilter', appender: 'errors', level: 'error' }
+            },
+            categories: {
+                default: {appenders: ['out', 'info', 'debug','error'], level: 'debug'}
+            }
+        })
+        global.log = log4js.getLogger('log');
     }
 
     open(fileName, defName) {
@@ -49,14 +65,18 @@ class MoeditorApplication {
     }
 
     getShellServer() {
-        if (!shellServer)
+        if (!shellServer){
+            log.info('create shellServer');
             shellServer = new (require('./tool/hexo-shell'))();
+        }
         return shellServer;
     }
 
     getUploadServer() {
-        if (!uploadServer)
+        if (!uploadServer) {
+            log.info('create uploadServer');
             uploadServer = new (require('./tool/hexo-uploadServer'))();
+        }
         return uploadServer;
     }
 
@@ -71,7 +91,6 @@ class MoeditorApplication {
 
         this.locale = new MoeditorLocale();
         global.__ = str => this.locale.get(str);
-
         this.flag = new Object();
 
         const a = process.argv;
@@ -255,6 +274,9 @@ class MoeditorApplication {
 
     setHexo(hexo) {
         this.hexo = hexo;
+    }
+    getLog4js(){
+        return log4js;
     }
 }
 

@@ -1,4 +1,5 @@
 module.exports = (function () {
+    const log = log4js.getLogger('uploadServer.js');
     const path = require('path');
     let isUploading = false;
     let imgType = {
@@ -24,6 +25,7 @@ module.exports = (function () {
 
     function getSmmsServer() {
         if (!smmsServer) {
+            log.info('create SmmsServer');
             smmsServer = new (require('./hexo-smms'))();
         }
         return smmsServer;
@@ -31,6 +33,7 @@ module.exports = (function () {
 
     function getQiNiuServer() {
         if (!qiniuServer) {
+            log.info('create qiniuServer');
             qiniuServer = new (require('./hexo-qiniu'))();
             qiniuServer.update(
                 moeApp.config.get('image-qiniu-accessKey'),
@@ -44,6 +47,7 @@ module.exports = (function () {
 
     function getCOSServer() {
         if (!cosServer) {
+            log.info('create cosServer');
             cosServer = new (require('./hexo-cos'))();
             let bucketObj = moeApp.config.get('image-cos-bucket');
             bucketObj = (bucketObj || "|").split('|');
@@ -60,14 +64,17 @@ module.exports = (function () {
 
     function asyncUploadToSmms(imgPath, callback) {
         statusList[imgPath] = {type: 0};
+        log.debug(`upload [${imgPath}] to SM.MS`);
         getSmmsServer().uploadFile(imgPath, '', callback);
     }
 
     function asyncUploadToQiNiu(imgPath, serverName, callback) {
+        log.debug(`upload [${imgPath}] to QiNiu [${serverName}]`);
         getQiNiuServer().uploadFile(imgPath, serverName, callback);
     }
 
     function asyncUploadToCOS(imgPath, serverName, callback) {
+        log.debug(`upload [${imgPath}] to Cos [${serverName}]`);
         getCOSServer().sliceUploadFile(imgPath, serverName, callback);
     }
 
@@ -102,6 +109,7 @@ module.exports = (function () {
     function checktime() {
         clearTimeout(timeout);
         timeout = setTimeout(() => {
+            log.warn(`upload operate timeout !`);
             uploadEnd(true);
         }, 30000)
     }
@@ -134,8 +142,13 @@ module.exports = (function () {
         let uploadNext = true;
         let imgPath = result.id;
         let nextType = '';
+        if( result.statusCode == 200){
+            log.info('sucess:' + result.id, result.data.path, result.data.url);
+        }else{
+            log.warn('failed:' + result.statusCode,result.id, result.msg);
+        }
+
         if (typeServer == 'smms' && typeBack > 2) {  //是否需要备份
-            console.log(result.statusCode, result.data.path, result.data.url)
             statusList[imgPath].type += result.type;
             if (statusList[imgPath].type == 2) {  //Smsm
                 statusList[imgPath].hash = result.data.hash;
@@ -236,9 +249,8 @@ module.exports = (function () {
         try {
             clearTimeout(timeout);
             if (isTimeout)
-                errorList.set('Upload time out!', {msg: 'Place check your net!'});
+                errorList.push('Upload time out!', {msg: 'Place check your net!'});
         } finally {
-            console.log('upload end ! use time: ', new Date() - startDate)
             let info = {
                 order: order,
                 isLoading: false,
@@ -250,6 +262,7 @@ module.exports = (function () {
             }
             finishedCallback(info, successList, errorList);
             isUploading = false;
+            log.info(`---End upload---[S: ${successList.length}| F: ${errorList.length}][time:${ new Date() - startDate}]`);
         }
     }
 
@@ -319,6 +332,7 @@ module.exports = (function () {
                 return;
             if (!(pathArray instanceof Array))
                 return;
+            log.info(`---begin upload---[${pathArray.length}]`);
             startDate = new Date();
             isUploading = true;
             baseDir = srcDir;

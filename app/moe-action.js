@@ -22,6 +22,7 @@
 
 const {dialog} = require('electron'),
     MoeditorFile = require('./moe-file'),
+    log = log4js.getLogger('action.js'),
     moment = require('moment'),
     fs = require('fs'),
     path = require('path');
@@ -98,7 +99,7 @@ class MoeditorAction {
                 }
             }
         } catch (e) {
-            console.log(e)
+            log.error(e)
         } finally {
             if (notOpened)
                 moeApp.open();
@@ -141,7 +142,7 @@ class MoeditorAction {
                             hexoWindow.focus();
                             break;
                         } catch (e) {
-                            console.log(e);
+                            log.error(e);
                         }
                     }
                 }
@@ -178,7 +179,7 @@ class MoeditorAction {
                     type: 'error',
                     content: __('Can\'t save file') + ', ' + e.toString()
                 });
-                console.log('Can\'t save file: ' + e.toString());
+                log.error('Can\'t save file: ' + e.toString());
                 return false;
             }
         }
@@ -222,7 +223,7 @@ class MoeditorAction {
                 type: 'error',
                 content: __('Can\'t save file') + ', ' + e.toString()
             });
-            console.log('Can\'t save file: ' + e.toString());
+            log.error('Can\'t save file: ' + e.toString());
             return false;
         }
     }
@@ -256,7 +257,7 @@ class MoeditorAction {
                     type: 'error',
                     content: __('Can\'t export as HTML') + ', ' + e.toString()
                 });
-                console.log('Can\'t export as HTML: ' + e.toString());
+                log.error('Can\'t export as HTML: ' + e.toString());
             }
         });
     }
@@ -282,7 +283,7 @@ class MoeditorAction {
                     type: 'error',
                     content: __('Can\'t export as PDF') + ', ' + e.toString()
                 });
-                console.log('Can\'t export as PDF: ' + e.toString());
+                log.warn('Can\'t export as PDF: ' + e.toString());
             }
             try {
                 hexoWindow.hexoeditorWindow.window.webContents.send('pop-message', {

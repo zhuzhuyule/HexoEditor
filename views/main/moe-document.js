@@ -27,6 +27,8 @@ window.clipboard = require('electron').clipboard;
 window.fs = require('fs');
 window.path = require('path');
 window.url = require('url');
+global.log4js = window.log4js = moeApp.getLog4js();
+global.log = window.log = log4js.getLogger('Front');
 
 $(() => {
     const dialog = require('electron').remote.dialog;
@@ -264,7 +266,7 @@ $(() => {
                 if (fs.existsSync(imgPathOld)) {
                     let imgPathNew = path.join(imgManager.imgBaseDir,nameNew).replace(/\\/g,'/');
                     fs.rename(imgPathOld, imgPathNew, err => {
-                        if (err) console.error(err);
+                        if (err) log.error(err);
                         fs.stat(imgFilePathNew, (err, stats) => {
                             if (err) console.error(err);
                             let relativePathOld = imgManager.relativePath(imgPathOld);

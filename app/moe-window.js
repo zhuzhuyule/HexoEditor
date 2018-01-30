@@ -28,7 +28,7 @@ const BrowserWindow = require('electron').BrowserWindow,
 class MoeditorWindow {
 	constructor(path,defName) {
         moeApp.hexoWindow = this;
-
+        log.info('create window');
         if (MoeditorFile.isDirectory(path)) {
             this.directory = path
             this.fileName = '';
@@ -97,7 +97,6 @@ class MoeditorWindow {
                 }
             }
 
-            console.log(this.window == moeApp.getShellServer().lastWindow)
             if (this.window == moeApp.getShellServer().lastWindow)
                 process.nextTick(moeApp.getShellServer().kill,false);
 
