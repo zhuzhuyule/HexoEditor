@@ -35,10 +35,11 @@ var smms = (function () {
                 var content = body;
                 if (content) {
                     content = content.match(/<div class="container"><div[^>]*>([^<]*)</)
-                    if (content != null)
+                    if (content != null){
+                        log.info(`[${fileHash}]:`+content[1])
                         content = fileHash + ' : ' + content[1];
+                    }
                 }
-                log.info(content)
             })
         }
 

@@ -143,9 +143,9 @@ module.exports = (function () {
         let imgPath = result.id;
         let nextType = '';
         if( result.statusCode == 200){
-            log.info('sucess:' + result.id, result.data.path, result.data.url);
+            log.info(`sucess:[${result.id}]-->[${result.data.url}]`);
         }else{
-            log.warn('failed:' + result.statusCode,result.id, result.msg);
+            log.warn(`failed:[${result.statusCode}][${+result.id}]-->[${result.msg}]`);
         }
 
         if (typeServer == 'smms' && typeBack > 2) {  //是否需要备份
@@ -262,7 +262,7 @@ module.exports = (function () {
             }
             finishedCallback(info, successList, errorList);
             isUploading = false;
-            log.info(`---End upload---[S: ${successList.length}| F: ${errorList.length}][time:${ new Date() - startDate}]`);
+            log.info(`---End upload---[S:${successList.length}| F:${errorList.length}][time:${ new Date() - startDate}]`);
         }
     }
 
@@ -332,7 +332,7 @@ module.exports = (function () {
                 return;
             if (!(pathArray instanceof Array))
                 return;
-            log.info(`---begin upload---[${pathArray.length}]`);
+            log.info(`---Begin upload---[${pathArray.length}]`);
             startDate = new Date();
             isUploading = true;
             baseDir = srcDir;

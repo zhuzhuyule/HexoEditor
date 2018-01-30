@@ -137,7 +137,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     label: imageMenuLable,
                     enabled: imageMenuEnable,
                     click(item, w) {
-                        !imgManager.uploadLocalSrc();
+                        imgManager.uploadLocalSrc();
+                    }
+                },
+                {
+                    label: __('UndoUpload'),
+                    visible: imgManager.hasUploadFile(),
+                    click(item, w) {
+                        imgManager.abortUploading();
                     }
                 },
                 {

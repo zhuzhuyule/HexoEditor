@@ -22,6 +22,10 @@ class ImgManager {
         this.updateBase();
     }
 
+    hasUploadFile(){
+        return (uploadList.length > 0)
+    }
+
     updateBase() {
         let rootPaht = '';
         if (moeApp.config.get('image-source-center')) {
@@ -220,7 +224,7 @@ class ImgManager {
                 break;
             }
         }
-
+        uploadList = [];
     }
 
     uploadDelAll() {
@@ -276,6 +280,7 @@ class ImgManager {
             let maxIndex = errorList.length - 1;
             if (maxIndex >= 0) {
                 errorList.forEach((response, index) => {
+                    log.warn(`Failed File:[${response.id}]==>[${__(response.msg)}]`);
                     errMsg += response.id + ':' + __(response.msg) + '</br>';
                     if (maxIndex == index) {
                         window.popMessageShell(null, {
@@ -298,6 +303,7 @@ class ImgManager {
         function updateSrc(successList) {
             let content = editor.getValue();
             let maxIndex = successList.length - 1;
+            log.info(`Begin update Src[${maxIndex}]`);
             successList.forEach((response, index) => {
                 uploadList.push(response);
                 content = content.replace(new RegExp(imgManager.imgPathToMarkURL[response.id], 'g'), response.data.url);
@@ -308,6 +314,7 @@ class ImgManager {
                     editor.setValue(content);
                     hexoWindow.content = content;
                     hexoWindow.changed = true;
+                    log.info(`End update Src[${maxIndex}]`);
                 }
             });
         }

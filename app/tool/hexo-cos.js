@@ -42,7 +42,7 @@ var cosServer = (function () {
          * @param bucket
          * @param region
          */
-        update(acessKey, secretKey, bucket, region,protocol) {
+        update(acessKey, secretKey, bucket, region, protocol) {
             this.cos.options.SecretId = acessKey || config.SecretId || '';
             this.cos.options.SecretKey = secretKey || config.SecretKey || '';
             config.SecretId = acessKey || config.SecretId || '';
@@ -55,14 +55,14 @@ var cosServer = (function () {
 
         getService(cb) {
             this.cos.getService(function (err, data) {
-                if(!err && !err && [200,204].includes(data.statusCode) ) {
+                if (!err && !err && [200, 204].includes(data.statusCode)) {
                     log.info(data)
                     data.statusCode = 200;
-                }  else {
+                } else {
                     log.error(err.error.message);
                 }
                 if (typeof cb === 'function')
-                    cb(err||data );
+                    cb(err || data);
             });
         }
 
@@ -74,14 +74,14 @@ var cosServer = (function () {
                 Expires: 60,
                 Sign: true,
             }, function (err, data) {
-                if(!err && [200,204].includes(data.statusCode) ) {
+                if (!err && [200, 204].includes(data.statusCode)) {
                     log.info(data)
                     data.statusCode = 200;
-                }  else {
+                } else {
                     log.error(err.error.message);
                 }
                 if (typeof cb === 'function')
-                    cb(err||data );
+                    cb(err || data);
             });
             return url;
         }
@@ -91,14 +91,14 @@ var cosServer = (function () {
                 Bucket: config.Bucket, // Bucket 格式：test-1250000000
                 Region: config.Region
             }, function (err, data) {
-                if(!err && [200,204].includes(data.statusCode) ) {
+                if (!err && [200, 204].includes(data.statusCode)) {
                     log.info(data)
                     data.statusCode = 200;
-                }  else {
+                } else {
                     log.error(err.error.message);
                 }
                 if (typeof cb === 'function')
-                    cb(err||data );
+                    cb(err || data);
             });
         }
 
@@ -107,14 +107,14 @@ var cosServer = (function () {
                 Bucket: config.Bucket, // Bucket 格式：test-1250000000
                 Region: config.Region
             }, function (err, data) {
-                if(!err && [200,204].includes(data.statusCode) ) {
+                if (!err && [200, 204].includes(data.statusCode)) {
                     log.info(data)
                     data.statusCode = 200;
-                }  else {
+                } else {
                     log.error(err.error.message);
                 }
                 if (typeof cb === 'function')
-                    cb(err||data );
+                    cb(err || data);
             });
         }
 
@@ -125,14 +125,14 @@ var cosServer = (function () {
                 Key: filename,
                 CopySource: config.Bucket + '.cos.' + config.Region + '.myqcloud.com/' + filename
             }, function (err, data) {
-                if(!err && [200,204].includes(data.statusCode) ) {
+                if (!err && [200, 204].includes(data.statusCode)) {
                     log.info(data)
                     data.statusCode = 200;
-                }  else {
+                } else {
                     log.error(err.error.message);
                 }
                 if (typeof cb === 'function')
-                    cb(err||data );
+                    cb(err || data);
             });
         }
 
@@ -148,14 +148,14 @@ var cosServer = (function () {
                 }
             }, function (err, data) {
                 if (typeof cb === 'function')
-                    if(!err && [200,204].includes(data.statusCode) ) {
+                    if (!err && [200, 204].includes(data.statusCode)) {
                         log.info(data)
                         data.statusCode = 200;
-                    }  else {
+                    } else {
                         log.error(err.error.message);
                     }
                 if (typeof cb === 'function')
-                    cb(err||data );
+                    cb(err || data);
             });
         }
 
@@ -165,14 +165,14 @@ var cosServer = (function () {
                 Region: config.Region,
                 Key: fileanme
             }, function (err, data) {
-                if(!err && [200,204].includes(data.statusCode) ) {
-                    log.info(fileanme,' was deleted!')
+                if (!err && [200, 204].includes(data.statusCode)) {
+                    log.info(`[${fileanme}]: was deleted!`)
                     data.statusCode = 200;
-                }  else {
-                    log.error(err.error.message);
+                } else {
+                    log.error(`[${fileanme}]:` + err.error.message)
                 }
                 if (typeof cb === 'function')
-                    cb(err||data );
+                    cb(err || data);
             });
         }
 
@@ -185,14 +185,14 @@ var cosServer = (function () {
                                     //     {Key: '3mb.zip'},
                                     // ]
             }, function (err, data) {
-                if(!err && [200,204].includes(data.statusCode) ) {
+                if (!err && [200, 204].includes(data.statusCode)) {
                     log.info(data)
                     data.statusCode = 200;
-                }  else {
+                } else {
                     log.error(err.error.message);
                 }
                 if (typeof cb === 'function')
-                    cb(err||data );
+                    cb(err || data);
             });
         }
 
@@ -223,27 +223,27 @@ var cosServer = (function () {
                 }*/
 
                 if (typeof cb === "function") {
-                    let result = {type: 100,id: localFile};
-                    if (err){
+                    let result = {type: 100, id: localFile};
+                    if (err) {
                         result.type = 100;
                         result.statusCode = err.statusCode;
                         result.msg = err.error.message;
-                    } else{
+                    } else {
                         result.type = 200;
                         result.statusCode = data.statusCode;
                         result.data = {
                             localname: path.basename(localFile),
                             storename: path.basename(serverFile),
                             path: serverFile,
-                            url: config.Protocol + data.Location.replace(/https?:\/\//,''),
+                            url: config.Protocol + data.Location.replace(/https?:\/\//, ''),
                         }
                     }
                     cb(result)
                 } else {
-                    if (err){
+                    if (err) {
                         log.error(err.error.message);
-                    } else{
-                        log.info(config.Protocol + data.Location.replace(/https?:\/\//,''))
+                    } else {
+                        log.info(config.Protocol + data.Location.replace(/https?:\/\//, ''))
                     }
                 }
             });
@@ -275,28 +275,30 @@ var cosServer = (function () {
                 *  statusCode: 200,
                 *  headers: {}
                 }*/
-                if(!err && [200,204].includes(data.statusCode) ) {
-                    log.info(data)
-                    data.statusCode = 200;
-                }  else {
-                    log.error(err.error.message);
-                }
+
                 if (typeof cb === "function") {
-                    let result = {type: 100,id: localFile};
-                    if (err){
+                    let result = {type: 100, id: localFile};
+                    if (err) {
                         result.statusCode = err.statusCode;
                         result.msg = err.error.message;
-                    } else{
+                    } else {
                         result.type = 200;
                         result.statusCode = data.statusCode;
                         result.data = {
                             localname: path.basename(localFile),
                             storename: path.basename(serverFile),
                             path: data.Key,
-                            url: config.Protocol + data.Location,
+                            url: config.Protocol + data.Location
                         }
                     }
                     cb(result)
+                } else {
+                    if (!err && [200, 204].includes(data.statusCode)) {
+                        log.info(config.Protocol + data.Location)
+                        data.statusCode = 200;
+                    } else {
+                        log.error(err.error.message);
+                    }
                 }
             });
         }
@@ -316,6 +318,7 @@ var cosServer = (function () {
             console.log('restart');
         }
     }
+
     return CosServer;
 })();
 

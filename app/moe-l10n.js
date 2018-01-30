@@ -80,11 +80,15 @@ class MoeditorLocale {
 
 	get(str) {
         let res;
-		if (typeof strings[this.locale] === 'undefined' || typeof strings[this.locale][str] === 'undefined') {
-            res = strings['en'][str] || str;
-            console.log('Localization of "' + str + '" in "' + this.locale + '" failed, falling back to English.');
+		if (typeof strings[this.locale] == 'undefined' || typeof strings[this.locale][str] == 'undefined') {
+            res = strings['en'][str];
+            if (!res || res == undefined )
+                res = str;
+            // console.log('Localization of "' + str + '" in "' + this.locale + '" failed, falling back to English.');
         } else {
             res = strings[this.locale][str];
+            if (!res || res == undefined )
+                res = str;
         }
         return res;
 	}
@@ -234,6 +238,7 @@ const strings = {
         "UploadToCOS": "Upload To COS",
         "UploadToSMMS": "Upload To SM.MS",
         "UploadToQiNiu": "Upload To QiNiu",
+        "UndoUpload": "Undo Uploaded",
         "Quick Open":"Quick Open",
         "OpenPathPost":"Open Post Path",
         "OpenPathPostSrc":"Open Post Src Path",
@@ -408,6 +413,7 @@ const strings = {
         "UploadToCOS": "上传 腾讯云",
         "UploadToSMMS": "上传 SM.MS",
         "UploadToQiNiu": "上传 七牛",
+        "UndoUpload": "撤销上传",
         "Quick Open":"快速打开",
         "OpenPathPost":"本文所在路径",
         "OpenPathPostSrc":"本文图片路径",
