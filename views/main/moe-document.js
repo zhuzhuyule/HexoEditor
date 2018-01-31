@@ -278,17 +278,8 @@ $(() => {
                 }
             }
             if (force) {
-                fs.writeFile(hexoWindow.fileName, hexoWindow.content, (err) => {
-                    if (err) {
-                        hexoWindow.window.setDocumentEdited(true);
-                        return;
-                    }
-                    hexoWindow.isSaved = true;
-                    hexoWindow.changed = false;
-                    hexoWindow.window.setDocumentEdited(false);
-                    hexoWindow.fileContent = hexoWindow.content;
-                    app.addRecentDocument(nameNew);
-                });
+                const MoeditorAction = require('electron').remote.require('./moe-action');
+                MoeditorAction.save(hexoWindow.window);
             }
         } catch (e) {
             console.log(e);
@@ -298,17 +289,8 @@ $(() => {
     window.autoSave = () => {
         const option = moeApp.config.get('auto-save');
         if (option === 'auto' && hexoWindow.content !== hexoWindow.fileContent) {
-            fs.writeFile(hexoWindow.fileName, hexoWindow.content, (err) => {
-                if (err) {
-                    hexoWindow.changed = true;
-                    hexoWindow.window.setDocumentEdited(true);
-                    return;
-                }
-                hexoWindow.isSaved = true;
-                hexoWindow.changed = false;
-                hexoWindow.fileContent = hexoWindow.content;
-                hexoWindow.window.setDocumentEdited(false);
-            });
+            const MoeditorAction = require('electron').remote.require('./moe-action');
+            MoeditorAction.save(hexoWindow.window);
         }
     }
 
@@ -442,7 +424,7 @@ $(() => {
     window.onfocus = (e) => {
         if (hexoWindow.fileName === '' || !fs.existsSync(hexoWindow.fileName))
             return;
-        fs.readFile(hexoWindow.fileName, (err, res) => {
+        fs.readFile(hexoWindow.fileName,"utf8", (err, res) => {
             if (err) {
                 hexoWindow.changed = true;
                 hexoWindow.window.setDocumentEdited(true);

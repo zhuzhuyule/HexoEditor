@@ -41,12 +41,12 @@ var shellServer = (function () {
         }
 
         execCmd(command) {
-            log.info('execute', command);
             let flagOK = false;
             clearTimeout(_shellServer.timeID);
             _shellServer.closeMsg = false;
             _shellServer.lastWindow = require('electron').BrowserWindow.getFocusedWindow();
             _shellServer.isForce = false;
+            log.info('Begin execute:', `[${moeApp.hexo.config.__basedir}] [${command}]`);
             _shellServer.shellProcess = exec(command, {cwd: moeApp.hexo.config.__basedir});
             _shellServer.sendConsole('<i class="fa fa-spinner fa-pulse fa-fw margin-bottom"></i>' + __("Executing"), 'info', 'ban');
             _shellServer.shellProcess.stderr.on('data', (data) => {
@@ -69,6 +69,7 @@ var shellServer = (function () {
                 }
             });
             _shellServer.shellProcess.on('close', (code, signal) => {
+                log.info('End   execute:', `[${moeApp.hexo.config.__basedir}] [${command}]`);
                 if (flagOK === -1)
                     _shellServer.sendConsole(__('Operation Execution Timeout'), 'danger', 'close');
                 else if (_shellServer.isForce)

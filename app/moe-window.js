@@ -28,7 +28,7 @@ const BrowserWindow = require('electron').BrowserWindow,
 class MoeditorWindow {
 	constructor(path,defName) {
         moeApp.hexoWindow = this;
-        log.info('create window');
+        log.info ('new HexoEditor.');
         if (MoeditorFile.isDirectory(path)) {
             this.directory = path
             this.fileName = '';

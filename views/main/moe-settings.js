@@ -156,14 +156,14 @@ function setHexoAutoSetting(val) {
 
 function setHexoConfigEnable(val) {
     moeApp.useHexo = val;
-    imgManager.updateBase();
     hexo.changeConfig();
+    imgManager.updateBase();
     window.updatePreview(true);
 };
 
 function setHexoConfig(val) {
-    imgManager.updateBase();
     hexo.changeConfig();
+    imgManager.updateBase();
     window.updatePreview(true);
 };
 

@@ -55,7 +55,7 @@ body{
 }
 
 #side-menu {
-    width: 300px;
+    width: 299px;
     margin-left: -300px;
     height: 100%;
     background: #fafafa;
@@ -239,11 +239,11 @@ body{
 }
 
 #left-panel .cover-top {
-    left: 0;
+    left: 1px !important;
 }
 
 #right-panel .cover-top {
-    right: 0;
+    right: -1px !important;;
 }
 
 .cover-nobackground {
@@ -507,17 +507,15 @@ body[settings-mode=read] #drag-right, body[settings-mode=write] #drag-right {
 }
 
 .biu-instance {
-    line-height: 2;
     -webkit-app-region: no-drag;
     font-size: 14px;
     font-family: Roboto, Helvetica, 'Segoe UI', Arial, sans-serif;
+    line-height: 1.4 !important;
+    padding: 5px 0px 4px 0!important;
 }
 
 .biu-instance.biu-webConsole{
     -webkit-app-region: drag;
-    padding: 0;
-    top: 1px;
-    box-shadow: none;
 }
 
 .biu-close{

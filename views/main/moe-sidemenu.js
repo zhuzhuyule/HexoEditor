@@ -19,9 +19,9 @@
 
 'use strict';
 
-const MoeditorAction = require('electron').remote.require('./moe-action');
 
 document.addEventListener('DOMContentLoaded', () => {
+    const MoeditorAction = require('electron').remote.require('./moe-action');
     const sideMenuButton = document.getElementById('button-bottom-menu');
     const sideMenu = document.getElementById('side-menu');
     const sideMenuCover = document.getElementById('side-menu-cover');
@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function hideMenu() {
-        sideMenu.style.marginLeft = '-300px';
+        sideMenu.style.marginLeft =  -document.getElementById('side-menu').offsetWidth + 'px';
         document.getElementById('main').classList.remove('notransition');
         sideMenuCover.style.opacity = '0';
         sideMenuCover.style.pointerEvents = 'none';
