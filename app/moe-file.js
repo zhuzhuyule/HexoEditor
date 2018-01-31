@@ -23,21 +23,21 @@
 const fs = require('fs'),
     mime = require('mime');
 
-const lineSeparators=['\r\n','\r'];
-let fileLineSeparators={};
+// const lineSeparators=['\r\n','\r'];
+// let fileLineSeparators={};
 
-function normalizeLineEndings(str) {
-    if (!str) return str;
-    return str.replace(/\r\n|\r/g, '\n');
-}
-function restoreLineEndings(fileName,str) {
-    if (!str) return str;
-
-    let sep=fileLineSeparators[fileName]
-    if(sep===undefined){return str;}
-
-    return str.replace(/\n/g,sep);
-}
+// function normalizeLineEndings(str) {
+//     if (!str) return str;
+//     return str.replace(/\r\n|\r/g, '\n');
+// }
+// function restoreLineEndings(fileName,str) {
+//     if (!str) return str;
+//
+//     let sep=fileLineSeparators[fileName]
+//     if(sep===undefined){return str;}
+//
+//     return str.replace(/\n/g,sep);
+// }
 
 class MoeditorFile {
     static isFile(fileName) {
@@ -68,30 +68,26 @@ class MoeditorFile {
 
     static read(fileName, empty) {
         try {
-            var content=fs.readFileSync(fileName,"utf8");
-
-            for(let i in lineSeparators){
-                let sep=lineSeparators[i];
-                if(content.indexOf(sep)>=0){
-                    fileLineSeparators[fileName]=sep;break;
-                }
-            }
-
-            return normalizeLineEndings(content);
+            // for(let i in lineSeparators){
+            //     let sep=lineSeparators[i];
+            //     if(content.indexOf(sep)>=0){
+            //         fileLineSeparators[fileName]=sep;break;
+            //     }
+            // }
+            // return normalizeLineEndings(content);
+            return fs.readFileSync(fileName,"utf8");
         } catch(e) {
             return empty;
         }
     }
 
     static write(fileName, content) {
-        content=restoreLineEndings(fileName,content)
-
+        // content=restoreLineEndings(fileName,content)
         return fs.writeFileSync(fileName, content);
     }
 
     static writeAsync(fileName, content, cb) {
-        content=restoreLineEndings(fileName,content)
-
+        // content=restoreLineEndings(fileName,content)
         return fs.writeFile(fileName, content, cb);
     }
 
