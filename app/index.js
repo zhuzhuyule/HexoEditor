@@ -47,7 +47,7 @@ app.on('open-file', (e, file) => {
 });
 
 app.on('activate', () => {
-    if (moeApp.windows.length == 0) {
+    if (moeApp != null && moeApp.windows && moeApp.windows.length == 0) {
         moeApp.open();
     }
 });

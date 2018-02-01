@@ -35,38 +35,54 @@ class ImgManager {
         } else {
             rootPaht = hexoWindow.directory;
         }
-        rootPaht = rootPaht.replace(/\\/g, '/');
-        this.imgPathDir = path.join(rootPaht, this.postName);
-        if (this.imgBaseDir && this.imgBaseDir !== rootPaht) {
-            const oldPath = path.join(this.imgBaseDir, this.postName);
-            if (fs.existsSync(oldPath)) {
-                try {
-                    fs.renameSync(oldPath, this.imgPathDir);
-                } catch (e) {
-                    fs.renameSync(oldPath, this.imgPathDir);
-                }
-                this.updateDictionary(this.imgBaseDir, rootPaht)
+        fs.access(rootPaht, fs.constants.R_OK | fs.constants.W_OK, (err) => {
+            if(err){
+                log.warn(`setting [${rootPaht}] failed.` + err)
+                rootPaht = path.join(moeApp.storePath,'images');
+            }   else {
+                log.info(`setting [${rootPaht}] success.`)
             }
-        }
-        this.imgBaseDir = rootPaht;
+            rootPaht = rootPaht.replace(/\\/g, '/');
+            this.imgPathDir = path.join(rootPaht, this.postName);
+            if (this.imgBaseDir && this.imgBaseDir !== rootPaht) {
+                const oldPath = path.join(this.imgBaseDir, this.postName);
+                if (fs.existsSync(oldPath)) {
+                    try {
+                        fs.renameSync(oldPath, this.imgPathDir);
+                    } catch (e) {
+                        fs.renameSync(oldPath, this.imgPathDir);
+                    }
+                    this.updateDictionary(this.imgBaseDir, rootPaht)
+                }
+            }
+            this.imgBaseDir = rootPaht;
+        });
     }
 
     mkdirsSync(dirpath, mode) {
-        if (!fs.existsSync(dirpath)) {
-            var pathtmp;
-            dirpath.split(path.sep).forEach(function (dirname) {
-                if (pathtmp) {
-                    pathtmp = path.join(pathtmp, dirname);
-                }
-                else {
-                    pathtmp = dirname;
-                }
-                if (!fs.existsSync(pathtmp)) {
-                    if (!fs.mkdirSync(pathtmp, mode)) {
-                        return false;
+        try{
+            if (!fs.existsSync(dirpath)) {
+                var pathtmp;
+                dirpath.split(path.sep).forEach(function (dirname) {
+                    if (pathtmp) {
+                        pathtmp = path.join(pathtmp, dirname);
                     }
-                }
-            });
+                    else {
+                        pathtmp = dirname;
+                    }
+
+                    if (fs.existsSync(pathtmp)) {
+                        fs.accessSync(pathtmp, fs.constants.R_OK | fs.constants.W_OK);
+                    }else
+                        if (!fs.mkdirSync(pathtmp, mode)) {
+                            return false;
+                    }
+                });
+            }
+            log.info(`setting [${dirpath}] success.`)
+        } catch (e) {
+            log.warn(`setting [${dirpath}] failed.` + e)
+            return false;
         }
         return true;
     }
@@ -136,6 +152,7 @@ class ImgManager {
                     }
                 }
             } catch (e) {
+                log.error(e);
             } finally {
                 return relativePath
             }

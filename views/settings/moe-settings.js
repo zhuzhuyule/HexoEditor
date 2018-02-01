@@ -473,18 +473,35 @@ document.addEventListener('DOMContentLoaded', () => {
     imageSourceButton.addEventListener('click', () => {
         dialog.showOpenDialog(window.hexoWindow, {
             properties: ['openDirectory'],
-            filters: [
-                {name: __('All Files'), extensions: ['yml']},
-                {name: __('All Files'), extensions: ['*']}
-            ]
         }, (fileName) => {
             if (!fileName || fileName.length === 0) return;
             fileName = fileName[0];
-            if (imageSourceInput.value !== fileName) {
-                moeApp.config.set(imageSourceInput.id, fileName);
-                ipcRenderer.send('setting-changed', {key: imageSourceInput.id, val: fileName});
-                imageSourceInput.value = fileName;
-            }
+
+            fs.access(fileName, fs.constants.R_OK | fs.constants.W_OK, (err) => {
+                     if(err){
+                         log.error(`setting [${fileName}] failed.`+err)
+                         dialog.showMessageBox(
+                             window.hexoWindow,
+                             {
+                                 type: 'warning',
+                                 title: __('Waring'),
+                                 message: __("WaringNoFile"),
+                                 detail: 'Directory prohibit reading or writing!'
+                             },
+                             function (res) {
+                             }
+                         )
+                     } else{
+                         log.info(`setting [${fileName}] success.`)
+                         if (imageSourceInput.value !== fileName) {
+                             moeApp.config.set(imageSourceInput.id, fileName);
+                             ipcRenderer.send('setting-changed', {key: imageSourceInput.id, val: fileName});
+                             imageSourceInput.value = fileName;
+                         }
+                     }
+
+            });
+
         });
     });
 

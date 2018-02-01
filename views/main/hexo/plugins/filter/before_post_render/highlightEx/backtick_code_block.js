@@ -160,10 +160,9 @@ function backtickCodeBlock(data) {
             autoDetect: config.auto_detect
         })
             .replace(/{/g, '&#123;')
-            .replace(/}/g, '&#125;');;
+            .replace(/}/g, '&#125;');
 
-
-        return start + '<escape>' + content + '</escape>' + (end ? '\n\n' : '');
+        return start + content + (end ? '\n\n' : '');
     });
 }
 

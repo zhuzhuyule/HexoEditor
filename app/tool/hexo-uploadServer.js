@@ -101,6 +101,8 @@ module.exports = (function () {
                     } else {
                         asyncUploadToSmms(imgPath, callback);
                     }
+                } else {
+                    asyncUploadToSmms(imgPath, callback);
                 }
             }
         }
