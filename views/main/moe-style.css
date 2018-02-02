@@ -55,8 +55,8 @@ body{
 }
 
 #side-menu {
-    width: 299px;
-    margin-left: -300px;
+    width: 300px;
+    margin-left: -301px;
     height: 100%;
     background: #fafafa;
     transition: all 200ms ease-in-out;
