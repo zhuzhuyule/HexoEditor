@@ -101,7 +101,7 @@ Previewer.prototype.render = function (content, MoeMark, options, callback) {
                         srcLocal = path.join(hexoWindow.directory, src);
                     //最后查询文档所在目录
                     if (!srcLocal)
-                        srcLocal = path.join(moeApp.storePath,'images');
+                        srcLocal = path.join(moeApp.appDataPath,'images');
 
                     img.id = src;
                     img.setAttribute('localImg', true);

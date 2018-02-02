@@ -38,7 +38,7 @@ class ImgManager {
         fs.access(rootPaht, fs.constants.R_OK | fs.constants.W_OK, (err) => {
             if(err){
                 log.warn(`setting [${rootPaht}] failed.` + err)
-                rootPaht = path.join(moeApp.storePath,'images');
+                rootPaht = path.join(moeApp.appDataPath,'images');
             }   else {
                 log.info(`setting [${rootPaht}] success.`)
             }

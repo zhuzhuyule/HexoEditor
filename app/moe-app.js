@@ -40,13 +40,13 @@ class MoeditorApplication {
         this.windows = new Array();
         this.hexoWindow = null;
 
-        global.storePath = path.join(require('os').homedir(),'Documents','HexoEditor');
+        global.appDataPath = path.join(require('os').homedir(),'Documents','HexoEditor');
         log4js.configure({
             appenders: {
                 out: {type: 'stdout', level: 'all'},//设置是否在控制台打印日志
-                debugs: {type: 'file', filename: path.join(storePath,'logs/debug.log'), level: 'debug',maxLogSize: 1024*1024*5},
-                infos: {type: 'file', filename: path.join(storePath,'logs/log.log'), level: 'debug',maxLogSize: 1024*1024*5},
-                errors: { type: 'file', filename: path.join(storePath,'logs/error.log') ,maxLogSize: 1024*1024*2},
+                debugs: {type: 'file', filename: path.join(appDataPath,'logs','debug.log'), level: 'debug',maxLogSize: 1024*1024*5},
+                infos: {type: 'file', filename: path.join(appDataPath,'logs','log.log'), level: 'debug',maxLogSize: 1024*1024*5},
+                errors: { type: 'file', filename: path.join(appDataPath,'logs','error.log') ,maxLogSize: 1024*1024*2},
                 debug: { type: 'logLevelFilter', appender: 'debugs', level: 'debug' },
                 info: { type: 'logLevelFilter', appender: 'infos', level: 'info' },
                 error: { type: 'logLevelFilter', appender: 'errors', level: 'error' }
@@ -94,7 +94,7 @@ class MoeditorApplication {
         this.locale = new MoeditorLocale();
         global.__ = str => this.locale.get(str);
         this.flag = new Object();
-        moeApp.storePath = storePath;
+        moeApp.appDataPath = appDataPath;
 
 
         const a = process.argv;
