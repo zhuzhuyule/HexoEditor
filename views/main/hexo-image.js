@@ -62,20 +62,27 @@ class ImgManager {
     mkdirsSync(dirpath, mode) {
         try{
             if (!fs.existsSync(dirpath)) {
-                var pathtmp;
+                if (dirpath.endsWith(path.sep))
+                    dirpath = dirpath.slice(0, dirpath.length - 1);
+                var pathtmp = '';
+                var perPath = '';
                 dirpath.split(path.sep).forEach(function (dirname) {
+                    perPath = pathtmp;
+                    dirname = (dirname == ''? '/':dirname);
                     if (pathtmp) {
                         pathtmp = path.join(pathtmp, dirname);
-                    }
-                    else {
+                    } else {
                         pathtmp = dirname;
                     }
-
-                    if (fs.existsSync(pathtmp)) {
-                        fs.accessSync(pathtmp, fs.constants.R_OK | fs.constants.W_OK);
-                    }else
-                        if (!fs.mkdirSync(pathtmp, mode)) {
+                    if (!fs.existsSync(pathtmp)) {
+                        if(perPath && fs.existsSync(perPath)){
+                            fs.accessSync(perPath, fs.constants.R_OK | fs.constants.W_OK);
+                            if (!fs.mkdirSync(pathtmp, mode)) {
+                                return false;
+                            }
+                        } else {
                             return false;
+                        }
                     }
                 });
             }
@@ -254,8 +261,14 @@ class ImgManager {
 
     uploadLocalSrc() {
         let arr = [];
+        let reg;
+        if (process.platform == 'win32')
+            reg = /^file:\/\/\//;
+        else
+            reg = /^file:\/\//;
+
         document.querySelector('#right-panel').querySelectorAll('img[localimg="true"]').forEach((item) => {
-            let filePath = decodeURI(item.src).replace(/^file:\/\/\//, '');
+            let filePath = decodeURI(item.src).replace(reg, '');
             if (fs.existsSync(filePath)) {
                 arr.push(filePath);
             }
