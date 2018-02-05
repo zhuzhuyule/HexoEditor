@@ -154,7 +154,7 @@ var shellServer = (function () {
                     command = 'netstat -nao | findstr ';
                     break;
                 case 'darwin':
-                    command = 'netstat -anp|grep ';
+                    command = 'lsof -i:';
                     break;
                 default:
                     command = 'netstat -anp|grep ';
@@ -170,7 +170,7 @@ var shellServer = (function () {
                         reg = new RegExp(util.format('TCP\\s+%s:%s\\s+\\d+.\\d+.\\d+.\\d+:\\d+\\s+LISTENING\\s+(\\d+)', ip, port), 'i');
                         break;
                     case 'darwin':
-                        reg = new RegExp(util.format('tcp\\s+\\d+\\s+\\d*\\s+%s:%s\\s+\\d+.\\d+.\\d+.\\d+:[*\\d]+\\s+LISTEN\\s+(\\d+)', ip, port), 'i');
+                        reg = new RegExp('\\w+\\s+(\\d+)\\s+', 'i');
                         break;
                     default:
                         reg = new RegExp(util.format('tcp\\s+\\d+\\s+\\d*\\s+%s:%s\\s+\\d+.\\d+.\\d+.\\d+:[*\\d]+\\s+LISTEN\\s+(\\d+)', ip, port), 'i');
