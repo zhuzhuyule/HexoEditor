@@ -39,6 +39,18 @@
   * Поддержка нумерации строк
   * Авто-Показ/Скрытие скроллинга
   * Поддержка совместной прокрутка
+  * --------- v1.2.12 (2018-01-14) ---------
+  * Add Quick Hexo Command `hexo d`,`hexo g`,`hexo s`,`hexo clean` :triangular_flag_on_post:
+  * Quick Deploy Post
+  * --------- v1.3.21 (2018-01-30) ---------
+  * Quick Change Image to Markdown :triangular_flag_on_post:
+    * Support Drag Image
+    * Support Paste Clipboard Image
+  * Add Image Cloud (Those are Free Cloud) :triangular_flag_on_post:
+    * Support [SM.MS](https://sm.ms) 
+    * Support [QiNiu](https://portal.qiniu.com) 
+    * Support [Tencent](https://console.cloud.tencent.com) 
+  * Add Quick Start (Common Directory, Common URL)  
 * HexoEditor (Наследник [Moeditor](https://github.com/Moeditor/Moeditor))
   * Поддержка стиля GitHub
   * Математические выражения TeX
@@ -50,22 +62,26 @@
   * Подсветка кода в темами ([highlight.js](https://highlightjs.org/))
   * Автоматическая перезагрузка текста
   * Поддержка локализации
-  * ~~Фокус-режим~~
+  * Фокус-режим
 
 # Скриншоты
 
 ![HexoEditor Main](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/main.png)
 
-![HexoEditor Write Mode](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/side-menu.png)
+![HexoEditor side](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/side-menu.png)
 
-![HexoEditor Write Mode](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/settings.png)
+![HexoEditor menu](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/menu.png)
 
 ![HexoEditor About](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/about.png)
 
 # Gif-скриншоты
+![HexoEditor settings](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/gif-settings.gif)
+
 ![HexoEditor tag](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/gif-tag.gif)
 
 ![HexoEditor Mode](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/gif-mode.gif)
+
+![HexoEditor Upload Image](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/gif-uploadImage.gif)
 
 ![HexoEditor New Post](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/gif-newpost.gif)
 
@@ -73,18 +89,18 @@
 
 # В планах
 - [ ] Добавить Toc
-- [ ] Добавить настройку Hexo-заголовка (40%)
+- [x] Добавить настройку Hexo-заголовка (100%)
 - [ ] Добавить базовую подсветку ярлыков
 - [ ] Добавить дерево изменений файлов
 .....
-- [ ] Развертывание поста
+- [x] Развертывание поста
 - [ ] Добавить мульти-редактирование во вкладках
 
 # Компилирование
 ```c
 //is use Windows:
-npm config set prefix "C:\Program Files\nodejs\npm_global"
-npm config set cache "C:\Program Files\nodejs\npm_cache" 
+npm config set prefix "C:/Program Files/nodejs/npm_global"
+npm config set cache "C:/Program Files/nodejs/npm_cache" 
 
 //if use Linux\Mac:
 npm config set prefix "~/nodejs/npm_global"

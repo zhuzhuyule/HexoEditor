@@ -68,16 +68,20 @@ Inherit [Moeditor](https://github.com/Moeditor/Moeditor), I want to fix it appro
 
 ![HexoEditor Main](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/main.png)
 
-![HexoEditor Write Mode](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/side-menu.png)
+![HexoEditor side](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/side-menu.png)
 
-![HexoEditor Write Mode](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/settings.png)
+![HexoEditor menu](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/menu.png)
 
 ![HexoEditor About](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/about.png)
 
 # Gif Screenshots
+![HexoEditor settings](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/gif-settings.gif)
+
 ![HexoEditor tag](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/gif-tag.gif)
 
 ![HexoEditor Mode](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/gif-mode.gif)
+
+![HexoEditor Upload Image](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/gif-uploadImage.gif)
 
 ![HexoEditor New Post](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/gif-newpost.gif)
 
@@ -95,8 +99,8 @@ Inherit [Moeditor](https://github.com/Moeditor/Moeditor), I want to fix it appro
 # Building
 ```c
 //if use Windows:
-npm config set prefix "C:\Program Files\nodejs\npm_global"
-npm config set cache "C:\Program Files\nodejs\npm_cache" 
+npm config set prefix "C:/Program Files/nodejs/npm_global"
+npm config set cache "C:/Program Files/nodejs/npm_cache" 
 
 //if use Linux\Mac:
 npm config set prefix "~/nodejs/npm_global"
