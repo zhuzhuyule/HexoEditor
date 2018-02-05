@@ -32,21 +32,18 @@
   * 支持使用 Hexo 配置文件 `_config.yml`
     * 自动读取 highlight 设置
     * 自动读取主题下的 Tag/Filter/Renderer
-  * --------- v1.1.8 (2017-12-29) ---------
   * 快速生成 **新Post** 到项目资源路径下
   * 快速修改文件名(在Hexo编辑模式中)
   * 功能快捷键支持
   * 编辑框行号显示/隐藏
   * 智能显示滚动条
   * 滚动条启用/取消同步滚动
-  * --------- v1.2.12 (2018-01-14) ---------
-  * 添加快速执行Hexo命令 `hexo d`,`hexo g`,`hexo s`,`hexo clean` :triangular_flag_on_post:
+  * 添加快速执行Hexo命令 `hexo d`,`hexo g`,`hexo s`,`hexo clean` 
   * 快速部署
-  * --------- v1.3.21 (2018-01-30) ---------
-  * 图片转换为Markdown格式 :triangular_flag_on_post:
+  * 图片转换为Markdown格式 
     * 支持拖拽图片
     * 支持剪贴板粘贴
-  * 添加图床支持 :triangular_flag_on_post:
+  * 添加图床支持 
     * 支持 [SM.MS](https://sm.ms) 
     * 支持 [QiNiu](https://portal.qiniu.com) 
     * 支持 [Tencent](https://console.cloud.tencent.com) 
