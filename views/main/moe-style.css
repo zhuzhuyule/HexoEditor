@@ -34,13 +34,14 @@
     transition: margin-left .5s !important;
 }
 
-html, body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    -webkit-user-select: none;
+html {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: calc(100% - 2px) !important;
+    height: calc(100% - 2px) !important;
+    overflow: hidden !important;
+    -webkit-user-select: none !important;
+    border: 1px solid #d2d2d2 !important;
 }
 
 body{
@@ -49,15 +50,14 @@ body{
     margin: 0 !important;
     -webkit-user-select: none !important;
     cursor: default !important;
-    width: calc(100% - 2px) !important;
-    height: calc(100% - 2px) !important;
-    border: 1px solid #d2d2d2 !important;
+    width: 100% !important;
+    height: 100% !important;
 }
 
 #side-menu {
     width: 300px;
     margin-left: -301px;
-    height: 100%;
+    height: calc(100% - 67px);
     background: #fafafa;
     transition: all 200ms ease-in-out;
     padding-top: 20px;

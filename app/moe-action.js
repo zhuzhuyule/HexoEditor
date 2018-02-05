@@ -48,54 +48,56 @@ class MoeditorAction {
         let notOpened = false;
         try {
             let hexoDir = moeApp.config.get('hexo-root-dir');
-            let templateFile = path.resolve(hexoDir, 'scaffolds', 'post.md');
-            let content = '' +
-                '---\n' +
-                'title: {{ title }}\n' +
-                'date: {{ date }}\n' +
-                'categories: \n' +
-                'tags: \n' +
-                '---';
+            if( hexoDir && fs.existsSync(hexoDir)){
+                let templateFile = path.resolve(hexoDir, 'scaffolds', 'post.md');
+                let content = '' +
+                    '---\n' +
+                    'title: {{ title }}\n' +
+                    'date: {{ date }}\n' +
+                    'categories: \n' +
+                    'tags: \n' +
+                    '---';
 
-            let fileDir = path.resolve(hexoDir, 'source', '_posts');
-            if (fs.statSync(fileDir).isDirectory()) {
-                let nowDate, fileName, count = 0;
-                do {
-                    nowDate = moment().format('YYYY-MM-DD HH:mm:ss');
-                    if (count > 0)
-                        nowDate = nowDate + count;
-                    count += 1;
-                    fileName = path.resolve(fileDir, nowDate.replace(/[-: ]/g, '') + '.md');
-                    if (count > 50) {
-                        break;
+                let fileDir = path.resolve(hexoDir, 'source', '_posts');
+                if (fs.statSync(fileDir).isDirectory()) {
+                    let nowDate, fileName, count = 0;
+                    do {
+                        nowDate = moment().format('YYYY-MM-DD HH:mm:ss');
+                        if (count > 0)
+                            nowDate = nowDate + count;
+                        count += 1;
+                        fileName = path.resolve(fileDir, nowDate.replace(/[-: ]/g, '') + '.md');
+                        if (count > 50) {
+                            break;
+                        }
+                    } while (fs.existsSync(fileName));
+                    if (fs.existsSync(templateFile)) {
+                        content = fs.readFileSync(templateFile).toString()
+                            .replace(/title:\s+\{\{[^\}]+\}\}/, 'title: ' + nowDate.replace(/[-: ]/g, ''))
+                            .replace(/date:\s+/, 'date: ' + nowDate)
+                            .replace(/\{\{[^\}]+\}\}/g, '');
                     }
-                } while (fs.existsSync(fileName));
-                if (fs.existsSync(templateFile)) {
-                    content = fs.readFileSync(templateFile).toString()
-                        .replace(/title:\s+\{\{[^\}]+\}\}/, 'title: ' + nowDate.replace(/[-: ]/g, ''))
-                        .replace(/date:\s+/, 'date: ' + nowDate)
-                        .replace(/\{\{[^\}]+\}\}/g, '');
-                }
 
-                lastDir = fileDir;
-                MoeditorFile.write(fileName, content);
-                if (fs.existsSync(fileName)) {
-                    let hexoWindow = require('electron').BrowserWindow.getFocusedWindow();
-                    if (typeof hexoWindow.hexoeditorWindow == 'undefined' || hexoWindow.hexoeditorWindow.changed || hexoWindow.hexoeditorWindow.content) {
-                        app.addRecentDocument(fileName);
-                        moeApp.open(fileName,fileName);
-                    } else {
-                        hexoWindow.hexoeditorWindow.defName = fileName;
-                        hexoWindow.hexoeditorWindow.fileName = fileName;
-                        hexoWindow.hexoeditorWindow.directory = lastDir;
-                        hexoWindow.hexoeditorWindow.fileContent = hexoWindow.hexoeditorWindow.content = MoeditorFile.read(fileName).toString();
-                        hexoWindow.hexoeditorWindow.changed = false;
-                        hexoWindow.hexoeditorWindow.window.setDocumentEdited(false);
-                        hexoWindow.hexoeditorWindow.window.setRepresentedFilename(hexoWindow.hexoeditorWindow.fileName);
-                        hexoWindow.hexoeditorWindow.window.webContents.send('refresh-editor', {});
-                        app.addRecentDocument(fileName);
+                    lastDir = fileDir;
+                    MoeditorFile.write(fileName, content);
+                    if (fs.existsSync(fileName)) {
+                        let hexoWindow = require('electron').BrowserWindow.getFocusedWindow();
+                        if (typeof hexoWindow.hexoeditorWindow == 'undefined' || hexoWindow.hexoeditorWindow.changed || hexoWindow.hexoeditorWindow.content) {
+                            app.addRecentDocument(fileName);
+                            moeApp.open(fileName,fileName);
+                        } else {
+                            hexoWindow.hexoeditorWindow.defName = fileName;
+                            hexoWindow.hexoeditorWindow.fileName = fileName;
+                            hexoWindow.hexoeditorWindow.directory = lastDir;
+                            hexoWindow.hexoeditorWindow.fileContent = hexoWindow.hexoeditorWindow.content = MoeditorFile.read(fileName).toString();
+                            hexoWindow.hexoeditorWindow.changed = false;
+                            hexoWindow.hexoeditorWindow.window.setDocumentEdited(false);
+                            hexoWindow.hexoeditorWindow.window.setRepresentedFilename(hexoWindow.hexoeditorWindow.fileName);
+                            hexoWindow.hexoeditorWindow.window.webContents.send('refresh-editor', {});
+                            app.addRecentDocument(fileName);
+                        }
+                        notOpened = false;
                     }
-                    notOpened = false;
                 }
             }
         } catch (e) {

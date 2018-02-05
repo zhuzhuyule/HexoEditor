@@ -201,17 +201,22 @@ class ImgManager {
     }
 
     renameImage(imgName, newImgName) {
-        this.updateDictionary(imgName + '$', newImgName)
+        this.updateDictionary(imgName + '\\b', newImgName)
     }
 
     renameDirPath(fileName) {
         this.updateDictionary('/' + this.postName + '/', '/' + fileName + '/')
+        this.imgPathDir = path.resolve(this.imgPathDir,'..', fileName);
         this.postName = fileName;
     }
 
     updateDictionary(oldStr, newStr) {
         if (Object.keys(this.imgPathToMarkURL).length > 0) {
             this.imgPathToMarkURL = JSON.parse(JSON.stringify(this.imgPathToMarkURL).replace(new RegExp(oldStr, 'g'), newStr));
+            if (Object.keys(this.imgPathToUrlPath).length > 0)
+                this.imgPathToUrlPath = JSON.parse(JSON.stringify(this.imgPathToUrlPath).replace(new RegExp(oldStr, 'g'), newStr));
+            if (Object.keys(this.imgPathToDelHash).length > 0)
+                this.imgPathToDelHash = JSON.parse(JSON.stringify(this.imgPathToDelHash).replace(new RegExp(oldStr, 'g'), newStr));
             if (Object.keys(this.imgMD5ToPath).length > 0)
                 this.imgMD5ToPath = JSON.parse(JSON.stringify(this.imgMD5ToPath).replace(new RegExp(oldStr, 'g'), newStr));
         }
@@ -336,15 +341,18 @@ class ImgManager {
             log.info(`Begin update Src[${maxIndex}]`);
             successList.forEach((response, index) => {
                 uploadList.push(response);
-                content = content.replace(new RegExp(imgManager.imgPathToMarkURL[response.id], 'g'), response.data.url);
-                imgManager.imgPathToUrlPath[response.id] = response.data.path;
-                imgManager.imgPathToMarkURL[response.id] = response.data.url;
-                imgManager.imgPathToDelHash[response.id] = (response.data.hash || '');
-                if (maxIndex == index) {
-                    editor.setValue(content);
-                    hexoWindow.content = content;
-                    hexoWindow.changed = true;
-                    log.info(`End update Src[${maxIndex}]`);
+                let relPath = imgManager.imgPathToMarkURL[response.id];
+                if (relPath){
+                    content = content.replace(new RegExp(relPath, 'g'), response.data.url);
+                    imgManager.imgPathToUrlPath[response.id] = response.data.path;
+                    imgManager.imgPathToMarkURL[response.id] = response.data.url;
+                    imgManager.imgPathToDelHash[response.id] = (response.data.hash || '');
+                    if (maxIndex == index) {
+                        editor.setValue(content);
+                        hexoWindow.content = content;
+                        hexoWindow.changed = true;
+                        log.info(`End update Src[${maxIndex}]`);
+                    }
                 }
             });
         }

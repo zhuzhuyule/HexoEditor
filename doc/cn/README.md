@@ -39,6 +39,18 @@
   * 编辑框行号显示/隐藏
   * 智能显示滚动条
   * 滚动条启用/取消同步滚动
+  * --------- v1.2.12 (2018-01-14) ---------
+  * 添加快速执行Hexo命令 `hexo d`,`hexo g`,`hexo s`,`hexo clean` :triangular_flag_on_post:
+  * 快速部署
+  * --------- v1.3.21 (2018-01-30) ---------
+  * 图片转换为Markdown格式 :triangular_flag_on_post:
+    * 支持拖拽图片
+    * 支持剪贴板粘贴
+  * 添加图床支持 :triangular_flag_on_post:
+    * 支持 [SM.MS](https://sm.ms) 
+    * 支持 [QiNiu](https://portal.qiniu.com) 
+    * 支持 [Tencent](https://console.cloud.tencent.com) 
+  * 添加快速启动（常用目录，常用地址）
 * HexoEditor (继承 [Moeditor](https://github.com/Moeditor/Moeditor) 原有功能)
   * GitHub 风格 Markdown 显示
   * TeX math 表达式

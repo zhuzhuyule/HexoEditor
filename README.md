@@ -36,9 +36,21 @@ Inherit [Moeditor](https://github.com/Moeditor/Moeditor), I want to fix it appro
   * Quick New Post in hexo source 
   * Quick Modify File Name (In Hexo Post Edit)  
   * Shortcut Support
-  * Editor Line number Show/Hide
+  * Editor Line Number Show/Hide
   * Auto Show/Hide Scroll
   * Scorll Together/None
+  * --------- v1.2.12 (2018-01-14) ---------
+  * Add Quick Hexo Command `hexo d`,`hexo g`,`hexo s`,`hexo clean` :triangular_flag_on_post:
+  * Quick Deploy Post
+  * --------- v1.3.21 (2018-01-30) ---------
+  * Quick Change Image to Markdown :triangular_flag_on_post:
+    * Support Drag Image
+    * Support Paste Clipboard Image
+  * Add Image Cloud (Those are Free Cloud) :triangular_flag_on_post:
+    * Support [SM.MS](https://sm.ms) 
+    * Support [QiNiu](https://portal.qiniu.com) 
+    * Support [Tencent](https://console.cloud.tencent.com) 
+  * Add Quick Start (Common Directory, Common URL)
 * HexoEditor (Inherit [Moeditor](https://github.com/Moeditor/Moeditor))
   * GitHub Flavored Markdown
   * TeX math expressions
@@ -50,7 +62,7 @@ Inherit [Moeditor](https://github.com/Moeditor/Moeditor), I want to fix it appro
   * Code highlight themes (powered by [highlight.js](https://highlightjs.org/))
   * Auto reload
   * Localization
-  * ~~Focus mode~~
+  * Focus mode
 
 # Screenshots
 
@@ -73,11 +85,11 @@ Inherit [Moeditor](https://github.com/Moeditor/Moeditor), I want to fix it appro
 
 # Plan To Do
 - [ ] Add Toc
-- [ ] Add Hexo Title Header setting (40%)
+- [x] Add Hexo Title Header setting (100%)
 - [ ] Add base highlight ShortCut
 - [ ] Add history files tree
 .....
-- [ ] Deploy Post
+- [x] Deploy Post
 - [ ] Add multi-editing in tabs
 
 # Building
