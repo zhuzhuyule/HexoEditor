@@ -18,39 +18,24 @@ Inherit [Moeditor](https://github.com/Moeditor/Moeditor), I want to fix it appro
 #### if you have good ideas, please comment [Here](https://github.com/zhuzhuyule/HexoEditor/issues/2)
 #### if you have time, and interest, and energy, welcome join us !
 
-# QQ Group:
-- Name：HexoEditor        
-- QQID：602883087   
-- PASS：HexoEditor           
-- Data：2017-12-29  
-
 # Features
 * HexoEditor 
   * Hexo Post Preview same as in Browser
   * Hexo Tag/Filter/Renderer support
-  * Custom tag support
   * Use Hexo `_config.yml` support
-    * highlight setting
-    * theme tag support
-  * --------- v1.1.8 (2017-12-29) ---------
   * Quick New Post in hexo source 
   * Quick Modify File Name (In Hexo Post Edit)  
-  * Shortcut Support
-  * Editor Line Number Show/Hide
-  * Auto Show/Hide Scroll
-  * Scorll Together/None
-  * --------- v1.2.12 (2018-01-14) ---------
-  * Add Quick Hexo Command `hexo d`,`hexo g`,`hexo s`,`hexo clean` :triangular_flag_on_post:
   * Quick Deploy Post
-  * --------- v1.3.21 (2018-01-30) ---------
-  * Quick Change Image to Markdown :triangular_flag_on_post:
+  * Quick Hexo Command `hexo d`,`hexo g`,`hexo s`,`hexo clean`
+  * Auto Change Image to Markdown 
     * Support Drag Image
     * Support Paste Clipboard Image
-  * Add Image Cloud (Those are Free Cloud) :triangular_flag_on_post:
+  * Support Image Cloud (One Step Upload)
     * Support [SM.MS](https://sm.ms) 
     * Support [QiNiu](https://portal.qiniu.com) 
     * Support [Tencent](https://console.cloud.tencent.com) 
-  * Add Quick Start (Common Directory, Common URL)
+  * Quick Start (Common Directory, Common URL)
+  * Scorll Together/None
 * HexoEditor (Inherit [Moeditor](https://github.com/Moeditor/Moeditor))
   * GitHub Flavored Markdown
   * TeX math expressions
@@ -107,11 +92,11 @@ npm config set prefix "~/nodejs/npm_global"
 npm config set cache "~/nodejs/npm_cache" 
 
 //If In China, China, China, you can set mirror to speed up !
-npm config set registry "https://registry.npm.taobao.org"
+npm config set registry "https://registry.npm.taobao.org/"
 npm config set electron_mirror "https://npm.taobao.org/mirrors/electron/"
 
 git clone https://github.com/zhuzhuyule/HexoEditor.git
-npm install -g elctron@1.8.1
+npm install -g electron@1.8.1
 npm install
 npm start
 ```
@@ -126,8 +111,6 @@ npm start -- --debug
 ```
 2. `Ctrl` + `Shift` + `I` in Linux / Windows or `Command` + `Option` + `I` in OS X / macOS to toggle devtools for a window.
 3. Set `debug` to `true` in the config. The config file is stored in `~/.config/configstore/HexoEditor.json` (for every system).
-
-
 
 # Localization
 HexoEditor will auto detect your system language and use the localization.
@@ -162,3 +145,9 @@ var rightSide = display.lineDiv.offsetWidth - padding.right;
 # Compatibility
 
 * :triangular_flag_on_post: <a href="https://github.com/theme-next/hexo-theme-next" target="_blank">NexT theme</a>
+
+# QQ Group:
+- Name：HexoEditor        
+- QQID：602883087   
+- PASS：HexoEditor           
+- Data：2017-12-29  

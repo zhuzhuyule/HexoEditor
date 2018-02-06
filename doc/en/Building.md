@@ -2,8 +2,8 @@
 ### Summary 
 ```c
 //is use Windows:
-npm config set prefix "C:\Program Files\nodejs\npm_global"
-npm config set cache "C:\Program Files\nodejs\npm_cache" 
+npm config set prefix "C:/Program Files/nodejs/npm_global"
+npm config set cache "C:/Program Files/nodejs/npm_cache" 
 
 //if use Linux\Mac:
 npm config set prefix "~/nodejs/npm_global"
@@ -14,7 +14,7 @@ npm config set registry "https://registry.npm.taobao.org"
 npm config set electron_mirror "https://npm.taobao.org/mirrors/electron/"
 
 git clone https://github.com/zhuzhuyule/HexoEditor.git
-npm install -g elctron@1.8.1
+npm install -g electron@1.8.1
 npm install
 npm start
 ```
@@ -50,15 +50,15 @@ npm config set prefix "path of npm_global"
 npm config set cache "path of npm_cache" 
 
 //If In China China China, you can set mirror to speed up !
-npm config set registry "https://registry.npm.taobao.org"
+npm config set registry "https://registry.npm.taobao.org/"
 npm config set electron_mirror "https://npm.taobao.org/mirrors/electron/"
 ```
 
 eg:
 ```c
 //Windows:
-npm config set prefix "C:\Program Files\nodejs\npm_global"
-npm config set cache "C:\Program Files\nodejs\npm_cache" 
+npm config set prefix "C:/Program Files/nodejs/npm_global"
+npm config set cache "C:/Program Files/nodejs/npm_cache" 
 
 //Linux\Mac:
 npm config set prefix "~/nodejs/npm_global"
@@ -73,10 +73,8 @@ You can find `.npmrc` from setting path or default path:
 
 set content this:
 ```c
-registry=https://registry.npm.taobao.org
-sass_binary_site=https://npm.taobao.org/mirrors/node-sass/
-phantomjs_cdnurl=http://npm.taobao.org/mirrors/phantomjs
-ELECTRON_MIRROR=http://npm.taobao.org/mirrors/electron/
+registry=https://registry.npm.taobao.org/
+electron_mirror=https://npm.taobao.org/mirrors/electron/
 ```
 #### 4.Git Clone
 ```sql

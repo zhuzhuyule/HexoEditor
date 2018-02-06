@@ -18,39 +18,24 @@
 #### Есть идеи? Вам [сюда](https://github.com/zhuzhuyule/HexoEditor/issues/2)
 #### И если у Вас есть время, интерес и энергия, пожалуйста, присоединяйтесь к нам!
 
-# QQ группа:
-- Name：HexoEditor
-- QQID：602883087
-- PASS：HexoEditor
-- Data：2017-12-29
-
 # Возможности
 * HexoEditor
   * Предпросмотр поста как в браузере
   * Поддержка тэгов/фильтров/рендерингов
-  * Поддержка пользовательских тэгов
   * Поддержка конфигурации Hexo (`_config.yml`)
-    * Подсветка синтаксиса (highlight)
-    * Поддержка тэгов темы
-  * --------- v1.1.8 (2017-12-29) ---------
   * Быстрое создание поста из Hexo исходников
   * Быстрая смена имени файла (при редактировании поста)
-  * Поддержка ярлыков
-  * Поддержка нумерации строк
-  * Авто-Показ/Скрытие скроллинга
-  * Поддержка совместной прокрутка
-  * --------- v1.2.12 (2018-01-14) ---------
-  * Add Quick Hexo Command `hexo d`,`hexo g`,`hexo s`,`hexo clean` :triangular_flag_on_post:
-  * Quick Deploy Post
-  * --------- v1.3.21 (2018-01-30) ---------
-  * Quick Change Image to Markdown :triangular_flag_on_post:
-    * Support Drag Image
-    * Support Paste Clipboard Image
-  * Add Image Cloud (Those are Free Cloud) :triangular_flag_on_post:
-    * Support [SM.MS](https://sm.ms) 
-    * Support [QiNiu](https://portal.qiniu.com) 
-    * Support [Tencent](https://console.cloud.tencent.com) 
-  * Add Quick Start (Common Directory, Common URL)  
+  * Быстрое развертывание
+  * Быстро выполните команду Hexo `hexo d`,`hexo g`,`hexo s`,`hexo clean`
+  * Картинка автоматически преобразуется в формат Markdown
+    * Поддержка перетаскивания изображений
+    * Поддержка палитры в буфер обмена
+  * Поддержка слоя с рисунком (загрузка одним нажатием)
+    * поддержка [SM.MS](https://sm.ms) 
+    * поддержка [QiNiu](https://portal.qiniu.com) 
+    * поддержка [Tencent](https://console.cloud.tencent.com) 
+  * Быстрый старт (обычно используемый каталог, обычно используемый адрес)
+  * Полоса прокрутки Включение / выключение прокрутки
 * HexoEditor (Наследник [Moeditor](https://github.com/Moeditor/Moeditor))
   * Поддержка стиля GitHub
   * Математические выражения TeX
@@ -107,11 +92,11 @@ npm config set prefix "~/nodejs/npm_global"
 npm config set cache "~/nodejs/npm_cache" 
 
 //If In China China China, you can set mirror to speed up !
-npm config set registry "https://registry.npm.taobao.org"
+npm config set registry "https://registry.npm.taobao.org/"
 npm config set electron_mirror "https://npm.taobao.org/mirrors/electron/"
 
 git clone https://github.com/zhuzhuyule/HexoEditor.git
-npm install -g elctron@1.8.1
+npm install -g electron@1.8.1
 npm install
 npm start
 ```
@@ -161,3 +146,10 @@ var rightSide = display.lineDiv.offsetWidth - padding.right;
 # Совместимость
 
 * :triangular_flag_on_post: <a href="https://github.com/theme-next/hexo-theme-next" target="_blank">NexT theme</a>
+
+
+# QQ группа:
+- Name：HexoEditor
+- QQID：602883087
+- PASS：HexoEditor
+- Data：2017-12-29
