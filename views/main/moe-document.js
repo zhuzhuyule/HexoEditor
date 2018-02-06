@@ -268,7 +268,6 @@ $(() => {
                 let imgPathOld = path.join(imgManager.imgBaseDir,nameOld).replace(/\\/g,'/');
                 if (fs.existsSync(imgPathOld)) {
                     let content = editor.getValue();
-                    console.log(1,content)
                     imgPathNew = imgPathNew.replace(/\\/g,'/');
                     fs.rename(imgPathOld, imgPathNew, err => {
                         if (err) log.error(err);
@@ -277,7 +276,6 @@ $(() => {
                             let relativePathOld = imgManager.relativePath(imgPathOld);
                             let relativePathNew = imgManager.relativePath(imgPathNew);
                             content = content.replace(new RegExp('\\]\\(' + relativePathOld + '\/', 'g'), '](' + relativePathNew + '/');
-                            console.log(2,content)
                             editor.setValue(content)
                             imgManager.renameDirPath(nameNew);
                         })

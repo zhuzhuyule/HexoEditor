@@ -162,7 +162,7 @@ function backtickCodeBlock(data) {
             .replace(/{/g, '&#123;')
             .replace(/}/g, '&#125;');
 
-        return start + content + (end ? '\n\n' : '');
+        return start + '<escape>' + content + '</escape>' + (end ? '\n\n' : '');
     });
 }
 
