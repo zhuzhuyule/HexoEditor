@@ -23,6 +23,7 @@ function Hexo() {
     this.render = new Render(this);
     this.loadConfig();
     moeApp.config.set('hexo-root-dir',this.config.__basedir);
+    moeApp.setHexo(this);
 }
 
 Hexo.prototype.init = function() {
@@ -100,6 +101,7 @@ Hexo.prototype.changeConfig = function (enable) {
         // Load tags file
         this.loadTags();
     }
+    moeApp.setHexo(hexo);
 }
 
 module.exports = Hexo;

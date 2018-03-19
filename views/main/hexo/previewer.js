@@ -16,7 +16,7 @@ var rPlaceholder = /(?:<|&lt;)\!--\uFFFC(\d+)--(?:>|&gt;)/g;
 
 global.lodash = require('lodash');
 global.ctx = global.hexo = new Hexo();
-moeApp.setHexo(hexo);
+
 
 function Previewer() {
 }
