@@ -95,6 +95,8 @@ class MoeditorAction {
                             hexoWindow.hexoeditorWindow.window.setRepresentedFilename(hexoWindow.hexoeditorWindow.fileName);
                             hexoWindow.hexoeditorWindow.window.webContents.send('refresh-editor', {});
                             app.addRecentDocument(fileName);
+                            // TODO-ly 解决第一次图片保存地址不对的问题
+                            hexoWindow.hexoeditorWindow.window.webContents.send('open-newfile', {});
                         }
                         notOpened = false;
                     }
@@ -141,6 +143,8 @@ class MoeditorAction {
                             hexoWindow.hexoeditorWindow.window.setRepresentedFilename(hexoWindow.hexoeditorWindow.fileName);
                             hexoWindow.hexoeditorWindow.window.webContents.send('refresh-editor', {});
                             app.addRecentDocument(filename);
+                            // TODO-ly 解决第一次图片保存地址不对的问题
+                            hexoWindow.hexoeditorWindow.window.webContents.send('open-newfile', {});
                             hexoWindow.focus();
                             break;
                         } catch (e) {

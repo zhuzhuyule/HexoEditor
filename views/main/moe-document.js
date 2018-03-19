@@ -29,6 +29,8 @@ window.path = require('path');
 window.url = require('url');
 global.log4js = window.log4js = moeApp.getLog4js();
 global.log = window.log = log4js.getLogger('Front');
+// TODO-ly 引入平台判断库
+const platform = require('electron-platform');
 
 $(() => {
     const dialog = require('electron').remote.dialog;
@@ -166,6 +168,13 @@ $(() => {
     require('electron').ipcRenderer.on('set-title', (e, fileName) => {
         document.getElementsByTagName('title')[0].innerText = 'HexoEditor - ' + path.basename(fileName);
     });
+    // TODO-ly 解决第一次图片保存地址不对的问题
+    require('electron').ipcRenderer.on('open-newfile', () => {
+        let fileName = path.basename(hexoWindow.fileName, path.extname(hexoWindow.fileName));
+        if(fileName !== imgManager.postName){
+            imgManager.renameDirPath(fileName);
+        }
+    });
 
     //加载填图功能
     const ImgManager = require('./hexo-image');
@@ -280,6 +289,9 @@ $(() => {
                             imgManager.renameDirPath(nameNew);
                         })
                     })
+                } else {
+                    // TODO-ly 解决图片路径不对的问题
+                    imgManager.renameDirPath(nameNew);
                 }
             }
             if (force) {
@@ -377,9 +389,12 @@ $(() => {
         }
     }, true);
     document.getElementById("editor").addEventListener("click", e => {
-        if (e.ctrlKey) {
+        // TODO-ly 判断按下的按键
+        let key = platform.isDarwin ? e.metaKey : e.ctrlKey;
+        if (key) {
             $('span.cm-string.cm-url').unbind('click').click(e => {
-                if (e.ctrlKey) {
+                key = platform.isDarwin ? e.metaKey : e.ctrlKey;
+                if (key) {
                     e.stopPropagation();
                     // e.defaultPrevented();
                     const innerLink = e.target.innerText.replace(/^\((.*)\)$/, '$1');

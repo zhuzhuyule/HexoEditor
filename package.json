@@ -69,6 +69,7 @@
     "codemirror": "^5.18.2",
     "configstore": "^2.1.0",
     "cos-nodejs-sdk-v5": "^2.2.6",
+    "electron-platform": "^1.2.0",
     "electron-localshortcut": "^0.6.1",
     "electron-titlebar": "0.0.2",
     "flowchart.js": "^1.6.3",
