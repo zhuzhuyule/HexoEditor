@@ -41,36 +41,7 @@ $(() => {
     }
     document.querySelector('#editor textarea').innerText = hexoWindow.content;
 
-    var editor = CodeMirror.fromTextArea(document.querySelector('#editor textarea'), {
-        lineNumbers: false,
-        mode: 'yaml-frontmatter',
-        matchBrackets: true,
-        theme: moeApp.config.get('editor-theme'),
-        lineWrapping: true,
-        extraKeys: {
-            Esc: 'singleSelection',
-            Enter: 'newlineAndIndentContinueMarkdownList',
-            Home: 'goLineLeft',
-            End: 'goLineRight',
-            Tab: function (codeMirror) {
-                codeMirror.indentSelection(parseInt(codeMirror.getOption("indentUnit")));
-            },
-            'Shift-Tab': 'indentLess',
-        },
-        fixedGutter: false,
-        // foldGutter: true,
-        // gutters:["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
-        // auto:"auto",
-        // autoCloseBrackets: true,
-
-        tabSize: moeApp.config.get('tab-size'),
-        indentUnit: moeApp.config.get('tab-size'),
-        viewportMargin: Infinity,
-        styleActiveLine: true,
-        showCursorWhenSelecting: true
-    });
-
-    editor.focus();
+    window.editor = require('./CodeMirror/editor');
 
     const scroll = require('./moe-scroll');
     window.updatePreview = (force) => {
