@@ -84,7 +84,6 @@ $(() => {
         window.updatePreview(true);
     }, 0);
 
-    window.editor = editor;
     // workaround for the .button is still :hover after maximize window
     $('#cover-bottom .button-bottom').mouseover(function () {
         $(this).addClass('hover');
@@ -216,33 +215,38 @@ $(() => {
             if (nameNew !== nameOld){
                 let dir = path.dirname(hexoWindow.fileName);
                 let ext = path.extname(hexoWindow.fileName);
-                let count = -1,fileNameNew;
+                let count = -1,fileNameNew,imgPathNew,tmpName;
                 do {
                     count++;
-                    fileNameNew = nameOld + (count > 0 ? count : '');
-                    fileNameNew = path.resolve(dir, nameNew + ext);
+                    tmpName = nameNew + (count > 0 ? count : '');
+                    if (tmpName == nameOld)
+                        return;
+                    fileNameNew = path.resolve(dir, tmpName + ext);
+                    imgPathNew = path.join(imgManager.imgBaseDir,tmpName);
                     if (count > 50) {
                         return;
                     }
-                } while (fs.existsSync(fileNameNew))
-
+                } while (fs.existsSync(fileNameNew)||fs.existsSync(imgPathNew))
+                nameNew = tmpName;
                 fs.renameSync(hexoWindow.fileName, fileNameNew);
                 hexoWindow.fileName = fileNameNew;
-                hexoWindow.changed = ture;
+                hexoWindow.changed = true;
                 hexoWindow.window.setRepresentedFilename(fileNameNew);
                 document.getElementsByTagName('title')[0].innerText = 'HexoEditor - ' + nameNew + ext;
 
                 //修改文章中的Image链接
                 let imgPathOld = path.join(imgManager.imgBaseDir,nameOld).replace(/\\/g,'/');
                 if (fs.existsSync(imgPathOld)) {
-                    let imgPathNew = path.join(imgManager.imgBaseDir,nameNew).replace(/\\/g,'/');
+                    let content = editor.getValue();
+                    imgPathNew = imgPathNew.replace(/\\/g,'/');
                     fs.rename(imgPathOld, imgPathNew, err => {
                         if (err) log.error(err);
-                        fs.stat(imgFilePathNew, (err, stats) => {
+                        fs.stat(imgPathNew, (err, stats) => {
                             if (err) console.error(err);
                             let relativePathOld = imgManager.relativePath(imgPathOld);
                             let relativePathNew = imgManager.relativePath(imgPathNew);
-                            editor.setValue(editor.getValue().replace(new RegExp('\\]\\(/' + relativePathOld, 'g'), '](/' + relativePathNew))
+                            content = content.replace(new RegExp('\\]\\(' + relativePathOld + '\/', 'g'), '](' + relativePathNew + '/');
+                            editor.setValue(content)
                             imgManager.renameDirPath(nameNew);
                         })
                     })

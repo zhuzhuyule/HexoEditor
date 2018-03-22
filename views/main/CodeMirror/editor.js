@@ -1,4 +1,6 @@
 module.exports = (() => {
+    const regStandardCharacterB = /^((-?\d+(,\d{3})*(\.\d+)?(x?\*?\d*\^\d+)?)|((\d+-)+\d+)|(_?[-\da-zA-Z\u4E00-\u9FFF\-]_?))+/;
+    const regStandardCharacterE = /((-?\d+(,\d{3})*(\.\d+)?(x?\*?\d*\^\d+)?)|((\d+-)+\d+)|(_?[-\da-zA-Z\u4E00-\u9FFF\-]_?))+$/;
     var editor = CodeMirror.fromTextArea(document.querySelector('#editor textarea'), {
         lineNumbers: false,
         mode: 'yaml-frontmatter',
@@ -15,10 +17,14 @@ module.exports = (() => {
             },
             'Shift-Tab': 'indentLess',
             'Ctrl-B': function () {
-                var content = getSelection();
-                console.log(content.content[1], content.before[1], content.after[1]);
+                emphasizeChange('**',/(\*\*|__)+/g);
+            },
+            'Ctrl-I': function () {
+                emphasizeChange('*',/(\*|_)+/g);
+            },
+            'Ctrl-`': function () {
+                emphasizeChange('`',/(`)+/g);
             }
-
         },
         fixedGutter: false,
         // foldGutter: true,
@@ -34,6 +40,33 @@ module.exports = (() => {
     });
 
     editor.focus();
+
+    function emphasizeChange(item,reg) {
+        var content = getSelection();
+        var left = content.before[1];
+        var right = content.after[1];
+        var change;
+        if ((left.length > 1 && left == reverseStr(right)) && reg.test(left)) {
+            content.before[1] = left.replace(reg, '');
+            content.after[1] = right.replace(reg, '');
+            change = left.length - content.before[1].length;
+            content.content[2].anchor.ch -= change;
+            content.content[2].head.ch -= change;
+        } else {
+            content.before[1] = item + left;
+            content.after[1] += item;
+            content.content[2].anchor.ch += item.length;
+            content.content[2].head.ch += item.length;
+        }
+
+        if (editor.somethingSelected()) {
+            editor.replaceRange(content.before[1] + content.content[1] + content.after[1], content.before[2].anchor, content.after[2].head);
+            editor.setSelection(content.content[2].anchor, content.content[2].head);
+            editor.focus();
+        } else {
+            editor.replaceRange(content.before[1] + content.content[1] + content.after[1], content.before[2].anchor, content.after[2].head);
+        }
+    }
 
     /**
      * 返回选中数据区以及前后修饰符
@@ -69,7 +102,15 @@ module.exports = (() => {
         else
             strShort = textBefore, strLong = textAfter;
 
-        if (/^[\*~_`]+$/.test(strShort) && strLong.replace(/^ */).startsWith(reverseStr(strShort).replace(/^ */))) {
+        if (/^[\*~_`]+$/.test(strShort) && strShort.replace(/^ */).startsWith(reverseStr(strLong).replace(/^ */))) {
+            if (textBefore.length > textAfter.length) {
+                rangeBefore.anchor.ch = rangeBefore.head.ch - strShort.length;
+                textBefore = textBefore.slice(textBefore.length - strShort.length, textBefore.length);
+            }
+            else if (textBefore.length < textAfter.length) {
+                rangeAfter.head.ch = rangeAfter.anchor.ch + strShort.length;
+                textAfter = textAfter.slice(0, strShort.length);
+            }
         } else {
             _.extend(rangeBefore.anchor, rangeBefore.head);
             textBefore = '';
@@ -128,6 +169,35 @@ module.exports = (() => {
         return editor.getRange(range.anchor, range.head);
     }
 
+    function getLine(range) {
+        return editor.getLine(range.anchor.line);
+    }
+
+    function getCheckStart(param) {
+        let lineStart = null;
+        if (param.anchor && param.anchor.line) {
+            lineStart = editor.getLine(param.anchor.line).match(/^( |> )*\* /);
+        } else if (typeof lineStart == 'string') {
+            lineStart = param.match(/^( |> )*\* /);
+        }
+        return (null == lineStart) ? 0 : lineStart[0].length;
+        ;
+    }
+
+    function checkRange(range, content) {
+        var checkContent, findWord = content.slice(0, range.head.ch).match(regStandardCharacterE);
+        if (findWord != null) {
+            checkContent = findWord[0];
+            range.anchor.ch = range.head.ch - checkContent.length;
+        }
+        findWord = content.slice(range.anchor.ch, content.length).match(regStandardCharacterB);
+        if (findWord != null) {
+            checkContent = findWord[0];
+            range.head.ch = range.anchor.ch + checkContent.length;
+        }
+        return checkContent
+    }
+
     /**
      * 获取强调内容真实范围 前（before)/后（after) 范围集合
      * @param range     指定范围
@@ -142,12 +212,14 @@ module.exports = (() => {
         let strNext;
         let success = true;
         let safeCount = -1;
+        //查找开头
+        let checkStart = getCheckStart(range);
         //循环找出 与 matchText 对称 textHelper 如：**abcd**  ~abc~
         do {
             rangeHelper = rangeNext;
             rangeNext = getRange(rangeHelper, sticky);
             strNext = getText(rangeNext);
-            if (rangeHelper.anchor.ch == rangeNext.anchor.ch || safeCount > 1000) {
+            if (checkStart > rangeHelper.anchor.ch || rangeHelper.anchor.ch == rangeNext.anchor.ch || safeCount > 1000) {
                 success = false;
                 break;
             }
@@ -192,10 +264,19 @@ module.exports = (() => {
              * 3.光标在语法标志中
              * 4.光标在标记之中
              */
+
             var curPos = editor.getCursor();
             curPos.sticky = 'before';
             var rangeHelper = rangeContent = getPosRange(curPos);
+            let lineContent = getLine(rangeContent);
+            let checkStart = getCheckStart(lineContent);
+            if (checkStart > curPos.ch) {
+                _.extend(rangeContent.anchor, rangeContent.head);
+                return checkSelection(rangeContent);
+            }
+
             textContent = getText(rangeContent);
+            //光标前面是空格
             if (/^ +$/.test(textContent)) {
                 //空格+光标
                 curPos.sticky = 'after';
@@ -210,9 +291,11 @@ module.exports = (() => {
                     //需要找到更后一位单词检查
                     rangeContent.head.sticky = 'after';
                     rangeContent = getPosRange(rangeContent.head);
+                    checkRange(rangeContent, lineContent);
                     return checkSelection(rangeContent);
                 } else {
                     //空格+光标+内容   |abc
+                    checkRange(rangeContent, lineContent);
                     return checkSelection(rangeContent);
                 }
             } else if (/^[\*~`]+/.test(textContent)) {
@@ -236,6 +319,7 @@ module.exports = (() => {
                 return checkSelection(rangeContent);
             } else {
                 //空格+光标+标记内容
+                checkRange(rangeContent, lineContent);
                 return checkSelection(rangeContent);
             }
         }
