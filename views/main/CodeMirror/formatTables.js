@@ -26,7 +26,6 @@ module.exports = (function () {
             let pos = cm.getCursor();
             let value = cm.getValue();
             value = value.replace(detectTableReg(), (table) => {
-                console.log(table)
                 return formatTable(table)
             })
             cm.setValue(value);
@@ -58,7 +57,6 @@ module.exports = (function () {
                 return cell.replace(/%7c/g, '|').replace(/%60/g, '`');
             });
         });
-        console.log(1, content);
         // Normalize the num of hyphen
         content[1] = content[1].map(cell => {
             if (/:-+:/.test(cell)) {
@@ -71,7 +69,6 @@ module.exports = (function () {
                 return '---';
             }
         });
-        console.log(2, content);
 
         let colWidth = Array(content[0].length).fill(3);
         let cn = /[\u4e00-\u9eff，。《》？；：‘“’”（）【】、—]/g;
@@ -99,7 +96,6 @@ module.exports = (function () {
                 return '-'.repeat(colWidth[i]);
             }
         });
-        console.log(3, content);
 
         return content.map(row => {
             let cells = row.map((cell, i) => {
@@ -109,7 +105,6 @@ module.exports = (function () {
                 }
                 return (cell + ' '.repeat(cellLength)).slice(0, cellLength);
             });
-            console.log(4, cells);
             return '| ' + cells.join(' | ') + ' |';
         }).join('\n');
     }

@@ -24,30 +24,61 @@ module.exports = (() => {
         Enter: 'newlineAndIndentContinueMarkdownList',
         Home: 'goLineLeft',
         End: 'goLineRight',
-        Tab: function (codeMirror) {
-            codeMirror.indentSelection(parseInt(codeMirror.getOption("indentUnit")));
-        },
-        'Shift-Tab': 'indentLess',
+        'Tab':tabAdd,
+        'Shift-Tab': tabSubtract,
         'Ctrl-B': toggleBlod,
         'Ctrl-I': toggleItalic,
         'Ctrl-D': toggleDelete,
         'Ctrl-`': toggleComment,
-        'Ctrl-E': toggleBlockquote,
-        'Ctrl-Shift-E': toggleUnBlockquote,
         'Ctrl-L': toggleUnOrderedList,
         'Ctrl-Alt-L': toggleOrderedList,
-        'Ctrl-]': toggleHeader,
-        'Ctrl-[': toggleUnHeader,
+        'Ctrl-=': toggleHeader,
+        'Ctrl--': toggleUnHeader,
+        'Ctrl-]': toggleBlockquote,
+        'Ctrl-[': toggleUnBlockquote,
         'Ctrl-U': drawLink,
         'Ctrl-Alt-U': drawImageLink,
         'Ctrl-T': drawTable,
+        'Ctrl-V': pasteContent,
+        'Ctrl-Shift-V': pasteOriginContent,
         'Alt-F': formatTables
+    }
+
+    /**
+     * Action for add space of "indentUnit" count.
+     */
+    function tabAdd(cm){
+        let indentCount = parseInt(cm.getOption("indentUnit")) || 4;
+        cm.indentSelection(indentCount);
+    }
+
+    /**
+     * Action for subtract space of "indentUnit" count or delete start modifier.
+     */
+    function tabSubtract(cm) {
+        const posStart = cm.getCursor('from');
+        const posEnd = cm.getCursor('to');
+        let needSubtract = true;
+        if (posStart.line === posEnd.line) {
+            let line = cm.getLine(posStart.line);
+            line.replace(/^([*+-] |\d\. )(.*)$/, (all, part1, part2) => {
+                posStart.ch -= part1.length;
+                cm.replaceRange(part2, CodeMirror.Pos(posStart.line, 0), CodeMirror.Pos(posStart.line, all.length))
+                cm.setCursor(posStart);
+                cm.focus();
+                needSubtract = false;
+            })
+        }
+        if (needSubtract) {
+            let indentCount = parseInt(cm.getOption("indentUnit")) || 4;
+            cm.indentSelection(-indentCount);
+        }
     }
 
     /**
      * Fix shortcut. Mac use Command, others use Ctrl.
      */
-    function fixShortcut(name) {
+    function fixShortcut() {
         if (process.platform == 'drawin')
             Object.keys(keyMaps).forEach(item => {
                 if (item.indexOf('Ctrl') > -1) {
@@ -129,123 +160,176 @@ module.exports = (() => {
      * @param name
      * @private
      */
-    function _toggleLine (cm, name) {
+    function _toggleContinueLine (cm, name) {
         var startPoint = cm.getCursor('start');
         var endPoint = cm.getCursor('end');
-        // var repl = {
-        //     'header':         /^(\s*(?:[*+-] |\d\. |>+ )*(?:#+)*)(\s+.*)$/,
-        //     'quote':          /^(\s*(?:[*+-] |\d\. |>+ )*(?:>+)*)(\s.*)$/,
-        //     'unordered-list': /^(\s*(?:[*+-] |\d\. |>+ )*)(.*)$/,
-        //     'ordered-list':   /^(\s*(?:[*+-] |\d\. |>+ )*)(.*)$/,
-        //     'unheader': /^(\s*(?:[*+-] |\d\. |>+ )*#*)\#(?=\s+)/,
-        //     'unquote':  /^(\s*(?:[*+-] |\d\. |>+ )*>*)\>(?=\s+)/,
-        // };
         var map = {
             'header': '#',
             'unquote': '>',
-            'unordered-list': '*',
-            'ordered-list': '1.',
             'unheader': '#',
             'quote': '>'
         };
         //判断标识符是否可连续
-        var isAdd = name == 'header' || name == 'quote';
-        var isCancle = name == 'unheader' || name == 'unquote';
+        var isCancleAction = ['unheader', 'unquote'].indexOf(name) > -1 ;
         //操作每行的标识符
         for (var i = startPoint.line; i <= endPoint.line; i++) {
             (function (i) {
                 var text = cm.getLine(i);
-                var match = text.match(/^(\s*(?:[*+-] +|\d\. +|>+ +|#+ +)*)(.*)$/);
-                var flages = '';
+                var match = text.match(/^(\s*(?:[*+-] +|\d\. +|>+ +|#+ +)*(?:[*+-] |\d\. |>+ |#+ ))(.*)$/);
+                var flages = '';  //前置标识 集合如：>>> * 1.
+                var oldLength = 0,extend = map[name] + ' ';
                 //将整行分割为 标识符区、文本区
                 if (match !== null) {
                     flages = match[1];
                     text = match[2];
                 }
+                if( i === startPoint.line || i===endPoint.line)
+                    oldLength = flages.length;
                 //存在 标识符区域时，做去重检测（去重只检验末尾标识符（最近的添加的）是否与需要添加的标识符相同）
-                if (flages){
-                    flages.replace(/^(.*)([*+>#-]|\d\.)(\s)$/,(all,part1,part2,part3)=>{
-                        //末尾标识符与 新添加标识符 相同
-                        if (  (part2 == map[name] || ( part2.indexOf('.')>0 && map[name].indexOf('.')>0)) ){
-                            //相同标识符的状态下
-                            //可连续的标识符：将做连续添加操作
-                            //不连续的标识符：将做删除操作
-                            if (isAdd)
-                                text = part1 + part2 + map[name] + part3 + text;
-                            else
-                                text = (part1 + part3).replace(/(^| ) +$/,'$1') + text;
-                        } else {
-                            //不相同的标识符状态
-                            //直接新增标识符到行首
-                            text = flages + map[name] + ' ' + text;
-                        }
-                        return flages
-                    });
+                if (flages) {
+                    if (isCancleAction){
+                        extend = '';
+                        flages = flages.replace(new RegExp(map[name] + '(?=[^'+map[name]+']+$)'),'a').replace(/(^| )(a )/,'$1').replace('a','');
+                    } else {
+                        flages.replace(/^(.*(>|#))\s$/, (all, part1, part2) => {
+                            extend = '';
+                            //末尾标识符与 新添加标识符 相同
+                            if (part2 == map[name] ) {
+                                //相同标识符的状态下
+                                //可连续的标识符：将做连续添加操作
+                                flages = part1 + map[name] + ' ';
+                            } else {
+                                //不相同的标识符状态
+                                flages += map[name] + ' ';
+                            }
+                        });
+                    }
+                    flages += extend;
+                    text = flages + text;
                 }  else {
                     //行首无标识符且当前操作不为取消操作时，添加新标识符到行首
-                    if (!isCancle)
-                        text = map[name] + ' ' + text;
+                    if (!isCancleAction)
+                        text = text.replace(/^(\s*)(.*)$/,(all,part1,part2)=>{
+                            flages = map[name] + ' ';
+                            return part1 + flages + part2;
+                        })
                 }
+                if( i === startPoint.line)
+                    startPoint.ch -= oldLength - flages.length;
+                if((startPoint.line !== endPoint.line || startPoint.ch !== endPoint.ch)&& i === endPoint.line)
+                    endPoint.ch -= oldLength - flages.length;
                 cm.replaceRange(text, CodeMirror.Pos(i, 0), CodeMirror.Pos(i, cm.getLine(i).length));
             })(i);
         }
+        cm.setSelection(startPoint,endPoint);
+        cm.focus();
+    }
+
+    function _toggleLine (cm, name) {
+        var startPoint = cm.getCursor('start');
+        var endPoint = cm.getCursor('end');
+        var map = {
+            'unordered-list': '*',
+            'ordered-list': '1.'
+        };
+        //操作每行的标识符
+        for (var i = startPoint.line; i <= endPoint.line; i++) {
+            (function (i) {
+                var text = cm.getLine(i);
+                var match = text.match(/^(\s*(?:[*+-] +|\d\. +|>+ +|#+ +)*(?:[*+-] |\d\. |>+ |#+ ))(.*)$/);
+                var modifiers = '';  //前置标识 集合如：>>> * 1.
+                var oldLength = 0,extend = map[name] + ' ';
+                //将整行分割为 标识符区、文本区
+                if (match !== null) {
+                    modifiers = match[1];
+                    text = match[2];
+                }
+                if( i === startPoint.line || i===endPoint.line)
+                    oldLength = modifiers.length;
+                //存在 标识符区域时，做去重检测（去重只检验末尾标识符（最近的添加的）是否与需要添加的标识符相同）
+                if (modifiers) {
+                    modifiers.replace(/^(.*)([*+-]|\d\.)\s$/, (all, part1, part2) => {
+                        extend = '';
+                        if(part2.length != map[name].length){
+                            modifiers =  part1 +  map[name] + ' ';
+                        } else {
+                            modifiers = part1;
+                        }
+                    });
+                    modifiers += extend;
+                    text = modifiers + text;
+                }  else {
+                    //行首无标识符且当前操作不为取消操作时，添加新标识符到行首
+                        text = text.replace(/^(\s*)(.*)$/,(all,part1,part2)=>{
+                            modifiers = map[name] + ' ';
+                            return part1 + modifiers + part2;
+                        })
+                }
+                if( i === startPoint.line)
+                    startPoint.ch -= oldLength - modifiers.length;
+                if((startPoint.line !== endPoint.line || startPoint.ch !== endPoint.ch)&& i === endPoint.line)
+                    endPoint.ch -= oldLength - modifiers.length;
+                cm.replaceRange(text, CodeMirror.Pos(i, 0), CodeMirror.Pos(i, cm.getLine(i).length));
+            })(i);
+        }
+        cm.setSelection(startPoint,endPoint);
         cm.focus();
     }
 
     /**
      * Action for toggling blockquote.
      */
-    function toggleBlockquote (editor) {
-        _toggleLine(editor, 'quote');
+    function toggleBlockquote (cm) {
+        _toggleContinueLine(cm, 'quote');
     }
     /**
      * Action for toggling decrease blockquote.
      */
-    function toggleUnBlockquote (editor) {
-        _toggleLine(editor, 'unquote');
+    function toggleUnBlockquote (cm) {
+        _toggleContinueLine(cm, 'unquote');
     }
 
     /**
      * Action for toggling ul.
      */
-    function toggleUnOrderedList (editor) {
-        _toggleLine(editor, 'unordered-list');
+    function toggleUnOrderedList (cm) {
+        _toggleLine(cm, 'unordered-list');
     }
 
     /**
      * Action for toggling ol.
      */
-    function toggleOrderedList (editor) {
-        _toggleLine(editor, 'ordered-list');
+    function toggleOrderedList (cm) {
+        _toggleLine(cm, 'ordered-list');
     }
 
     /**
      * Action for toggling header.
      */
-    function toggleHeader (editor) {
-        _toggleLine(editor, 'header');
+    function toggleHeader (cm) {
+        _toggleContinueLine(cm, 'header');
     }
 
     /**
      * Action for toggling decrease header.
      */
-    function toggleUnHeader (editor) {
-        _toggleLine(editor, 'unheader');
+    function toggleUnHeader (cm) {
+        _toggleContinueLine(cm, 'unheader');
     }
 
     /**
      * Action for drawing a link.
      */
-    function drawLink (editor) {
-        var stat = getState(editor);
-        _replaceSelection(editor, stat.link, '[', ']()');
+    function drawLink (cm) {
+        var stat = getState(cm);
+        _replaceSelection(cm, stat.link, '[', ']()');
     }
     /**
      * Action for drawing a image link.
      */
-    function drawImageLink (editor) {
-        var stat = getState(editor);
-        _replaceSelection(editor, stat.link, '![', ']()');
+    function drawImageLink (cm) {
+        var stat = getState(cm);
+        _replaceSelection(cm, stat.link, '![', ']()');
     }
     /**
      * Action for drawing a table.
@@ -288,13 +372,75 @@ module.exports = (() => {
         cm.focus();
     }
 
+    let praseHtml;
+    /**
+     * Action for paste date what is HTML or Image.
+     */
+    function pasteContent(cm) {
+        let image = clipboard.readImage();
+        if (!image.isEmpty()) {
+            let imageTitle = cm.getSelection();
+            cm.replaceSelection(`![${imageTitle}](${imgManager.getImageOfObj(image,imageTitle)})`);
+        } else {
+            if (!praseHtml)
+                praseHtml = require('./tomarkdown');
+            let content = praseHtml(clipboard.readHTML(),{
+                converters: [
+                    {
+                        filter: 'img',
+                        replacement: function (innerHTML, node) {
+                            if (1 === node.attributes.length) {
+                                return "";
+                            }
+                            return "![](" + node.src + ")";
+                        }
+                    }
+                ], gfm: true
+            });
+            content = content.trim();
+            if (content === ''){
+                content = clipboard.readText()
+            } else {
+                // code 中 <, > 进行转义
+                var codes = content.split('```');
+                if (codes.length > 1) {
+                    for (var i = 0, iMax = codes.length; i < iMax; i++) {
+                        if (i % 2 === 1) {
+                            codes[i] = codes[i].replace(/<\/span><span style="color:#\w{6};">/g, '').replace(/</g, '<').replace(/>/g, '>');
+                        }
+                    }
+                }
+                content = codes.join('```');
+
+                // ascii 160 替换为 30
+                content = $('<div>' + content + '</div>').text().replace(/\n{2,}/g, '\n\n').replace(/ /g, ' ');
+                content = content.trim();
+            }
+            cm.replaceSelection(content)
+        }
+    }
+    /**
+     * Action for paste date what is HTML or Image.
+     */
+    function pasteOriginContent(cm) {
+        let image = clipboard.readImage();
+        if (!image.isEmpty()) {
+            let imageTitle = cm.getSelection();
+            cm.replaceSelection(`![${imageTitle}](${imgManager.getImageOfObj(image,imageTitle)})`);
+        } else {
+            cm.replaceSelection(clipboard.readText())
+        }
+    }
+
     /**
      * Action for format document tables.
      */
-    function formatTables() {
-        FormatTables.formatTables(editor);
+    function formatTables(cm) {
+        FormatTables.formatTables(cm);
     }
     fixShortcut();
+    CodeMirror.commands.pasteContent = pasteContent;
+    CodeMirror.commands.pasteOriginContent = pasteOriginContent;
     var editor = CodeMirror.fromTextArea(document.querySelector('#editor textarea'), {
         lineNumbers: false,
         mode: 'yaml-frontmatter',
