@@ -65,13 +65,13 @@ module.exports = (cb) => {
                     submenu: [
                         {
                             localize() { this.label = 'HTML...'; },
-                            accelerator: 'CmdOrCtrl+Shift+E',
+                            // accelerator: 'CmdOrCtrl+Shift+E',
                             click(item, hexoWindow) {
                                 cb.fileExportHTML(hexoWindow);
                             }
                         }, {
                             localize() { this.label = 'PDF...'; },
-                            accelerator: 'CmdOrCtrl+Shift+P',
+                            // accelerator: 'CmdOrCtrl+Shift+P',
                             click(item, hexoWindow) {
                                 cb.fileExportPDF(hexoWindow);
                             }
@@ -194,8 +194,8 @@ module.exports = (cb) => {
             role: 'help',
             submenu: [
                 {
-                    localize() { this.label = 'Moeditor on GitHub'; },
-                    click() { require('electron').shell.openExternal('https://github.com/Moeditor/Moeditor'); }
+                    localize() { this.label = 'HexoEditor on GitHub'; },
+                    click() { require('electron').shell.openExternal('https://github.com/zhuzhuyule/HexoEditor'); }
                 },
             ]
         },
@@ -207,7 +207,7 @@ module.exports = (cb) => {
             label: name,
             submenu: [
                 {
-                    localize() { this.label = __('About') + ' Moeditor'; },
+                    localize() { this.label = __('About') + ' HexoEditor'; },
                     click() {
                         cb.about();
                     }
@@ -234,7 +234,7 @@ module.exports = (cb) => {
                     type: 'separator'
                 },
                 {
-                    localize() { this.label = __('Hide') + ' Moeditor'; },
+                    localize() { this.label = __('Hide') + ' HexoEditor'; },
                     role: 'hide'
                 },
                 {
@@ -249,7 +249,7 @@ module.exports = (cb) => {
                     type: 'separator'
                 },
                 {
-                    localize() { this.label = __('Quit') + ' Moeditor'; },
+                    localize() { this.label = __('Quit') + ' HexoEditor'; },
                     role: 'quit'
                 },
             ]

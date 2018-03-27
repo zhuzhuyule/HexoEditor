@@ -526,6 +526,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let imageCosBucket = imageTabContents.querySelector('#image-cos-bucket');
     let imageCosBaseWebProtocol = imageTabContents.querySelector('#image-cos-url-protocol');
     let imageCosBaseWeb = imageTabContents.querySelector('#image-cos-url');
+    let imageCosCustomizeCheck = imageTabContents.querySelector('#image-cos-customize-enable');
+    let imageCosCustomize = imageTabContents.querySelector('#image-cos-customize');
 
     imageType.addEventListener('change', function (e) {
         moeApp.config.set(imageType.id, imageType.value);
@@ -768,12 +770,12 @@ document.addEventListener('DOMContentLoaded', () => {
     })
 
     imageBaseWeb.addEventListener('change', function (e) {
-        let protocol = moeApp.config.get(imageBaseWebProtocol.id)
-        let oldURL = moeApp.config.get(imageBaseWeb.id);
+        let oldURL = moeApp.config.get('image-base-url');
         let value = {
-            oldURL: (oldURL ? protocol + oldURL : ''),
+            oldURL: (oldURL),
             newURL: (imageBaseWeb.value ? imageBaseWebProtocol.value + imageBaseWeb.value : '')
         };
+        moeApp.config.set('image-base-url', value.newURL);
         moeApp.config.set(imageBaseWebProtocol.id, imageBaseWebProtocol.value);
         moeApp.config.set(imageBaseWeb.id, imageBaseWeb.value);
         ipcRenderer.send('setting-changed', {key: imageBaseWeb.id, val: value});
@@ -876,16 +878,51 @@ document.addEventListener('DOMContentLoaded', () => {
         imageCosBaseWeb.dispatchEvent(new Event('change'));
     })
 
-    imageCosBaseWeb.addEventListener('change', function (e) {
-        let protocol = moeApp.config.get(imageCosBaseWebProtocol.id)
-        let oldURL = moeApp.config.get(imageCosBaseWeb.id);
+    imageCosBaseWeb.addEventListener('change', (e)=> {
+        if(imageCosCustomizeCheck.checked){
+            imageCosCustomize.dispatchEvent(new Event('blur'));
+        } else {
+            let oldURL = moeApp.config.get('image-base-url');
+            let value = {
+                oldURL: (oldURL),
+                newURL: (imageCosBaseWeb.value ? imageCosBaseWebProtocol.value + imageCosBaseWeb.value : '')
+            };
+            moeApp.config.set('image-base-url', value.newURL);
+            moeApp.config.set(imageCosBaseWebProtocol.id, imageCosBaseWebProtocol.value);
+            moeApp.config.set(imageCosBaseWeb.id, imageCosBaseWeb.value);
+            ipcRenderer.send('setting-changed', {key: imageCosBaseWeb.id, val: value});
+        }
+    })
+
+
+    imageCosCustomizeCheck.checked = moeApp.config.get(imageCosCustomizeCheck.id);
+    if (imageCosCustomizeCheck.checked ){
+        imageCosCustomize.removeAttribute('disabled');
+    }  else {
+        imageCosCustomize.setAttribute('disabled',true);
+    }
+    imageCosCustomizeCheck.addEventListener('click',(e)=>{
+        moeApp.config.set(imageCosCustomizeCheck.id, imageCosCustomizeCheck.checked);
+        if (imageCosCustomizeCheck.checked ){
+            imageCosCustomize.removeAttribute('disabled');
+            imageCosCustomize.dispatchEvent(new Event('blur'));
+        }  else {
+            imageCosCustomize.setAttribute('disabled',true);
+            imageCosBaseWeb.dispatchEvent(new Event('change'));
+        }
+    })
+
+    imageCosCustomize.value = moeApp.config.get(imageCosCustomize.id);
+    imageCosCustomize.addEventListener('blur',(e)=>{
+        let oldURL = moeApp.config.get('image-base-url');
         let value = {
-            oldURL: (oldURL ? protocol + oldURL : ''),
-            newURL: (imageCosBaseWeb.value ? imageCosBaseWebProtocol.value + imageCosBaseWeb.value : '')
+            oldURL: (oldURL),
+            newURL: (imageCosCustomize.value||''),
+            customize: (imageCosCustomize.value||'')
         };
-        moeApp.config.set(imageCosBaseWebProtocol.id, imageCosBaseWebProtocol.value);
-        moeApp.config.set(imageCosBaseWeb.id, imageCosBaseWeb.value);
-        ipcRenderer.send('setting-changed', {key: imageCosBaseWeb.id, val: value});
+        moeApp.config.set('image-base-url', value.newURL);
+        moeApp.config.set(imageCosCustomize.id, imageCosCustomize.value);
+        ipcRenderer.send('setting-changed', {key: imageCosCustomize.id, val: value});
     })
 
     let type = moeApp.config.get(imageType.id);

@@ -41,36 +41,7 @@ $(() => {
     }
     document.querySelector('#editor textarea').innerText = hexoWindow.content;
 
-    var editor = CodeMirror.fromTextArea(document.querySelector('#editor textarea'), {
-        lineNumbers: false,
-        mode: 'yaml-frontmatter',
-        matchBrackets: true,
-        theme: moeApp.config.get('editor-theme'),
-        lineWrapping: true,
-        extraKeys: {
-            Esc: 'singleSelection',
-            Enter: 'newlineAndIndentContinueMarkdownList',
-            Home: 'goLineLeft',
-            End: 'goLineRight',
-            Tab: function (codeMirror) {
-                codeMirror.indentSelection(parseInt(codeMirror.getOption("indentUnit")));
-            },
-            'Shift-Tab': 'indentLess',
-        },
-        fixedGutter: false,
-        // foldGutter: true,
-        // gutters:["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
-        // auto:"auto",
-        // autoCloseBrackets: true,
-
-        tabSize: moeApp.config.get('tab-size'),
-        indentUnit: moeApp.config.get('tab-size'),
-        viewportMargin: Infinity,
-        styleActiveLine: true,
-        showCursorWhenSelecting: true
-    });
-
-    editor.focus();
+    window.editor = require('./CodeMirror/editor');
 
     const scroll = require('./moe-scroll');
     window.updatePreview = (force) => {
@@ -113,7 +84,6 @@ $(() => {
         window.updatePreview(true);
     }, 0);
 
-    window.editor = editor;
     // workaround for the .button is still :hover after maximize window
     $('#cover-bottom .button-bottom').mouseover(function () {
         $(this).addClass('hover');
@@ -176,6 +146,28 @@ $(() => {
 
     hexoWindow.window.show();
 
+    //Mac 下应该做的改变
+    if(process.platform !== 'darwin'){
+        document.querySelectorAll('#side-menu li[title],#cover-bottom-right>div[exdata]').forEach(
+            function (item) {
+                let value = item.getAttribute('title');
+                if (/^Ctrl(.*)$/.test(value)) {
+                    value = value.replace(/^Ctrl(.*)$/,'Cmd$1');
+                    item.setAttribute('title',value);
+                }
+
+                if(item.hasAttribute('exdata')){
+                    value = item.getAttribute('title');
+                    if (/\(Ctrl\+/.test(value)) {
+                        value = value.replace(/\(Ctrl\+/,'(Cmd+');
+                        item.setAttribute('title',value);
+                    }
+                }
+            }
+        )
+    }
+
+
     $("#main-container div").mousemove(function (e) {
         // $('.scrolling').removeClass('scrolling');
         if (e.clientX + 100 > this.offsetWidth + this.offsetLeft)
@@ -209,24 +201,7 @@ $(() => {
         }
     );
 
-    function replaceImgSelection(codeMirror, title, relativePath) {
-        codeMirror.replaceSelection(`![${title}](${relativePath})`);
-    }
 
-    window.pasteData = (codeMirror) => {
-        if (!codeMirror)
-            codeMirror = editor;
-        let image = clipboard.readImage();
-        if (!image.isEmpty()) {
-            let imageTitle = codeMirror.getSelection();
-            replaceImgSelection(codeMirror, imageTitle, imgManager.getImageOfObj(image,imageTitle));
-        } else {
-            codeMirror.replaceSelection(clipboard.readText())
-        }
-    };
-
-    var prastDataKey = (process.platform === 'darwin' ? "Cmd" : "Ctrl") + "-V";
-    editor.options.extraKeys[prastDataKey] = pasteData;
 
      window.changeFileName = (force) => {
         if (!force && hexoWindow.defName !== hexoWindow.fileName)

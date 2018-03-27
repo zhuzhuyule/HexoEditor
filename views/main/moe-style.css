@@ -130,6 +130,7 @@ body{
     top: 1px !important;
     width: calc(100% - 2px) !important;
     height: calc(100% - 2px) !important;
+    overflow: hidden !important;
 }
 
 #main-container {

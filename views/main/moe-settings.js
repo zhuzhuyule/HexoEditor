@@ -203,71 +203,82 @@ function setSourceCenter(val) {
 }
 
 function setImageWebType(val) {
+    if (val === 'smms'){
+        if (oldURL){
+            let content = editor.getValue();
+            content = content.replace(new RegExp(oldURL,'g'),'https://i.loli.net');
+            editor.setValue(content);
+            hexoWindow.changed = true;
+            hexoWindow.content = content;
+        }
+        moeApp.config.set('image-base-url', 'https://i.loli.net');
+    }
 }
 
 function SetQiNiuAccessKey(val) {
-    if(imgManager && imgManager.qiniuServer){
-        imgManager.qiniuServer.update(val)
+    if (imgManager && imgManager.uploadServer) {
+        imgManager.uploadServer.updateQiniu(val)
     }
 }
 
 function SetQiNiuSecretKey(val) {
-    if(imgManager && imgManager.qiniuServer){
-        imgManager.qiniuServer.update('',val)
+    if (imgManager && imgManager.uploadServer) {
+        imgManager.qiniuServer.update('', val)
     }
 }
 
 
 function SetQiNiuBucket(val) {
-    if(imgManager && imgManager.qiniuServer){
-        imgManager.qiniuServer.update('','',val)
+    if (imgManager && imgManager.uploadServer) {
+        imgManager.uploadServer.updateQiniu('', '', val)
     }
 }
 
 function SetQiNiuWeb(val) {
-    if (val && val.oldURL && val.newURL){
+    if (val && val.oldURL && val.newURL) {
         let content = editor.getValue();
-        content = content.replace(new RegExp(val.oldURL,'g'),val.newURL);
+        content = content.replace(new RegExp(val.oldURL, 'g'), val.newURL);
         editor.setValue(content);
         hexoWindow.changed = true;
         hexoWindow.content = content;
     }
-    if(imgManager && imgManager.qiniuServer){
-        imgManager.qiniuServer.update('','','',val.newURL)
+    if (imgManager && imgManager.uploadServer) {
+        imgManager.uploadServer.updateQiniu('', '', '', val.newURL)
     }
 }
 
 
 function SetCosAccessKey(val) {
-    if(imgManager && imgManager.cosServer){
-        imgManager.cosServer.update(val)
+    if (imgManager && imgManager.uploadServer) {
+        imgManager.uploadServer.updateCos(val)
     }
 }
 
 function SetCosSecretKey(val) {
-    if(imgManager && imgManager.cosServer){
-        imgManager.cosServer.update('',val)
+    if (imgManager && imgManager.uploadServer) {
+        imgManager.uploadServer.updateCos('', val)
     }
 }
 
 
 function SetCosBucket(val) {
-    if(imgManager && imgManager.cosServer){
-        val = (val||"|").split('|');
-        imgManager.cosServer.update('','',val[0],val[1])
+    if (imgManager && imgManager.uploadServer) {
+        val = (val || "|").split('|');
+        imgManager.uploadServer.updateCos('', '', val[0], val[1])
     }
 }
 
 function SetCosWeb(val) {
-    if (val && val.oldURL && val.newURL){
+    if (val && val.oldURL && val.newURL) {
         let content = editor.getValue();
-        content = content.replace(new RegExp(val.oldURL,'g'),val.newURL);
+        content = content.replace(new RegExp(val.oldURL, 'g'), val.newURL);
         editor.setValue(content);
         hexoWindow.changed = true;
         hexoWindow.content = content;
     }
-    if(imgManager && imgManager.cosServer){
-        imgManager.cosServer.update('','','','',moeApp.config.get('image-cos-url-protocol'))
+    if (imgManager && imgManager.uploadServer) {
+        let customize = (val && val.customize) ? val.customize : '';
+        imgManager.uploadServer.updateCos('', '', '', '', moeApp.config.get('image-cos-url-protocol'), customize)
     }
 }
 
@@ -340,6 +351,8 @@ ipcRenderer.on('setting-changed', (e, arg) => {
     } else if (arg.key === 'image-cos-bucket') {
         tryRun(SetCosBucket, arg.val);
     } else if (arg.key === 'image-cos-url') {
+        tryRun(SetCosWeb, arg.val);
+    } else if (arg.key === 'image-cos-customize') {
         tryRun(SetCosWeb, arg.val);
     }
 });

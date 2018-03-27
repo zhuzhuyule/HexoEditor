@@ -48,21 +48,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.editor.focus();
 
+    let OldModule = '';
     require('electron').ipcRenderer.on('change-edit-mode', (e, arg) => {
-        if (arg === 'read' || arg === 'write')
-            setMode(moeApp.config.get('edit-mode-' + arg));
-        else if (arg === 'change') {
-            if (document.querySelector('.write'))
-                setMode(moeApp.config.get('edit-mode-read'));
-            else
-                setMode(moeApp.config.get('edit-mode-write'));
+        if (arg === 'read' || arg === 'write'|| arg === 'preview'){
+            if (window.editMode == arg){
+                setMode(OldModule);
+            }else{
+                OldModule = window.editMode || 'preview'
+                setMode(arg);
+            }
         } else if (arg === 'changepreview') {
             if (document.querySelector('.write'))
                 setMode('preview');
             else if (document.querySelector('.read'))
-                setMode(moeApp.config.get('edit-mode-write'));
+                setMode('write');
             else
-                setMode(moeApp.config.get('edit-mode-read'));
+                setMode('read');
         } else
             setMode('preview');
     });
