@@ -1,6 +1,6 @@
 {
   "name": "HexoEditor",
-  "version": "1.4.26",
+  "version": "1.5.28",
   "description": "This is markdown editor for Hexo.",
   "main": "app/index.js",
   "scripts": {

@@ -146,6 +146,28 @@ $(() => {
 
     hexoWindow.window.show();
 
+    //Mac 下应该做的改变
+    if(process.platform !== 'darwin'){
+        document.querySelectorAll('#side-menu li[title],#cover-bottom-right>div[exdata]').forEach(
+            function (item) {
+                let value = item.getAttribute('title');
+                if (/^Ctrl(.*)$/.test(value)) {
+                    value = value.replace(/^Ctrl(.*)$/,'Cmd$1');
+                    item.setAttribute('title',value);
+                }
+
+                if(item.hasAttribute('exdata')){
+                    value = item.getAttribute('title');
+                    if (/\(Ctrl\+/.test(value)) {
+                        value = value.replace(/\(Ctrl\+/,'(Cmd+');
+                        item.setAttribute('title',value);
+                    }
+                }
+            }
+        )
+    }
+
+
     $("#main-container div").mousemove(function (e) {
         // $('.scrolling').removeClass('scrolling');
         if (e.clientX + 100 > this.offsetWidth + this.offsetLeft)
@@ -179,24 +201,7 @@ $(() => {
         }
     );
 
-    function replaceImgSelection(codeMirror, title, relativePath) {
-        codeMirror.replaceSelection(`![${title}](${relativePath})`);
-    }
 
-    window.pasteData = (codeMirror) => {
-        if (!codeMirror)
-            codeMirror = editor;
-        let image = clipboard.readImage();
-        if (!image.isEmpty()) {
-            let imageTitle = codeMirror.getSelection();
-            replaceImgSelection(codeMirror, imageTitle, imgManager.getImageOfObj(image,imageTitle));
-        } else {
-            codeMirror.replaceSelection(clipboard.readText())
-        }
-    };
-
-    var prastDataKey = (process.platform === 'darwin' ? "Cmd" : "Ctrl") + "-V";
-    editor.options.extraKeys[prastDataKey] = pasteData;
 
      window.changeFileName = (force) => {
         if (!force && hexoWindow.defName !== hexoWindow.fileName)
