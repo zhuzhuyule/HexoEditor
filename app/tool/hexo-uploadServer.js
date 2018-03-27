@@ -56,7 +56,8 @@ module.exports = (function () {
                 moeApp.config.get('image-cos-secretKey'),
                 bucketObj[0],
                 bucketObj[1],
-                moeApp.config.get('image-cos-url-protocol')
+                moeApp.config.get('image-cos-url-protocol'),
+                moeApp.config.get('image-cos-customize-enable') ? moeApp.config.get('image-cos-customize') : ''
             );
         }
         return cosServer;
@@ -308,8 +309,8 @@ module.exports = (function () {
             getQiNiuServer().deleteFile(fileanme, cb)
         }
         //Cos
-        updateCos(acessKey, secretKey, bucket, region, protocol) {
-            getCOSServer().update(acessKey, secretKey, bucket, region, protocol)
+        updateCos(acessKey, secretKey, bucket, region, protocol,customize) {
+            getCOSServer().update(acessKey, secretKey, bucket, region, protocol,customize||'')
         }
 
         getCosService(cb) {

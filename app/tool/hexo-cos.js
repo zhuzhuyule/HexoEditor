@@ -14,7 +14,8 @@ var cosServer = (function () {
         SecretKey: '',
         Bucket: '',
         Region: '',
-        Protocol: 'http://'
+        Protocol: 'http://',
+        Customize: ''
     };
     let TaskId;
 
@@ -42,7 +43,7 @@ var cosServer = (function () {
          * @param bucket
          * @param region
          */
-        update(acessKey, secretKey, bucket, region, protocol) {
+        update(acessKey, secretKey, bucket, region, protocol,customize) {
             this.cos.options.SecretId = acessKey || config.SecretId || '';
             this.cos.options.SecretKey = secretKey || config.SecretKey || '';
             config.SecretId = acessKey || config.SecretId || '';
@@ -50,6 +51,7 @@ var cosServer = (function () {
             config.Bucket = bucket || config.Bucket || '';
             config.Region = region || config.Region || '';
             config.Protocol = protocol || config.Protocol || 'http://';
+            config.Customize = customize || '';
             log.debug('update options.')
         }
 
@@ -229,13 +231,16 @@ var cosServer = (function () {
                         result.statusCode = err.statusCode;
                         result.msg = err.error.message;
                     } else {
+                        let url =  config.Protocol + data.Location.replace(/https?:\/\//, '');
+                        if(config.Customize)
+                            url = url.replace(/^https?:\/\/[^\/]+/,config.Customize.replace(/\/$/,''));
                         result.type = 200;
                         result.statusCode = data.statusCode;
                         result.data = {
                             localname: path.basename(localFile),
                             storename: path.basename(serverFile),
                             path: serverFile,
-                            url: config.Protocol + data.Location.replace(/https?:\/\//, ''),
+                            url: url
                         }
                     }
                     cb(result)
@@ -282,13 +287,16 @@ var cosServer = (function () {
                         result.statusCode = err.statusCode;
                         result.msg = err.error.message;
                     } else {
+                        let url = config.Protocol + data.Location.replace(/https?:\/\//, '');
+                        if(config.Customize)
+                            url = url.replace(/^https?:\/\/[^\/]+/,config.Customize.replace(/\/$/,''));
                         result.type = 200;
                         result.statusCode = data.statusCode;
                         result.data = {
                             localname: path.basename(localFile),
                             storename: path.basename(serverFile),
                             path: data.Key,
-                            url: config.Protocol + data.Location
+                            url: url
                         }
                     }
                     cb(result)

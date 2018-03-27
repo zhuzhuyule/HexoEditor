@@ -76,15 +76,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     enabled: inEditor && (require('electron').clipboard.readText().length !== 0 ||
                         !clipboard.readImage().isEmpty()),
                     click(item, w) {
-                        pasteData();
+                        window.editor.execCommand('pasteContent')
                     }
                 },
                 {
                     label: __('Delete'),
                     enabled: inEditor && window.editor.doc.somethingSelected(),
                     click(item, w) {
-                        hexoWindow.webContents.sendInputEvent({type: 'keyDown', modifiers: [], keyCode: 'Delete'});
-                        hexoWindow.webContents.sendInputEvent({type: 'keyUp', modifiers: [], keyCode: 'Delete'});
+                        hexoWindow.window.webContents.sendInputEvent({type: 'keyDown', modifiers: [], keyCode: 'Delete'});
+                        hexoWindow.window.webContents.sendInputEvent({type: 'keyUp', modifiers: [], keyCode: 'Delete'});
                     }
                 },
                 {

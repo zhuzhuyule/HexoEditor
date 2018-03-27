@@ -202,14 +202,14 @@ class MoeditorApplication {
             MoeditorAction.saveAs();
         });
 
-        // shortcut.register('CmdOrCtrl + R', () => {
-        //     let hexoWindow = require('electron').BrowserWindow.getFocusedWindow();
-        //     if (hexoWindow) hexoWindow.webContents.send('change-edit-mode', 'read');
-        // });
+        shortcut.register('CmdOrCtrl + R', () => {
+            let hexoWindow = require('electron').BrowserWindow.getFocusedWindow();
+            if (hexoWindow) hexoWindow.webContents.send('change-edit-mode', 'read');
+        });
 
         shortcut.register('CmdOrCtrl + W', () => {
             let hexoWindow = require('electron').BrowserWindow.getFocusedWindow();
-            if (hexoWindow) hexoWindow.webContents.send('change-edit-mode', 'change');
+            if (hexoWindow) hexoWindow.webContents.send('change-edit-mode', 'write');
         });
 
         shortcut.register('CmdOrCtrl + P', () => {
@@ -217,18 +217,16 @@ class MoeditorApplication {
             if (hexoWindow) hexoWindow.webContents.send('change-edit-mode', 'preview');
         });
 
-        shortcut.register('CmdOrCtrl + Shift + P', () => {
+        shortcut.register('Alt + C', () => {
             let hexoWindow = require('electron').BrowserWindow.getFocusedWindow();
             if (hexoWindow) hexoWindow.webContents.send('change-edit-mode', 'changepreview');
         });
 
         shortcut.register('CmdOrCtrl + Alt + Shift + R', () => {
-            let hexoWindow = require('electron').BrowserWindow.getFocusedWindow();
             hexoWindow.reload();
         });
 
         shortcut.register('CmdOrCtrl + Alt + S', () => {
-            let hexoWindow = require('electron').BrowserWindow.getFocusedWindow();
             MoeditorSettings();
         });
 
@@ -236,14 +234,6 @@ class MoeditorApplication {
             let hexoWindow = require('electron').BrowserWindow.getFocusedWindow();
             hexoWindow.webContents.openDevTools();
         });
-
-
-        /*
-        shortcut.register('CmdOrCtrl + Shift + P', () => {
-            let hexoWindow = require('electron').BrowserWindow.getFocusedWindow();
-            if (hexoWindow) hexoWindow.webContents.send('change-edit-mode', 'preview');
-        });
-        */
     }
 
     listenSettingChanges() {
