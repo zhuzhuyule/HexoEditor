@@ -394,6 +394,14 @@ module.exports = (() => {
                             }
                             return "![](" + node.src + ")";
                         }
+                    },{
+                        filter: 'a',
+                        replacement: function (innerHTML, node) {
+                            if (innerHTML.length > 0) {
+                                return "["+innerHTML+"](" + node.href + ")";
+                            }
+                            return "";
+                        }
                     }
                 ], gfm: true
             });

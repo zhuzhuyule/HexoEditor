@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let hexoWindow  = window.hexoWindow;
 
         if (hexoWindow.fileName !== '') {
-            document.getElementsByTagName('title')[0].innerText = 'Moeditor - ' + path.basename(hexoWindow.fileName);
+            document.getElementsByTagName('title')[0].innerText = 'HexoEditor - ' + path.basename(hexoWindow.fileName);
         }
 
         // TODO-ly 解决第一次图片保存地址不对的问题

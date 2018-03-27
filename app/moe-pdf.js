@@ -44,7 +44,7 @@ function exportPDF(content, cb) {
         return s;
     }
 
-    tmp = path.join(os.tmpdir(), 'Moeditor-export-' + randString(10) + '.html');
+    tmp = path.join(os.tmpdir(), 'HexoEditor-export-' + randString(10) + '.html');
     MoeditorFile.write(tmp, content.s);
     fileName = content.path;
     errorHandler = cb;
