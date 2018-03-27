@@ -67,10 +67,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     ipcRenderer.on('refresh-editor', function () {
+        const path = require('path');
         let hexoWindow  = window.hexoWindow;
+
         if (hexoWindow.fileName !== '') {
-            document.getElementsByTagName('title')[0].innerText = 'Moeditor - ' + require('path').basename(hexoWindow.fileName);
+            document.getElementsByTagName('title')[0].innerText = 'Moeditor - ' + path.basename(hexoWindow.fileName);
         }
+
+        // TODO-ly 解决第一次图片保存地址不对的问题
+        let fileName = path.basename(hexoWindow.fileName, path.extname(hexoWindow.fileName));
+        if(fileName !== imgManager.postName){
+            imgManager.renameDirPath(fileName);
+        }
+
         document.querySelector('#editor textarea').innerText = hexoWindow.content;
         window.editor.setValue(hexoWindow.content);
         window.updatePreview(true);
