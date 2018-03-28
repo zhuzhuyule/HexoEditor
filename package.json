@@ -1,6 +1,6 @@
 {
   "name": "HexoEditor",
-  "version": "1.5.28",
+  "version": "1.5.29",
   "description": "This is markdown editor for Hexo.",
   "main": "app/index.js",
   "scripts": {
@@ -41,12 +41,12 @@
       "iconSize": 80,
       "contents": [
         {
-          "x": 192,
-          "y": 344
+          "x": 80,
+          "y": 200
         },
         {
-          "x": 448,
-          "y": 344,
+          "x": 334,
+          "y": 200,
           "type": "link",
           "path": "/Applications"
         }

@@ -613,10 +613,14 @@ module.exports = (() => {
         var newModifiers = changeModifiers(wordsInfo.modifiers, item, reg);
         //计算 修饰符 变化长度
         var changeLength = newModifiers.length - wordsInfo.modifiers.length;
+
         //修改选词位置信息 及 包含修饰符后的 位置信息
         wordsInfo.range.startWord.ch += changeLength;
-        wordsInfo.range.endWord.ch += changeLength;
-        // wordsInfo.range.end.ch += changeLength*2;  //修饰符变化，尾部位置双倍长度变化
+        if( wordsInfo.range.endWord.line === wordsInfo.range.startWord.line){
+            //同行情况下，末尾选中位置也 增加或者减少 变化的长度
+            wordsInfo.range.endWord.ch += changeLength;
+            // wordsInfo.range.end.ch += changeLength*2;  //修饰符变化，尾部位置双倍长度变化
+        }
 
         editor.replaceRange(newModifiers + wordsInfo.words + reverseStr(newModifiers), wordsInfo.range.start, wordsInfo.range.end);
         editor.setSelection(wordsInfo.range.startWord, wordsInfo.range.endWord);
