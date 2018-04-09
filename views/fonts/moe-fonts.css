@@ -21,3 +21,88 @@
     font-family: 'Raleway';
     src: url(Raleway-ExtraLight.ttf) format('truetype');
 }
+
+
+@font-face {
+    font-family: 'source-sans-pro';
+    font-style: normal;
+    font-weight: normal;
+    src: local('source-sans-pro'), local('SourceSansPro-Regular'), url('./SourceCodePro/SourceSansPro-Regular.ttf');
+}
+@font-face {
+    font-family: 'source-sans-pro';
+    font-style: italic;
+    font-weight: normal;
+    src: local('source-sans-pro'), local('SourceSansPro-It'), url('./SourceCodePro/SourceSansPro-It.ttf')
+}
+
+@font-face {
+    font-family: 'source-sans-pro';
+    font-style: normal;
+    font-weight: bold;
+    src: local('source-sans-pro'), local('SourceSansPro-Semibold'), url('./SourceCodePro/SourceSansPro-Semibold.ttf')
+}
+
+@font-face {
+    font-family: 'source-sans-pro';
+    font-style: italic;
+    font-weight: bold;
+    src: local('source-sans-pro'), local('SourceSansPro-SemiboldIt'), url('./SourceCodePro/SourceSansPro-SemiboldIt.ttf')
+}
+
+/* Monospace font */
+@font-face {
+    font-family: 'source-code-pro';
+    font-style: normal;
+    font-weight: normal;
+    src: local('source-code-pro'), local('SourceCodePro-Regular'), url('./SourceCodePro/SourceCodePro-Regular.otf');
+}
+@font-face {
+    font-family: 'source-code-pro';
+    font-style: italic;
+    font-weight: normal;
+    src: local('source-code-pro'), local('SourceCodePro-It'), url('./SourceCodePro/SourceCodePro-It.otf')
+}
+
+@font-face {
+    font-family: 'source-code-pro';
+    font-style: normal;
+    font-weight: bold;
+    src: local('source-code-pro'), local('SourceCodePro-Semibold'), url('./SourceCodePro/SourceCodePro-Semibold.otf')
+}
+
+@font-face {
+    font-family: 'source-code-pro';
+    font-style: italic;
+    font-weight: bold;
+    src: local('source-code-pro'), local('SourceCodePro-SemiboldIt'), url('./SourceCodePro/SourceCodePro-SemiboldIt.otf')
+}
+
+
+@font-face {
+    font-family: 'Merriweather';
+    font-style: normal;
+    font-weight: normal;
+    src: local('Merriweather Light'),url('./Merriweather/Merriweather-Light.ttf') format('truetype')
+}
+
+@font-face {
+    font-family: 'Merriweather';
+    font-style: italic;
+    font-weight: normal;
+    src: local('Merriweather Light Italic'),url('./Merriweather/Merriweather-LightItalic.ttf') format('truetype')
+}
+
+@font-face {
+    font-family: 'Merriweather';
+    font-style: normal;
+    font-weight: bold;
+    src: local('Merriweather Regular'),url('./Merriweather/Merriweather-Regular.ttf') format('truetype')
+}
+
+@font-face {
+    font-family: 'Merriweather';
+    font-style: italic;
+    font-weight: bold;
+    src: local('Merriweather Italic'),url('./Merriweather/Merriweather-Italic.ttf') format('truetype')
+}

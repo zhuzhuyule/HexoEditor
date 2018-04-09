@@ -204,8 +204,9 @@ class ImgManager {
         this.updateDictionary(imgName + '\\b', newImgName)
     }
 
-    renameDirPath(fileName) {
-        this.updateDictionary('/' + this.postName + '/', '/' + fileName + '/')
+    renameDirPath(fileName,notUpdateCache) {
+        if (!notUpdateCache)
+            this.updateDictionary('/' + this.postName + '/', '/' + fileName + '/')
         this.imgPathDir = path.resolve(this.imgPathDir,'..', fileName);
         this.postName = fileName;
     }

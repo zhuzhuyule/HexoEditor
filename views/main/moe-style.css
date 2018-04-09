@@ -23,6 +23,35 @@
     --spaceY: 30px;
 }
 
+html[lang="zh_CN"] body[settings-editor-font="default"] {
+    --body-font: 'Roboto Mono', 'Menlo', 'Ubuntu Mono', 'Consolas', 'Liberation Mono', 'Dejavu Mans Mono', monospace, 'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft Yahei';
+}
+
+body[settings-editor-font="default"] {
+    --body-font: '';
+}
+
+body[settings-editor-font="monospace"] {
+    --body-font: monospace;
+}
+
+body[settings-editor-font="serif"] {
+    --body-font: serif;
+}
+
+body[settings-editor-font="sans"] {
+    --body-font: sans-serif;
+}
+
+body[settings-editor-font="SansPro"] {
+    --body-font: 'source-sans-pro';
+}
+
+body[settings-editor-font="Merriweather"] {
+    --body-font: 'Merriweather';
+}
+
+
 .notransition, .notransition *:not(.transition):not(.CodeMirror-cursors):not(.CodeMirror-lines):not(.CodeMirror-sizer):not(.CodeMirror-vscrollbar) {
     transition: none !important;
 }
@@ -309,24 +338,8 @@ body{
     transition: all 500ms ease-in-out;
 }*/
 
-body[settings-editor-font="default"] #editor * {
-    font-family: 'Roboto Mono', 'Menlo', 'Ubuntu Mono', 'Consolas', 'Liberation Mono', 'Dejavu Mans Mono', monospace !important;
-}
-
-html[lang="zh_CN"] body[settings-editor-font="default"] #editor * {
-    font-family: 'Roboto Mono', 'Menlo', 'Ubuntu Mono', 'Consolas', 'Liberation Mono', 'Dejavu Mans Mono', monospace, 'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft Yahei' !important;
-}
-
-body[settings-editor-font="monospace"] #editor * {
-    font-family: monospace !important;
-}
-
-body[settings-editor-font="serif"] #editor  * {
-    font-family: serif !important;
-}
-
-body[settings-editor-font="sans"] #editor  * {
-    font-family: sans-serif !important;
+body #editor * {
+    font-family: var(--body-font),'Roboto Mono', 'Menlo', 'Ubuntu Mono', 'Consolas', 'Liberation Mono', 'Dejavu Mans Mono', monospace !important;
 }
 
 #preview {
