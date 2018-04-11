@@ -41,6 +41,7 @@
 .tabview .bar .item.selected {
     background-color: #fff;
     color: #888;
+    text-shadow: 3px 3px 1px #E0E0E0;
 }
 
 .tabview .bar .item .image {
@@ -51,8 +52,8 @@
 
 .tabview .bar .item .text {
     text-align: center;
-    font-size: 11px;
-    font-family: Roboto, Helvetica, 'Segoe UI', Arial, sans-serif;
+    font-size: 12px;
+    /*font-family: Roboto, Helvetica, 'Segoe UI', Arial, sans-serif;*/
 }
 
 .tabview .content {
