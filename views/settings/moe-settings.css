@@ -142,3 +142,8 @@ span.checkbtn{
     width: 15px;
     display: inline-block;
 }
+
+input[data-key="scale-factor"]::-webkit-outer-spin-button,
+input[data-key="scale-factor"]::-webkit-inner-spin-button {
+    -webkit-appearance: none !important;
+}

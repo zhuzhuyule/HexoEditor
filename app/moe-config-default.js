@@ -22,8 +22,9 @@
 module.exports = {
     'locale': 'default',
     'debug': false,
-    'scale-factor': 1.0,
+    'scale-factor': 1.2,
     'tab-size': 4,
+    'zoom-level': 1.2,
     'edit-mode': 'preview',
     'edit-mode-read': 'read',
     'edit-mode-write': 'write',

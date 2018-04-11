@@ -34,8 +34,8 @@ function showSettingsWindow() {
     const conf = {
         icon: Const.path + "/icons/HexoEditor.ico",
         autoHideMenuBar: true,
-        width: 600 * moeApp.config.get('scale-factor'),
-        height: parseInt(275 * moeApp.config.get('scale-factor')),
+        width: 600,
+        height: 325,
         webPreferences: {
             zoomFactor: moeApp.config.get('scale-factor')
         },

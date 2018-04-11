@@ -67,7 +67,13 @@ document.addEventListener('DOMContentLoaded', () => {
             else item.value = oldVal;
             item.addEventListener('change', () => {
                 let val;
-                if (item.tagName === 'INPUT' && item.type === 'checkbox') val = item.checked;
+                if (item.id === 'scaleFactor') {
+                    if (item.value === '') item.value = oldVal;
+                    else if (0.7 > item.value) item.value = 0.7;
+                    else if (1.6 < item.value) item.value = 1.6;
+                    val = item.value;
+                }
+                else if (item.tagName === 'INPUT' && item.type === 'checkbox') val = item.checked;
                 else val = item.value;
                 console.log(key + ': ' + val);
                 moeApp.config.set(key, val);

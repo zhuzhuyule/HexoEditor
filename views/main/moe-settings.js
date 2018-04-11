@@ -196,6 +196,14 @@ function setTabSize(val) {
     window.editor.refresh();
 }
 
+function setZoomFactor(val) {
+    var scale = parseFloat(val);
+    var webFrame = require('electron').webFrame;
+    if (scale >= 0.7 && scale <= 1.6){
+        webFrame.setZoomFactor(scale)
+    }
+}
+
 function setSourceCenter(val) {
     if(imgManager ){
         imgManager.updateBase();
@@ -287,6 +295,7 @@ tryRun(setShowLineNumber, !!moeApp.config.get('editor-ShowLineNumber'));
 tryRun(setScrollTogether, moeApp.config.get('scroll-Together'));
 tryRun(setEditorTheme, moeApp.config.get('editor-theme'));
 tryRun(setEditorFontSize, moeApp.config.get('editor-font-size'));
+tryRun(setZoomFactor, moeApp.config.get('scale-factor'));
 tryRun(setEditorLineHeight, moeApp.config.get('editor-line-height'));
 tryRun(setRenderTheme, moeApp.config.get('render-theme'));
 tryRun(setHighlightTheme, moeApp.config.get('highlight-theme'));
@@ -322,6 +331,8 @@ ipcRenderer.on('setting-changed', (e, arg) => {
         tryRun(setRenderTheme, arg.val);
     } else if (arg.key === 'tab-size') {
         tryRun(setTabSize, arg.val);
+    } else if (arg.key === 'scale-factor') {
+        tryRun(setZoomFactor, arg.val);
     } else if (arg.key === 'hexo-auto-setting') {
         tryRun(setHexoAutoSetting, arg.val);
     } else if (arg.key === 'hexo-config-enable') {

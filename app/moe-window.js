@@ -47,8 +47,8 @@ class MoeditorWindow {
         var conf = {
             icon: Const.path + "/icons/HexoEditor.ico",
             autoHideMenuBar: true,
-            width: 1000 * moeApp.config.get('scale-factor'),
-            height: 600 * moeApp.config.get('scale-factor'),
+            width: 1000 ,
+            height: 600 ,
             webPreferences: {
                 zoomFactor: moeApp.config.get('scale-factor')
             },

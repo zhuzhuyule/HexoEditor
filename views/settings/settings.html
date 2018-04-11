@@ -106,6 +106,14 @@
                                     </select>
                                 </td>
                             </tr>
+                            <tr>
+                                <td width="40%" class="l10n">Zoom factor</td>
+                                <td width="60%">
+                                    <script>
+                                        document.write(`<input class="settings-item" id="scaleFactor" type="number" data-key="scale-factor" value="${moeApp.config.get('scale-factor')}" title="0.7 ~ 1.6">`);
+                                    </script>
+                                </td>
+                            </tr>
                         </table>
                     </div>
                     <div class="panel" data-tab="edit">
