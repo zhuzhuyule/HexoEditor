@@ -226,7 +226,7 @@ const strings = {
         "SecretKey": "Secret Key",
         "Bucket": "Bucket",
         "BaseWeb": "Base Web",
-        "Customize": "Customize",
+        "Customize": "Customize origin",
 
 
         "Undo": "Undo",
@@ -404,7 +404,7 @@ const strings = {
         "SecretKey": "Secret Key",
         "Bucket": "存储空间",
         "BaseWeb": "域名",
-        "Customize": "自定义",
+        "Customize": "自定义域名",
 
         "Undo": "撤销",
         "Redo": "重做",
