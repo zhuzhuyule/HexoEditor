@@ -147,7 +147,7 @@ $(() => {
     hexoWindow.window.show();
 
     //Mac 下应该做的改变
-    if(process.platform !== 'darwin'){
+    if(process.platform == 'darwin'){
         document.querySelectorAll('#side-menu li[title],#cover-bottom-right>div[exdata]').forEach(
             function (item) {
                 let value = item.getAttribute('title');
