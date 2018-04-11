@@ -1,6 +1,6 @@
 {
   "name": "HexoEditor",
-  "version": "1.5.29",
+  "version": "1.5.30",
   "description": "This is markdown editor for Hexo.",
   "main": "app/index.js",
   "scripts": {
@@ -123,7 +123,7 @@
     "yamljs": "^0.3.0"
   },
   "devDependencies": {
-    "electron": "^1.8.1",
+    "electron": "^1.8.4",
     "electron-builder": "^19.52.1"
   }
 }
