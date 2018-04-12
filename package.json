@@ -38,19 +38,23 @@
       "title": "HexoEditor",
       "icon": "icons/HexoEditor.icns",
       "background": "icons/background.png",
-      "iconSize": 80,
+      "iconSize": 99,
       "contents": [
         {
-          "x": 80,
-          "y": 200
+          "x": 123,
+          "y": 232
         },
         {
-          "x": 334,
-          "y": 200,
+          "x": 351,
+          "y": 232,
           "type": "link",
           "path": "/Applications"
         }
-      ]
+      ],
+	  "window":{
+		"width": 480,
+		"height": 338
+	  }
     },
     "linux": {
       "target": [
