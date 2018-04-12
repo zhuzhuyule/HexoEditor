@@ -40,7 +40,7 @@ module.exports = (() => {
         'Ctrl-Alt-U': drawImageLink,
         'Ctrl-T': drawTable,
         'Ctrl-V': pasteOriginContent,
-        'Ctrl-Shift-V': pasteContent,
+        'Shift-Ctrl-V': pasteContent,
         'Alt-F': formatTables
     }
 
