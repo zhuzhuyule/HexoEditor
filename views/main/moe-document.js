@@ -31,6 +31,11 @@ global.log4js = window.log4js = moeApp.getLog4js();
 global.log = window.log = log4js.getLogger('Front');
 
 $(() => {
+    console.log("%cHexoEditor%c\n\
+  by zhuzhuyule\n\
+  A markdown editor for hexo.\n\n\
+  Copyright © 2018-2018\n\
+  https://github.com/zhuzhuyule/HexoEditor\n","font-size:68px;color:#3b3e43","font-size:12px;color:rgba(0,0,0,0.38);");
     const dialog = require('electron').remote.dialog;
     const YMAL = require('yamljs');
 
