@@ -75,11 +75,44 @@
 # В планах
 - [ ] Добавить Toc
 - [x] Добавить настройку Hexo-заголовка (100%)
-- [ ] Добавить базовую подсветку ярлыков
+- [x] Добавить базовую подсветку ярлыков
 - [ ] Добавить дерево изменений файлов
 .....
 - [x] Развертывание поста
 - [ ] Добавить мульти-редактирование во вкладках
+
+# Ярлыки
+| кнопка                    | метод              | объяснение            |
+| :--------------------: | :------------------ | :-------------- |
+| `Tab`                  | tabAdd              | add indentation        |
+| `Shift` - `Tab`        | tabSubtract         | reduce indentation        |
+| `Ctrl` - `B`           | toggleBlod          | toggle blod        |
+| `Ctrl` - `I`           | toggleItalic        | toggle italic        |
+| `Ctrl` - `D`           | toggleDelete        | delete current line        |
+| `Ctrl` - <code>\`</code>         | toggleComment       | toggle comment        |
+| `Ctrl` - `L`           | toggleUnOrderedList | toggle unordered list    |
+| `Ctrl` - `Alt` - `L`   | toggleOrderedList   | toggle ordered list    |
+| `Ctrl` - `]`           | toggleHeader        | downgrade title        |
+| `Ctrl` - `[`           | toggleUnHeader      | upgrade title        |
+| `Ctrl` - `=`           | toggleBlockquote    | add blockquote        |
+| `Ctrl` - ` - `         | toggleUnBlockquote  | reduce blockquote        |
+| `Ctrl` - `U`           | drawLink            | add hyperlink    |
+| `Ctrl` - `Alt` - `U`   | drawImageLink       | add image       |
+| `Ctrl` - `T`           | drawTable(row col)  | add table(row column) |
+| `Ctrl` - `V`           | pasteOriginContent  | paste origin content       |
+| `Shift` - `Ctrl` - `V` | pasteContent        | auto paste content      |
+| `Alt` - `F`            | formatTables        | format tables      |
+| `Ctrl` - `N`            |         | new md document      |
+| `Ctrl` - `H`            |         | new hexo document      |
+| `Ctrl` - `O`            |         | open md document      |
+| `Ctrl` - `S`            |         | save md document      |
+| `Shift` - `Ctrl` - `S`            |         | save as      |
+| `Alt` - `Ctrl` - `S`            |         | open settings      |
+| `Ctrl` - `W`            |         | toggle write mode      |
+| `Ctrl` - `P`            |         | toggle preview mode       |
+| `Ctrl` - `R`            |         | toggle read mode       |
+
+* **подсказка**: В Mac OS, plase замените ключ `Ctrl` ключом` Cmd`.
 
 # Компилирование
 ```c
@@ -96,7 +129,7 @@ npm config set registry "https://registry.npm.taobao.org/"
 npm config set electron_mirror "https://npm.taobao.org/mirrors/electron/"
 
 git clone https://github.com/zhuzhuyule/HexoEditor.git
-npm install -g electron@1.8.1
+cd HexoEditor
 npm install
 npm start
 ```
