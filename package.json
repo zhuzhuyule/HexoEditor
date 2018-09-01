@@ -51,10 +51,10 @@
           "path": "/Applications"
         }
       ],
-	  "window":{
-		"width": 480,
-		"height": 338
-	  }
+      "window": {
+        "width": 480,
+        "height": 338
+      }
     },
     "linux": {
       "target": [
@@ -119,6 +119,7 @@
     "qiniu": "^7.1.1",
     "raphael": "^2.2.1",
     "request": "^2.83.0",
+    "shell-env": "^2.0.1",
     "strip-indent": "^2.0.0",
     "swig": "^1.4.2",
     "swig-extras": "0.0.1",
