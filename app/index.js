@@ -20,6 +20,12 @@
 
 'use strict';
 
+// on darwin, to rewrite path
+if (process.platform === "darwin") {
+    const shellEnvs = require('shell-env').sync()
+    process.env.PATH = shellEnvs.PATH;
+}
+
 const app = require('electron').app,
       MoeditorApplication = require('./moe-app');
 

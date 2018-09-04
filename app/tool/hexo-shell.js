@@ -42,10 +42,12 @@ var shellServer = (function () {
 
         execCmd(command) {
             let flagOK = false;
+            
             clearTimeout(_shellServer.timeID);
             _shellServer.closeMsg = false;
             _shellServer.lastWindow = require('electron').BrowserWindow.getFocusedWindow();
             _shellServer.isForce = false;
+            log.info("path:", process.env.PATH)
             log.info('Begin execute:', `[${moeApp.hexo.config.__basedir}] [${command}]`);
             _shellServer.shellProcess = exec(command, {cwd: moeApp.hexo.config.__basedir});
             _shellServer.sendConsole('<i class="fa fa-spinner fa-pulse fa-fw margin-bottom"></i>' + __("Executing"), 'info', 'ban');
@@ -58,7 +60,24 @@ var shellServer = (function () {
                 if (/INFO  Hexo is running at https?:\/+/.test(data)) {
                     flagOK = true;
                     _shellServer.sendConsole('<i class="fa fa-spinner fa-pulse fa-fw margin-bottom"></i>' + __('ServerStart'), 'info', 'stop');
-                    require('electron').shell.openExternal(data.match(/INFO  Hexo is running at (https?:\/+[^\/]+\/). Press Ctrl.C to stop./i)[1])
+
+                    // fix 这里会报异常
+                    const externalParams = function() {
+                        const d = data.match(/INFO  Hexo is running at (https?:\/+[^\/]+\/). Press Ctrl.C to stop./i);
+                        if (!d) {
+                            return null
+                        }
+
+                        if (d.length > 2) {
+                            return d[1]
+                        }
+
+                        return null
+                    }();
+                
+                    if (externalParams) {
+                        require('electron').shell.openExternal(externalParams)
+                    }
                 } else {
                     _shellServer.timeID = setTimeout(() => {
                         if (!flagOK) {

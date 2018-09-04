@@ -81,7 +81,9 @@ function killAll(tree, signal, callback){
     }
 
     if (callback) {
-        return callback();
+        if (typeof callback === 'function') {
+            return callback();
+        }
     }
 }
 
