@@ -188,6 +188,9 @@ var rightSide = display.lineDiv.offsetWidth - padding.right;
 
 * :triangular_flag_on_post: <a href="https://github.com/theme-next/hexo-theme-next" target="_blank">NexT theme</a>
 
+# Hexo帮助文档
+- [Hexo](https://hexo.io)
+- [EasyHexo](https://easyhexo.github.io/Easy-Hexo/)
 
 # QQ群:
 - 群名：HexoEditor
