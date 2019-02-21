@@ -36,8 +36,10 @@ function setEditorFont(val) {
 }
 
 function setScrollTogether(val) {
+    val = !!val;
     moeApp.config.set('scroll-Together',val);
     window.scrollTogether = val;
+    log.info(window.scrollTogether)
 }
 
 function setShowLineNumber(val) {
