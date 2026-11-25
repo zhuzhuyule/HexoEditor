@@ -86,18 +86,25 @@ function splitByFencedCodeBlocks(
   };
 
   for (const line of lines) {
-    const fenceMatch = line.match(/^\s*(`{3,}|~{3,})/);
     if (!inFence) {
+      const fenceMatch = line.match(/^\s{0,3}(`{3,}|~{3,})(.*)$/);
       if (fenceMatch) {
+        const marker = fenceMatch[1];
+        const info = fenceMatch[2] ?? "";
+        // CommonMark: info strings for backtick code fences cannot contain backticks (e.g. ```inline```)
+        if (marker[0] === "`" && info.includes("`")) {
+          buf.push(line);
+          continue;
+        }
         flush(false);
-        inFence = { char: fenceMatch[1][0], len: fenceMatch[1].length };
+        inFence = { char: marker[0], len: marker.length };
         buf.push(line);
       } else {
         buf.push(line);
       }
     } else {
       buf.push(line);
-      const closeRe = new RegExp(`^\\s*${inFence.char}{${inFence.len},}\\s*$`);
+      const closeRe = new RegExp(`^\\s{0,3}${inFence.char}{${inFence.len},}\\s*$`);
       if (closeRe.test(line)) {
         flush(true);
         inFence = null;
@@ -148,17 +155,19 @@ function replaceInPlainMarkdownSegment(
     }
   );
 
-  // 4. Hexo {% asset_img slug [title] %}
+  // 4. Hexo {% asset_img [class...] slug [title] %}
   text = text.replace(
     /\{%\s*asset_img\s+([^%]+?)\s*%\}/gi,
     (full, rawArgs: string) => {
       const trimmed = rawArgs.trim();
       if (!trimmed) return full;
 
-      // Match longest variant prefix (supports filenames containing spaces)
+      // Match longest variant either at start or after optional CSS class prefix tokens
       const sortedVariants = Array.from(variantSet).sort((a, b) => b.length - a.length);
       for (const variant of sortedVariants) {
-        const quotedRe = new RegExp(`^["']${escapeRegExp(variant)}["'](?:\\s+(.*))?$`);
+        const quotedRe = new RegExp(
+          `^(?:(?:[a-zA-Z_-][\\w-]*\\s+)*)?["']${escapeRegExp(variant)}["'](?:\\s+(.*))?$`
+        );
         const quotedMatch = trimmed.match(quotedRe);
         if (quotedMatch) {
           const title = (quotedMatch[1] ?? "").trim().replace(/^["']|["']$/g, "");
@@ -166,7 +175,9 @@ function replaceInPlainMarkdownSegment(
           return `![${title}](${formattedTarget})`;
         }
 
-        const bareRe = new RegExp(`^${escapeRegExp(variant)}(?:\\s+(.*))?$`);
+        const bareRe = new RegExp(
+          `^(?:(?:[a-zA-Z_-][\\w-]*\\s+)*)?${escapeRegExp(variant)}(?:\\s+(.*))?$`
+        );
         const bareMatch = trimmed.match(bareRe);
         if (bareMatch) {
           const title = (bareMatch[1] ?? "").trim().replace(/^["']|["']$/g, "");
@@ -189,7 +200,10 @@ function replaceInPlainMarkdownSegment(
         );
         if (re.test(rawArgs)) {
           count++;
-          const replacedArgs = rawArgs.replace(re, `$1${targetUrl}`);
+          const replacedArgs = rawArgs.replace(
+            re,
+            (_match, leadingSpace: string) => `${leadingSpace}${targetUrl}`
+          );
           return `{% img ${replacedArgs} %}`;
         }
       }

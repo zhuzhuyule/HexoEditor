@@ -1063,12 +1063,16 @@ export function App() {
     if (!activeTab) return null;
     const stored = lastUploadBatches[activeTab.id];
     if (!stored || stored.records.length === 0) return null;
-    const remoteKeyCount = stored.records.filter((r) => Boolean(r.remoteKey)).length;
+    const hasDeletedLocal = stored.records.some((r) => r.localDeleted);
+    const remoteKeyCount = stored.records.filter(
+      (r) => !r.localDeleted && Boolean(r.remoteKey)
+    ).length;
     return {
       uploadedCount: stored.records.length,
       timestamp: stored.timestamp,
-      canDeleteRemote: stored.canDeleteRemote,
+      canDeleteRemote: stored.canDeleteRemote && !hasDeletedLocal && remoteKeyCount > 0,
       remoteKeyCount,
+      hasDeletedLocal,
     };
   }, [activeTab, lastUploadBatches]);
 
@@ -1077,28 +1081,82 @@ export function App() {
     [imageBed]
   );
 
-  const effectiveEditorFontSize = useMemo(
-    () => Math.round((editorPrefs.fontSize * editorPrefs.zoomLevel) / 100),
-    [editorPrefs.fontSize, editorPrefs.zoomLevel]
-  );
-
-  // Fallback print-only article for Write / Focus / Live-preview modes so Cmd+P and Export PDF always print full formatted article
+  // Fallback print-only article for Write / Focus / Live-preview modes so Cmd+P and Export PDF always print full formatted article with resolved local images
   const needsPrintFallback = Boolean(
     activeTab &&
       (viewMode === "write" ||
         viewMode === "focus" ||
         previewSource === "live")
   );
+  const [printFallbackImageMap, setPrintFallbackImageMap] = useState<
+    Record<string, LocalImageEntry>
+  >({});
+
+  useEffect(() => {
+    if (!needsPrintFallback || !activeTab) {
+      setPrintFallbackImageMap({});
+      return;
+    }
+    const parsed = parseMarkdownDocument(activeTab.content);
+    const srcs = extractLocalImageSrcs(parsed.body, { enableHexoTags });
+    if (srcs.length === 0) {
+      setPrintFallbackImageMap({});
+      return;
+    }
+    let cancelled = false;
+    void api
+      .resolveLocalImages({
+        docPath: activeTab.filePath,
+        siteRoot: activeTab.siteRoot,
+        sourceDir: activeTab.sourceDir,
+        srcs,
+      })
+      .then((resolved) => {
+        if (cancelled) return;
+        const map: Record<string, LocalImageEntry> = {};
+        for (const entry of resolved) {
+          if (entry.exists && entry.absolutePath) {
+            map[entry.rawSrc] = {
+              assetUrl: api.toAssetUrl(entry.absolutePath),
+              absolutePath: entry.absolutePath,
+            };
+          }
+        }
+        setPrintFallbackImageMap(map);
+      })
+      .catch(() => {
+        if (!cancelled) setPrintFallbackImageMap({});
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    needsPrintFallback,
+    activeTab?.content,
+    activeTab?.filePath,
+    activeTab?.siteRoot,
+    activeTab?.sourceDir,
+    enableHexoTags,
+    imageVersion,
+  ]);
+
   const printFallbackData = useMemo(() => {
     if (!needsPrintFallback || !activeTab) return null;
     const parsed = parseMarkdownDocument(activeTab.content);
     const html = renderMarkdownToHtml(parsed.body, {
       bodyStartLine: parsed.bodyStartLine,
+      imageMap: printFallbackImageMap,
       enableHexoTags,
     });
     const scopedCss = scopePreviewThemeCss(themeCss);
     return { parsed, html, scopedCss };
-  }, [needsPrintFallback, activeTab?.content, enableHexoTags, themeCss]);
+  }, [
+    needsPrintFallback,
+    activeTab?.content,
+    printFallbackImageMap,
+    enableHexoTags,
+    themeCss,
+  ]);
 
   const commandItems = useMemo<CommandPaletteItem[]>(() => {
     const items: CommandPaletteItem[] = [];
@@ -1824,9 +1882,10 @@ export function App() {
                             focusMode={isFocusMode}
                             showLineNumbers={showLineNumbers}
                             fontFamily={editorPrefs.fontFamily}
-                            fontSize={effectiveEditorFontSize}
+                            fontSize={editorPrefs.fontSize}
                             lineHeight={editorPrefs.lineHeight}
                             tabSize={editorPrefs.tabSize}
+                            zoomLevel={editorPrefs.zoomLevel}
                           />
                         </Panel>
                         {viewMode === "split" && (
@@ -1865,6 +1924,27 @@ export function App() {
                               <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
                                 {printFallbackData.parsed.data.title}
                               </h1>
+                              {(printFallbackData.parsed.data.date ||
+                                printFallbackData.parsed.data.categories.length >
+                                  0) && (
+                                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-zinc-400">
+                                  {printFallbackData.parsed.data.date && (
+                                    <span className="font-mono">
+                                      {printFallbackData.parsed.data.date}
+                                    </span>
+                                  )}
+                                  {printFallbackData.parsed.data.categories.map(
+                                    (cat) => (
+                                      <span
+                                        key={cat}
+                                        className="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600"
+                                      >
+                                        {cat}
+                                      </span>
+                                    )
+                                  )}
+                                </div>
+                              )}
                             </header>
                           )}
                         <div

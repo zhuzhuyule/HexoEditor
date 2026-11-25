@@ -328,7 +328,10 @@ pub fn build_public_url(config: &ImageBedConfig, remote_key: &str) -> AppResult<
                 let host = ep.host_str().unwrap_or_default();
                 let port_suffix = ep.port().map(|p| format!(":{}", p)).unwrap_or_default();
                 let scheme = ep.scheme();
-                if host.ends_with(".amazonaws.com") && !host.starts_with(&format!("{}.", bucket)) {
+                if host.starts_with(&format!("{}.", bucket)) {
+                    let base = ep.as_str().trim_end_matches('/');
+                    Ok(format!("{}/{}", base, encoded_key))
+                } else if host.ends_with(".amazonaws.com") {
                     Ok(format!(
                         "{}://{}.{}{}/{}",
                         scheme, bucket, host, port_suffix, encoded_key
@@ -626,14 +629,27 @@ async fn upload_via_picgo(
                         }
                         match parse_picgo_upload_response(&body) {
                             Ok(mut urls) => {
-                                let remote_url = urls.remove(0);
-                                items.push(UploadedImageItem {
-                                    local_path: raw_path.clone(),
-                                    remote_url: Some(remote_url),
-                                    remote_key: None,
-                                    success: true,
-                                    error: None,
-                                });
+                                let raw_url = urls.remove(0);
+                                match validate_http_url(&raw_url, "PicGo returned URL") {
+                                    Ok(valid_url) => {
+                                        items.push(UploadedImageItem {
+                                            local_path: raw_path.clone(),
+                                            remote_url: Some(valid_url.to_string()),
+                                            remote_key: None,
+                                            success: true,
+                                            error: None,
+                                        });
+                                    }
+                                    Err(err) => {
+                                        items.push(UploadedImageItem {
+                                            local_path: raw_path.clone(),
+                                            remote_url: None,
+                                            remote_key: None,
+                                            success: false,
+                                            error: Some(err.to_string()),
+                                        });
+                                    }
+                                }
                             }
                             Err(msg) => {
                                 items.push(UploadedImageItem {
@@ -1049,6 +1065,37 @@ fn is_external_ref(src: &str) -> bool {
         || lower.starts_with("//")
 }
 
+fn resolve_contained_source_dir(site_root: &Path, src_dir_name: &str) -> AppResult<PathBuf> {
+    let rel = Path::new(src_dir_name);
+    if rel.is_absolute()
+        || rel.components().any(|c| {
+            matches!(
+                c,
+                std::path::Component::ParentDir
+                    | std::path::Component::RootDir
+                    | std::path::Component::Prefix(_)
+            )
+        })
+    {
+        return Err(AppError::InvalidPath(format!(
+            "source_dir escapes site root: {}",
+            src_dir_name
+        )));
+    }
+    let candidate = site_root.join(rel);
+    if let (Ok(canon_root), Ok(canon_candidate)) =
+        (fs::canonicalize(site_root), fs::canonicalize(&candidate))
+    {
+        if !canon_candidate.starts_with(&canon_root) {
+            return Err(AppError::InvalidPath(format!(
+                "Resolved source_dir escapes site root: {}",
+                src_dir_name
+            )));
+        }
+    }
+    Ok(candidate)
+}
+
 pub fn scan_unused_local_images(
     doc_path: &str,
     site_root: Option<&str>,
@@ -1070,10 +1117,10 @@ pub fn scan_unused_local_images(
         .map(str::trim)
         .filter(|s| !s.is_empty())
         .unwrap_or("source");
-    let site_source = site_root
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .map(|r| PathBuf::from(r).join(src_dir_name));
+    let site_source = match site_root.map(str::trim).filter(|s| !s.is_empty()) {
+        Some(r) => Some(resolve_contained_source_dir(Path::new(r), src_dir_name)?),
+        None => None,
+    };
 
     let mut candidate_dirs: Vec<PathBuf> = Vec::new();
     let post_asset_dir = doc_parent.join(doc_stem);
@@ -1551,6 +1598,18 @@ mod tests {
             "https://hexo-assets.s3.ap-northeast-1.amazonaws.com/2026/hero.png"
         );
 
+        // AWS S3 custom endpoint that already carries `{bucket}.` prefix must not duplicate bucket
+        let aws_s3_prefixed = ImageBedConfig {
+            provider: "s3".into(),
+            bucket: Some("my-bucket".into()),
+            endpoint: Some("https://my-bucket.s3.us-east-1.amazonaws.com".into()),
+            ..Default::default()
+        };
+        assert_eq!(
+            build_public_url(&aws_s3_prefixed, "2026/hero.png").unwrap(),
+            "https://my-bucket.s3.us-east-1.amazonaws.com/2026/hero.png"
+        );
+
         // MinIO / S3-compatible custom endpoint (path style)
         let minio = ImageBedConfig {
             provider: "s3".into(),
@@ -1747,6 +1806,40 @@ mod tests {
         assert!(matches!(
             read_local_file_as_data_uri(dir.path().join("nope.png").to_str().unwrap()),
             Err(AppError::NotFound(_))
+        ));
+    }
+
+    #[test]
+    fn test_scan_unused_local_images_blocks_source_dir_traversal() {
+        let dir = TempDir::new().unwrap();
+        let root = dir.path();
+        let post_path = root.join("source/_posts/demo.md");
+        fs::create_dir_all(post_path.parent().unwrap()).unwrap();
+        fs::write(&post_path, "# Demo").unwrap();
+
+        let err_parent = scan_unused_local_images(
+            post_path.to_str().unwrap(),
+            Some(root.to_str().unwrap()),
+            true,
+            Some("../../etc"),
+            "# Demo",
+        );
+        assert!(matches!(err_parent, Err(AppError::InvalidPath(_))));
+
+        let err_abs = scan_unused_local_images(
+            post_path.to_str().unwrap(),
+            Some(root.to_str().unwrap()),
+            true,
+            Some("/etc"),
+            "# Demo",
+        );
+        assert!(matches!(err_abs, Err(AppError::InvalidPath(_))));
+
+        // Validate PicGo returned URL protocol check rejects non-http schemes
+        assert!(validate_http_url("https://cdn.example.com/a.png", "PicGo returned URL").is_ok());
+        assert!(matches!(
+            validate_http_url("javascript:alert(1)", "PicGo returned URL"),
+            Err(AppError::InvalidInput(_))
         ));
     }
 }

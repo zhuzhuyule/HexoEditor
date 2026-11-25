@@ -36,3 +36,9 @@ base64 = "0.22"
 
 [dev-dependencies]
 tempfile = "3"
+
+[profile.release]
+strip = true
+lto = "thin"
+codegen-units = 1
+opt-level = "s"

@@ -6,7 +6,7 @@ export interface TriggerDocumentPrintOptions {
 }
 
 export const PRINTING_DOCUMENT_CLASS = "hexo-printing";
-const DEFAULT_FALLBACK_TIMEOUT_MS = 1500;
+const DEFAULT_FALLBACK_TIMEOUT_MS = 60_000;
 
 let activePrintCleanup: (() => void) | null = null;
 

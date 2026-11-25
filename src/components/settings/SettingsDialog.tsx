@@ -135,8 +135,10 @@ interface ShortcutEntry {
 
 const SHORTCUT_ITEMS: ReadonlyArray<ShortcutEntry> = [
   { keys: "Cmd+K", zh: "打开全局命令面板", en: "Open Command Palette" },
+  { keys: "Cmd+,", zh: "打开设置中心", en: "Open Settings" },
   { keys: "Cmd+S", zh: "保存当前文档", en: "Save Current Document" },
-  { keys: "Cmd+Alt+S", zh: "另存为 / 导出", en: "Save As" },
+  { keys: "Cmd+Shift+S", zh: "另存为", en: "Save As" },
+  { keys: "Cmd+Alt+S", zh: "保存全部已修改文档", en: "Save All Modified Documents" },
   { keys: "Cmd+W", zh: "关闭当前标签页", en: "Close Active Tab" },
   {
     keys: "Cmd+Option+1/2/3/4",

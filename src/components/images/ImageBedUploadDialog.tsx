@@ -57,6 +57,8 @@ export interface LastUploadBatchInfo {
   timestamp?: number;
   canDeleteRemote?: boolean;
   remoteKeyCount?: number;
+  /** True when local source image(s) were deleted after upload; blocks deleting remote copies to prevent double loss */
+  hasDeletedLocal?: boolean;
 }
 
 export interface UnusedImageItem {
@@ -124,6 +126,7 @@ const COPY = {
     undoUpload: "撤销最近一次上传",
     undoingBtn: "正在撤销...",
     alsoDeleteRemote: "同时删除远端文件",
+    localDeletedKeepRemoteHint: "原本地图已移除，撤销将保留远端副本以防丢图",
     uploadSummary: (total: number, success: number, failed: number) =>
       `共 ${total} 张本地图片${success > 0 ? ` · 成功 ${success}` : ""}${
         failed > 0 ? ` · 失败 ${failed}` : ""
@@ -180,6 +183,8 @@ const COPY = {
     undoUpload: "Undo Last Upload",
     undoingBtn: "Undoing...",
     alsoDeleteRemote: "Also delete remote files",
+    localDeletedKeepRemoteHint:
+      "Local originals were removed; remote copies are kept on undo to prevent data loss",
     uploadSummary: (total: number, success: number, failed: number) =>
       `${total} local image${total === 1 ? "" : "s"}${
         success > 0 ? ` · ${success} uploaded` : ""
@@ -318,8 +323,11 @@ export function ImageBedUploadDialog({
     lastUploadBatch && lastUploadBatch.uploadedCount > 0 && onUndoLastUpload
   );
 
+  const hasDeletedLocalOnUndo = Boolean(lastUploadBatch?.hasDeletedLocal);
+
   const canDeleteRemoteOnUndo = Boolean(
-    lastUploadBatch?.canDeleteRemote ?? imageBedConfig.supportsRemoteDelete
+    !hasDeletedLocalOnUndo &&
+      (lastUploadBatch?.canDeleteRemote ?? imageBedConfig.supportsRemoteDelete)
   );
 
   const handleToggleUnusedPath = (absPath: string) => {
@@ -623,6 +631,12 @@ export function ImageBedUploadDialog({
                         />
                         <span>{t.alsoDeleteRemote}</span>
                       </label>
+                    )}
+
+                    {hasDeletedLocalOnUndo && (
+                      <span className="text-[11px] text-amber-700">
+                        {t.localDeletedKeepRemoteHint}
+                      </span>
                     )}
                   </>
                 )}

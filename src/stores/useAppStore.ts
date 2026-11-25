@@ -322,10 +322,9 @@ function buildAllowedAssetDirsForTab(tab: EditorTab): string[] {
     const fileName = lastSlash >= 0 ? normalized.slice(lastSlash + 1) : normalized;
     const stem = fileName.replace(/\.(md|markdown|mdx)$/i, "");
 
-    if (parentDir) {
-      dirs.add(parentDir);
-      if (stem) dirs.add(`${parentDir}/${stem}`);
-      dirs.add(`${parentDir}/assets`);
+    // Never whitelist the entire `_posts` / parent directory to prevent cross-post deletion
+    if (parentDir && stem) {
+      dirs.add(`${parentDir}/${stem}`);
     }
     if (tab.siteRoot) {
       const cleanRoot = tab.siteRoot.replace(/\\/g, "/").replace(/\/+$/, "");
@@ -334,6 +333,8 @@ function buildAllowedAssetDirsForTab(tab: EditorTab): string[] {
       if (stem) {
         dirs.add(`${cleanRoot}/${cleanSource}/images/${stem}`);
       }
+    } else if (parentDir) {
+      dirs.add(`${parentDir}/assets`);
     }
   }
   return Array.from(dirs);
@@ -696,10 +697,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     let remoteDeletedCount = 0;
+    const skippedRemoteDueToLocalDelete = batch.records.some(
+      (r) => r.localDeleted
+    );
     if (deleteRemote && batch.canDeleteRemote) {
+      // Never delete remote objects whose local source files were already deleted (prevents permanent double loss)
       const keys = Array.from(
         new Set(
           batch.records
+            .filter((r) => !r.localDeleted)
             .map((r) => r.remoteKey)
             .filter((k): k is string => Boolean(k))
         )
@@ -723,7 +729,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       return { lastUploadBatches: next };
     });
 
-    if (deleteRemote && remoteDeletedCount > 0) {
+    if (skippedRemoteDueToLocalDelete) {
+      get().pushToast(msg.imageBed.undoKeptRemoteForDeletedLocal, "info");
+    } else if (deleteRemote && remoteDeletedCount > 0) {
       get().pushToast(
         formatMessage(msg.imageBed.undoWithRemote, {
           count: totalRestored,
@@ -1428,9 +1436,20 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   saveAllTabs: async () => {
     const msg = getMessages(get().locale);
-    const dirtyFileTabs = get().tabs.filter((t) => t.isDirty && Boolean(t.filePath));
+    const allTabs = get().tabs;
+    const dirtyFileTabs = allTabs.filter((t) => t.isDirty && Boolean(t.filePath));
+    const dirtyScratchTabs = allTabs.filter((t) => t.isDirty && !t.filePath);
     if (dirtyFileTabs.length === 0) {
-      get().pushToast(msg.toast.noDirtyTabs, "info");
+      if (dirtyScratchTabs.length > 0) {
+        get().pushToast(
+          formatMessage(msg.toast.onlyScratchTabsDirty, {
+            count: dirtyScratchTabs.length,
+          }),
+          "info"
+        );
+      } else {
+        get().pushToast(msg.toast.noDirtyTabs, "info");
+      }
       return 0;
     }
     let savedCount = 0;
@@ -1442,6 +1461,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       get().pushToast(
         formatMessage(msg.toast.savedAll, { count: savedCount }),
         "success"
+      );
+    }
+    if (dirtyScratchTabs.length > 0) {
+      get().pushToast(
+        formatMessage(msg.toast.onlyScratchTabsDirty, {
+          count: dirtyScratchTabs.length,
+        }),
+        "info"
       );
     }
     return savedCount;

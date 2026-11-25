@@ -46,6 +46,7 @@ import {
   EDITOR_FONT_STACKS,
   clampEditorFontSize,
   clampEditorLineHeight,
+  clampEditorZoomLevel,
   normalizeEditorTabSize,
   type EditorFontFamily,
 } from "@/types/settings";
@@ -79,6 +80,7 @@ export interface MarkdownEditorProps {
   fontSize?: number;
   lineHeight?: number;
   tabSize?: number;
+  zoomLevel?: number;
 }
 
 const lightHighlightStyle = HighlightStyle.define([
@@ -149,14 +151,18 @@ const minimalistLightTheme = EditorView.theme({
 function createTypographyTheme(
   fontFamily: EditorFontFamily,
   fontSize: number,
-  lineHeight: number
+  lineHeight: number,
+  zoomLevel = 100
 ) {
   const safeFontSize = clampEditorFontSize(fontSize);
+  const safeZoom = clampEditorZoomLevel(zoomLevel);
+  const scaledFontSize =
+    Math.round(safeFontSize * (safeZoom / 100) * 10) / 10;
   const safeLineHeight = clampEditorLineHeight(lineHeight);
   const fontStack = EDITOR_FONT_STACKS[fontFamily] ?? EDITOR_FONT_STACKS.mono;
   return EditorView.theme({
     "&": {
-      fontSize: `${safeFontSize}px`,
+      fontSize: `${scaledFontSize}px`,
     },
     ".cm-scroller": {
       fontFamily: fontStack,
@@ -208,6 +214,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
       fontSize = DEFAULT_EDITOR_PREFS.fontSize,
       lineHeight = DEFAULT_EDITOR_PREFS.lineHeight,
       tabSize = DEFAULT_EDITOR_PREFS.tabSize,
+      zoomLevel = DEFAULT_EDITOR_PREFS.zoomLevel,
     },
     ref
   ) {
@@ -217,7 +224,12 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     const typographyCompartmentRef = useRef<Compartment>(new Compartment());
     const tabSizeCompartmentRef = useRef<Compartment>(new Compartment());
     const initialShowLineNumbersRef = useRef(showLineNumbers);
-    const initialTypographyRef = useRef({ fontFamily, fontSize, lineHeight });
+    const initialTypographyRef = useRef({
+      fontFamily,
+      fontSize,
+      lineHeight,
+      zoomLevel,
+    });
     const initialTabSizeRef = useRef(tabSize);
     const programmaticScrollUntilRef = useRef<number>(0);
 
@@ -403,7 +415,8 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
             createTypographyTheme(
               initialTypographyRef.current.fontFamily,
               initialTypographyRef.current.fontSize,
-              initialTypographyRef.current.lineHeight
+              initialTypographyRef.current.lineHeight,
+              initialTypographyRef.current.zoomLevel
             )
           ),
           tabSizeCompartmentRef.current.of(
@@ -470,17 +483,22 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
       });
     }, [showLineNumbers]);
 
-    // Dynamically update typography (font family, font size, line height) without recreating EditorView
+    // Dynamically update typography (font family, font size, line height, zoom) without recreating EditorView
     useEffect(() => {
-      initialTypographyRef.current = { fontFamily, fontSize, lineHeight };
+      initialTypographyRef.current = {
+        fontFamily,
+        fontSize,
+        lineHeight,
+        zoomLevel,
+      };
       const view = viewRef.current;
       if (!view) return;
       view.dispatch({
         effects: typographyCompartmentRef.current.reconfigure(
-          createTypographyTheme(fontFamily, fontSize, lineHeight)
+          createTypographyTheme(fontFamily, fontSize, lineHeight, zoomLevel)
         ),
       });
-    }, [fontFamily, fontSize, lineHeight]);
+    }, [fontFamily, fontSize, lineHeight, zoomLevel]);
 
     // Dynamically update tabSize & indentUnit without recreating EditorView
     useEffect(() => {
@@ -512,6 +530,13 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         className="h-full w-full overflow-hidden bg-[#F8F8F9]"
         data-font-family={fontFamily}
         data-font-size={clampEditorFontSize(fontSize)}
+        data-effective-font-size={
+          Math.round(
+            clampEditorFontSize(fontSize) *
+              (clampEditorZoomLevel(zoomLevel) / 100) *
+              10
+          ) / 10
+        }
         data-line-height={clampEditorLineHeight(lineHeight)}
         data-tab-size={normalizeEditorTabSize(tabSize)}
       >

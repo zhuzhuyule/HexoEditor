@@ -77,6 +77,8 @@ const zhCN = {
     uploadNone: "所有图片上传失败，请检查图床配置",
     undoSuccess: "已撤销最近一次上传（恢复 {count} 处本地引用）",
     undoWithRemote: "已撤销上传（恢复 {count} 处引用，删除 {remote} 个远端文件）",
+    undoKeptRemoteForDeletedLocal:
+      "已撤销引用（原本地图已移除，已自动保留远端副本以防丢图）",
     cleanupSuccess: "已清理 {count} 张未引用图片（释放 {size}）",
     notConfigured: "请先在设置中心配置可用图床",
   },
@@ -245,6 +247,7 @@ const zhCN = {
     hexoStopped: "已停止 Hexo 任务",
     savedAll: "已保存全部 {count} 篇文档",
     noDirtyTabs: "所有文档均已保存",
+    onlyScratchTabsDirty: "存在 {count} 个未命名草稿，请使用 ⌘S 单独另存为",
     recentCleared: "已清空最近打开记录",
     prefsReset: "已恢复默认排版设置",
   },
@@ -331,6 +334,8 @@ const enUS: DeepString<typeof zhCN> = {
     uploadNone: "All image uploads failed. Check image bed settings.",
     undoSuccess: "Undid last upload ({count} local ref(s) restored)",
     undoWithRemote: "Undid upload ({count} ref(s) restored, {remote} remote deleted)",
+    undoKeptRemoteForDeletedLocal:
+      "Restored links (remote copies kept because local originals were deleted)",
     cleanupSuccess: "Removed {count} unused image(s) ({size} freed)",
     notConfigured: "Configure an image bed in Settings first",
   },
@@ -499,6 +504,8 @@ const enUS: DeepString<typeof zhCN> = {
     hexoStopped: "Stopped Hexo process",
     savedAll: "Saved all {count} modified document(s)",
     noDirtyTabs: "All documents are already saved",
+    onlyScratchTabsDirty:
+      "{count} unsaved scratch note(s) need Save As (⌘S) individually",
     recentCleared: "Cleared recent history",
     prefsReset: "Restored default editor preferences",
   },

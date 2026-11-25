@@ -5,6 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "@/App";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import {
+  replaceLocalImageInMarkdown,
+  restoreRemoteImageInMarkdown,
+} from "@/lib/markdown/imageRefs";
 import * as api from "@/lib/tauri/api";
 import * as imageBedApi from "@/lib/tauri/imageBedApi";
 import { useAppStore } from "@/stores/useAppStore";
@@ -178,16 +182,22 @@ describe("Stage 3 workbench integration", () => {
     await act(async () => {
       useAppStore.getState().setEditorPrefs({
         fontFamily: "serif",
-        fontSize: 16,
+        fontSize: 22,
         lineHeight: 2.0,
         tabSize: 4,
-        zoomLevel: 110,
+        zoomLevel: 125,
         codeTheme: "github-dark",
       });
     });
 
     expect(appRoot.getAttribute("data-code-theme")).toBe("github-dark");
-    expect(appRoot.getAttribute("data-zoom-level")).toBe("110");
+    expect(appRoot.getAttribute("data-zoom-level")).toBe("125");
+    // 22px * 125% = 27.5px must not be clamped back down to 22px
+    expect(
+      container
+        .querySelector("[data-effective-font-size]")
+        ?.getAttribute("data-effective-font-size")
+    ).toBe("27.5");
     // EditorView instance is preserved across typography reconfiguration
     expect(EditorView.findFromDOM(container.querySelector(".cm-editor")!)).toBe(
       initialView
@@ -424,6 +434,10 @@ describe("Stage 3 workbench integration", () => {
 
     expect(uploadSpy).toHaveBeenCalledTimes(1);
     expect(deleteLocalSpy).toHaveBeenCalledTimes(1);
+    // Allowed dirs for Hexo post must NOT include the entire `_posts` directory
+    const passedAllowedDirs = deleteLocalSpy.mock.calls[0][1];
+    expect(passedAllowedDirs).not.toContain("/blog/source/_posts");
+    expect(passedAllowedDirs).toContain("/blog/source/_posts/stage3");
 
     const afterUpload = useAppStore.getState().tabs[0].content;
     expect(afterUpload).toContain(
@@ -436,26 +450,85 @@ describe("Stage 3 workbench integration", () => {
       2
     );
 
-    // Undo upload with remote deletion
+    // Because local files were deleted (`localDeleted = true`), undo MUST NOT delete remote copies
     await act(async () => {
       await useAppStore
         .getState()
         .undoLastTabUpload(tab.id, { deleteRemote: true });
     });
 
-    expect(deleteRemoteSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ provider: "s3" }),
-      ["posts/cover.png", "posts/chart.png"]
-    );
+    expect(deleteRemoteSpy).not.toHaveBeenCalled();
     const afterUndo = useAppStore.getState().tabs[0].content;
     expect(afterUndo).toContain("![封面](<封面 图.png>)");
     expect(afterUndo).toContain("![架构图](chart.png)");
     expect(useAppStore.getState().lastUploadBatches[tab.id]).toBeUndefined();
+
+    // When keepLocalAfterUpload = true (local files preserved), undo with deleteRemote DOES delete remote keys
+    useAppStore.setState({
+      imageBed: {
+        ...useAppStore.getState().imageBed,
+        keepLocalAfterUpload: true,
+      },
+    });
+    await act(async () => {
+      await useAppStore.getState().uploadTabImagesToBed(tab.id, [
+        {
+          rawSrc: "封面 图.png",
+          absolutePath: "/blog/source/_posts/stage3/封面 图.png",
+        },
+      ]);
+    });
+    await act(async () => {
+      await useAppStore
+        .getState()
+        .undoLastTabUpload(tab.id, { deleteRemote: true });
+    });
+    expect(deleteRemoteSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ provider: "s3" }),
+      ["posts/cover.png"]
+    );
+  });
+
+  it("handles imageRefs edge cases: class-prefixed asset_img, $ in replacement, and inline backtick lines", () => {
+    const md = [
+      "```inline``` text on one line",
+      "{% asset_img center 封面.png 我的标题 %}",
+      "{% img left /images/a.png 300 200 %}",
+      "```md",
+      "{% asset_img center 封面.png fenced %}",
+      "```",
+    ].join("\n");
+
+    const r1 = replaceLocalImageInMarkdown(
+      md,
+      "封面.png",
+      "https://cdn.example.com/cover.png"
+    );
+    expect(r1.replaced).toBe(1);
+    expect(r1.content).toContain("![我的标题](https://cdn.example.com/cover.png)");
+    expect(r1.content).toContain("{% asset_img center 封面.png fenced %}");
+
+    const r2 = replaceLocalImageInMarkdown(
+      r1.content,
+      "/images/a.png",
+      "https://cdn.example.com/$1_$&.png"
+    );
+    expect(r2.replaced).toBe(1);
+    expect(r2.content).toContain("{% img left https://cdn.example.com/$1_$&.png 300 200 %}");
+
+    const restored = restoreRemoteImageInMarkdown(
+      r2.content,
+      "https://cdn.example.com/$1_$&.png",
+      "/images/price-$1.png"
+    );
+    expect(restored.restored).toBe(1);
+    expect(restored.content).toContain("{% img left /images/price-$1.png 300 200 %}");
   });
 
   it("exports standalone HTML with inlined local Data URI images, triggers PDF print, and renders print-only fallback & .no-print chrome", async () => {
     const tab = makeTab({
-      content: "---\ntitle: 导出测试\n---\n\n# 章节\n\n![图](local.png)\n",
+      content:
+        "---\ntitle: 导出测试\ndate: 2026-11-26\ncategories:\n  - 工程\n---\n\n# 章节\n\n![图](local.png)\n",
     });
 
     vi.spyOn(api, "resolveLocalImages").mockResolvedValue([
@@ -498,14 +571,23 @@ describe("Stage 3 workbench integration", () => {
       );
     });
 
-    // Verify shell chrome has .no-print & Write mode mounts .print-only-article fallback
+    // Verify shell chrome has .no-print & Write mode mounts .print-only-article fallback with resolved local image & metadata header
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
     expect(container.querySelector("header.no-print")).not.toBeNull();
     expect(container.querySelector("footer.no-print")).not.toBeNull();
     expect(container.querySelector("section.no-print")).not.toBeNull();
     const printFallback = container.querySelector(".print-only-article");
     expect(printFallback).not.toBeNull();
     expect(printFallback!.textContent).toContain("导出测试");
+    expect(printFallback!.textContent).toContain("2026-11-26");
+    expect(printFallback!.textContent).toContain("工程");
     expect(printFallback!.textContent).toContain("章节");
+    expect(
+      printFallback!.querySelector('img[data-local-image="true"]')
+    ).not.toBeNull();
 
     // Verify Stage 2 review polish: localized HexoTerminalDrawer idle message & OutlinePanel aria-label
     await act(async () => {
