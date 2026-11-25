@@ -1,0 +1,130 @@
+export type Locale = "zh-CN" | "en-US";
+
+export type ViewMode = "write" | "split" | "read" | "focus";
+
+export type PostFilterTab = "all" | "posts" | "drafts";
+
+export interface HexoSiteConfig {
+  rootPath: string;
+  title: string;
+  subtitle?: string | null;
+  author?: string | null;
+  language?: string | null;
+  url?: string | null;
+  sourceDir: string;
+  postAssetFolder: boolean;
+  defaultLayout: string;
+  hasPostsDir: boolean;
+  hasDraftsDir: boolean;
+  hasScaffoldPost: boolean;
+}
+
+export interface PostSummary {
+  filePath: string;
+  fileName: string;
+  slug: string;
+  relativePath: string;
+  title: string;
+  date?: string | null;
+  updated?: string | null;
+  tags: string[];
+  categories: string[];
+  isDraft: boolean;
+  hasAssetFolder: boolean;
+  excerpt: string;
+  modifiedMs: number;
+}
+
+export interface TaxonomyCount {
+  name: string;
+  count: number;
+}
+
+export interface SiteScanResult {
+  config: HexoSiteConfig;
+  posts: PostSummary[];
+  allTags: TaxonomyCount[];
+  allCategories: TaxonomyCount[];
+}
+
+export interface DocumentContent {
+  filePath: string;
+  content: string;
+  modifiedMs: number;
+}
+
+export interface RenamePostResult {
+  oldFilePath: string;
+  newFilePath: string;
+  newSlug: string;
+  renamedAssetDirs: string[];
+  updatedContent: string;
+}
+
+export interface SavedImageResult {
+  absolutePath: string;
+  markdownPath: string;
+  fileName: string;
+  md5: string;
+  deduplicated: boolean;
+}
+
+export interface ResolvedImageResult {
+  rawSrc: string;
+  absolutePath: string | null;
+  exists: boolean;
+}
+
+export interface RenameImageResult {
+  oldAbsolutePath: string;
+  newAbsolutePath: string;
+  oldFileName: string;
+  newFileName: string;
+  updatedContent: string;
+  replacements: number;
+}
+
+export interface ExternalChangeEvent {
+  filePath: string;
+  kind: "modify" | "create" | "remove" | string;
+}
+
+export interface SavedSiteEntry {
+  rootPath: string;
+  title: string;
+  addedAt: number;
+}
+
+export interface EditorTab {
+  id: string;
+  filePath: string | null;
+  title: string;
+  content: string;
+  savedContent: string;
+  isDirty: boolean;
+  isDraft: boolean;
+  isStandalone: boolean;
+  siteRoot: string | null;
+  postAssetFolder: boolean;
+  sourceDir: string;
+  modifiedMs: number;
+  externalChange: ExternalChangeEvent | null;
+  cursorLine: number;
+  cursorCol: number;
+}
+
+export interface FrontMatterData {
+  title: string;
+  date: string;
+  updated: string;
+  tags: string[];
+  categories: string[];
+  abbrlink: string;
+  extra: Record<string, unknown>;
+}
+
+export interface ToastItem {
+  id: string;
+  message: string;
+  tone: "info" | "success" | "error";
+}

@@ -1,0 +1,293 @@
+@import "tailwindcss";
+@import "katex/dist/katex.min.css";
+@import "highlight.js/styles/github.min.css";
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #ffffff;
+    color: #18181b;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "PingFang SC",
+      "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Subtle minimalist scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(161, 161, 170, 0.35);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(113, 113, 122, 0.55);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Minimalist Light Markdown Preview Typography */
+.markdown-preview {
+  color: #27272a;
+  font-size: 15px;
+  line-height: 1.8;
+  word-wrap: break-word;
+}
+
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3,
+.markdown-preview h4,
+.markdown-preview h5,
+.markdown-preview h6 {
+  color: #18181b;
+  font-weight: 600;
+  line-height: 1.35;
+  margin-top: 1.6em;
+  margin-bottom: 0.65em;
+  letter-spacing: -0.015em;
+}
+
+.markdown-preview h1 {
+  font-size: 1.75em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid #f4f4f5;
+}
+
+.markdown-preview h2 {
+  font-size: 1.4em;
+  padding-bottom: 0.25em;
+  border-bottom: 1px solid #f4f4f5;
+}
+
+.markdown-preview h3 {
+  font-size: 1.18em;
+}
+
+.markdown-preview h4 {
+  font-size: 1.02em;
+}
+
+.markdown-preview p {
+  margin-top: 0;
+  margin-bottom: 1em;
+}
+
+.markdown-preview a {
+  color: #2563eb;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(37, 99, 235, 0.35);
+}
+
+.markdown-preview a:hover {
+  text-decoration-color: #2563eb;
+}
+
+.markdown-preview blockquote {
+  margin: 1.1em 0;
+  padding: 0.25em 1em;
+  border-left: 3px solid #d4d4d8;
+  background-color: #fafafa;
+  color: #52525b;
+  border-radius: 0 4px 4px 0;
+}
+
+.markdown-preview blockquote > p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-preview ul,
+.markdown-preview ol {
+  margin: 0.85em 0;
+  padding-left: 1.65em;
+}
+
+.markdown-preview ul {
+  list-style-type: disc;
+}
+
+.markdown-preview ol {
+  list-style-type: decimal;
+}
+
+.markdown-preview li {
+  margin: 0.3em 0;
+}
+
+.markdown-preview li.task-list-item {
+  list-style-type: none;
+  margin-left: -1.3em;
+}
+
+.markdown-preview .task-list-checkbox {
+  margin-right: 0.5em;
+  vertical-align: middle;
+  accent-color: #18181b;
+}
+
+.markdown-preview code:not(.hljs) {
+  font-family: "JetBrains Mono", "SF Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.87em;
+  background-color: #f4f4f5;
+  color: #b91c1c;
+  padding: 0.14em 0.38em;
+  border-radius: 4px;
+}
+
+.markdown-preview .code-block-wrapper {
+  position: relative;
+  margin: 1.1em 0;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  background-color: #fafafa;
+  overflow: hidden;
+}
+
+.markdown-preview .code-lang-badge {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10px;
+  color: #a1a1aa;
+  text-transform: lowercase;
+  user-select: none;
+}
+
+.markdown-preview .code-block-wrapper pre {
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  font-family: "JetBrains Mono", "SF Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  line-height: 1.65;
+  background: transparent;
+}
+
+.markdown-preview .code-block-wrapper code.hljs {
+  padding: 0;
+  background: transparent;
+}
+
+.markdown-preview table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.2em 0;
+  font-size: 0.92em;
+}
+
+.markdown-preview th,
+.markdown-preview td {
+  border: 1px solid #e4e4e7;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.markdown-preview th {
+  background-color: #fafafa;
+  font-weight: 600;
+  color: #18181b;
+}
+
+.markdown-preview hr {
+  border: none;
+  border-top: 1px solid #e4e4e7;
+  margin: 1.8em 0;
+}
+
+.markdown-preview img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1.2em auto;
+  border-radius: 6px;
+  border: 1px solid #f4f4f5;
+}
+
+.markdown-preview img[data-local-image="true"] {
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.markdown-preview img[data-local-image="true"]:hover {
+  border-color: #a1a1aa;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+}
+
+.markdown-preview img.local-image-missing {
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px dashed #d4d4d8;
+  background-color: #fafafa;
+  color: #71717a;
+  font-size: 12px;
+}
+
+.markdown-preview .katex-display-wrapper {
+  margin: 1.2em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 0;
+}
+
+.markdown-preview .katex-error {
+  color: #dc2626;
+  background-color: #fef2f2;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 0.88em;
+}
+
+.markdown-preview .mermaid-block {
+  margin: 1.25em 0;
+  padding: 16px;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  background-color: #fafafa;
+  display: flex;
+  justify-content: center;
+  overflow-x: auto;
+}
+
+.markdown-preview .mermaid-block svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.markdown-preview .mermaid-loading {
+  font-size: 12px;
+  color: #a1a1aa;
+}
+
+.markdown-preview .mermaid-error {
+  font-size: 12px;
+  color: #b91c1c;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 8px 12px;
+  width: 100%;
+  font-family: monospace;
+}

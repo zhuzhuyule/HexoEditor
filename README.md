@@ -1,190 +1,46 @@
-<div align="right">Language: :us:
-<a title="Chinese" href="doc/cn/README.md">:cn:</a>
-<a title="Russian" href="doc/ru/README.md">:ru:</a></div>
+# HexoEditor V2
 
-# <div align="center"><a title="Go to homepage" href="#"><img align="center" width="56" height="56" src="https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/icons/HexoEditor.svg?sanitize=true"></a>  HexoEditor</div>
+基于 **Tauri v2 + Rust + React 19 + CodeMirror 6** 重新打造的原生轻量级 Hexo Markdown 桌面写作工作台。
 
-[![Join the chat](https://badges.gitter.im/hexo-theme-tomotoes/Lobby.svg)](https://gitter.im/zhuzhuyule/Lobby)
-[![license](https://img.shields.io/badge/license-GPL3.0-brightgreen.svg)](https://github.com/zhuzhuyule/HexoEditor/blob/master/LICENSE)
-[![Download](https://img.shields.io/badge/download-page-blue.svg)](https://github.com/zhuzhuyule/HexoEditor/releases)
-[![Conda](https://img.shields.io/conda/pn/conda-forge/python.svg)](https://github.com/zhuzhuyule/HexoEditor/releases)
+> 历史版本（V1 Electron 实现）完整保留在 `master` 分支作为归档，当前 `v2` 分支为全新架构实现。
 
-This is markdown editor for Hexo.
+## 阶段 1 已实现能力（核心写作工作台 MVP）
 
-Built with Electron.
+- **多站点与文档工作流**
+  - 支持添加、切换多个 Hexo 站点，自动解析 `_config.yml`（含 `source_dir`、`post_asset_folder` 等配置）。
+  - 兼容直接打开、保存任意本地 Markdown 文件，无 Hexo 站点也可独立写作。
+  - Rust 后端基于 `walkdir` + `serde_yaml` 高效扫描 `source/_posts` 与 `source/_drafts`，聚合全站分类与标签。
+  - 左侧可折叠管理栏：搜索、全部/文章/草稿切换、按分类与标签筛选、草稿与正式文章互转（同步迁移同名图片目录）、基于 `scaffolds/post.md` / `scaffolds/draft.md` 新建文章。
+  - 多标签页编辑：脏状态提示、关闭前保存确认、保存/另存为、可选防抖自动保存、基于 `notify` 的外部文件变更检测与重载提示（内置自写抑制避免误报）。
+- **核心编辑与实时预览**
+  - CodeMirror 6 源码编辑（Markdown + YAML Front-Matter 语法高亮），内置常用 Markdown 快捷键、工具栏、表格生成器、CJK 对齐表格格式化与智能回车续行。
+  - 顶部可折叠 Front-Matter 属性条，与 YAML 源码双向同步，支持全站分类/标签自动补全及标题变更联动重命名 `.md` 文件、同名图片目录与正文相对路径。
+  - 实时分栏预览：`markdown-it` + KaTeX 数学公式 + Mermaid 图表 + Highlight.js 代码高亮 + DOMPurify 安全净化 + 本地相对图片解析（兼容 `post_asset_folder` 与 `source/images/<文章名>`，通过 Tauri Asset Protocol 渲染）。
+  - 四种视图模式：纯写作 / 分栏预览 / 纯阅读 / 专注模式；基于源码行号锚点的双向同步滚动；CJK + 英文精准字数与预计阅读时长统计。
+- **本地图片管理**
+  - 剪贴板粘贴图片自动落盘（MD5 去重）并插入 Markdown 语法。
+  - 拖拽本地图片入库、粘贴网页 HTML 自动转为 Markdown（`turndown` + GFM）。
+  - 点击预览区本地图片快速重命名并同步更新正文引用路径。
 
-Inherit [Moeditor](https://github.com/Moeditor/Moeditor), I want to fix it appropriate to Hexo Blog!
+## 开发与验证
 
-#### if you have good ideas, please comment [Here](https://github.com/zhuzhuyule/HexoEditor/issues/2)
-#### if you have time, and interest, and energy, welcome join us !
-
-# Features
-* HexoEditor 
-  * Hexo Post Preview same as in Browser
-  * Hexo Tag/Filter/Renderer support
-  * Use Hexo `_config.yml` support
-  * Quick New Post in hexo source 
-  * Quick Modify File Name (In Hexo Post Edit)  
-  * Quick Deploy Post
-  * Quick Hexo Command `hexo d`,`hexo g`,`hexo s`,`hexo clean`
-  * Auto Change Image to Markdown 
-    * Support Drag Image
-    * Support Paste Clipboard Image
-  * Support Image Cloud (One Step Upload)
-    * Support [SM.MS](https://sm.ms) 
-    * Support [QiNiu](https://portal.qiniu.com) 
-    * Support [Tencent](https://console.cloud.tencent.com) 
-  * Quick Start (Common Directory, Common URL)
-  * Scorll Together/None
-* HexoEditor (Inherit [Moeditor](https://github.com/Moeditor/Moeditor))
-  * GitHub Flavored Markdown
-  * TeX math expressions
-  * UML diagrams
-  * Code highlight in editor
-  * Read/Write/Preview mode
-  * Custom font / line height / font size
-  * Custom themes
-  * Code highlight themes (powered by [highlight.js](https://highlightjs.org/))
-  * Auto reload
-  * Localization
-  * Focus mode
-
-# Screenshots
-
-![HexoEditor Main](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/main.png)
-
-![HexoEditor side](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/side-menu.png)
-
-![HexoEditor menu](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/menu.png)
-
-![HexoEditor About](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/about.png)
-
-# Gif Screenshots
-![HexoEditor settings](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/gif-settings.gif)
-
-![HexoEditor tag](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/gif-tag.gif)
-
-![HexoEditor Mode](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/gif-mode.gif)
-
-![HexoEditor Upload Image](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/gif-uploadImage.gif)
-
-![HexoEditor New Post](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/gif-newpost.gif)
-
-![HexoEditor Hexo](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/gif-hexo.gif)
-
-# Plan To Do
-- [ ] Add Toc
-- [x] Add Hexo Title Header setting (100%)
-- [x] Add Editor ShortCut
-- [ ] Add history files tree
-.....
-- [x] Deploy Post
-- [ ] Add multi-editing in tabs
-
-# ShortCut
-| Key                    | Method              | explanation            |
-| :--------------------: | :------------------ | :-------------- |
-| `Tab`                  | tabAdd              | add indentation        |
-| `Shift` - `Tab`        | tabSubtract         | reduce indentation        |
-| `Ctrl` - `B`           | toggleBlod          | toggle blod        |
-| `Ctrl` - `I`           | toggleItalic        | toggle italic        |
-| `Ctrl` - `D`           | toggleDelete        | delete current line        |
-| `Ctrl` - <code>\`</code>         | toggleComment       | toggle comment        |
-| `Ctrl` - `L`           | toggleUnOrderedList | toggle unordered list    |
-| `Ctrl` - `Alt` - `L`   | toggleOrderedList   | toggle ordered list    |
-| `Ctrl` - `]`           | toggleHeader        | downgrade title        |
-| `Ctrl` - `[`           | toggleUnHeader      | upgrade title        |
-| `Ctrl` - `=`           | toggleBlockquote    | add blockquote        |
-| `Ctrl` - ` - `         | toggleUnBlockquote  | reduce blockquote        |
-| `Ctrl` - `U`           | drawLink            | add hyperlink    |
-| `Ctrl` - `Alt` - `U`   | drawImageLink       | add image       |
-| `Ctrl` - `T`           | drawTable(row col)  | add table(row column) |
-| `Ctrl` - `V`           | pasteOriginContent  | paste origin content       |
-| `Shift` - `Ctrl` - `V` | pasteContent        | auto paste content      |
-| `Alt` - `F`            | formatTables        | format tables      |
-| `Ctrl` - `N`            |         | new md document      |
-| `Ctrl` - `H`            |         | new hexo document      |
-| `Ctrl` - `O`            |         | open md document      |
-| `Ctrl` - `S`            |         | save md document      |
-| `Shift` - `Ctrl` - `S`            |         | save as      |
-| `Alt` - `Ctrl` - `S`            |         | open settings      |
-| `Ctrl` - `W`            |         | toggle write mode      |
-| `Ctrl` - `P`            |         | toggle preview mode       |
-| `Ctrl` - `R`            |         | toggle read mode       |
-
-* **tip**: In mac OS, plase replace `Ctrl` key with `Cmd` key.
-
-# Building
-```c
-//if use Windows:
-npm config set prefix "C:/Program Files/nodejs/npm_global"
-npm config set cache "C:/Program Files/nodejs/npm_cache" 
-
-//if use Linux\Mac:
-npm config set prefix "~/nodejs/npm_global"
-npm config set cache "~/nodejs/npm_cache" 
-
-//If In China, China, China, you can set mirror to speed up !
-npm config set registry "https://registry.npm.taobao.org/"
-npm config set electron_mirror "https://npm.taobao.org/mirrors/electron/"
-
-git clone https://github.com/zhuzhuyule/HexoEditor.git
-cd HexoEditor
-npm install
-npm start
-```
-This is [Detail Method](https://github.com/zhuzhuyule/HexoEditor/blob/master/doc/en/Building.md)
-
-# Debugging
-There's three ways to open the [Chromium Developer Tools](https://developer.chrome.com/devtools).
-
-1. Add `--debug` to the command line args:
 ```bash
-npm start -- --debug
+# 安装前端依赖
+pnpm install
+
+# TypeScript 类型检查
+pnpm typecheck
+
+# 前端单元测试 (Vitest)
+pnpm test
+
+# 前端生产构建
+pnpm build
+
+# Rust 后端检查与单元测试
+cd src-tauri && cargo test
+
+# Tauri 开发模式 / 完整桌面端打包构建
+pnpm tauri dev
+pnpm tauri build
 ```
-2. `Ctrl` + `Shift` + `I` in Linux / Windows or `Command` + `Option` + `I` in OS X / macOS to toggle devtools for a window.
-3. Set `debug` to `true` in the config. The config file is stored in `~/.config/configstore/HexoEditor.json` (for every system).
-
-# Localization
-HexoEditor will auto detect your system language and use the localization.
-
-You can set language manually in the Settings window.
-
-Now the app supports English, Chinese, French, German, Spanish and *incomplete* Portuguese.
-
-**Help us** if you can translate this app. Please follow the guide in `app/moe-l10n.js`.
-
-# License
-HexoEditor itself is licensed under the **GPL v3** license.
-
-Some node modules are licensed under other free software license.
-
-The `Raleway` font is licensed under the OFL open font license.
-
-
-# Tips
-1. modify codemirror file :
-
-> ./node_modules/codemirror/lib/codemirror.js (line: `3104`)
-
-
-> ./node_modules/codemirror/src/display/selection.js (line: `56`)
-
-```js 
-//var rightSide = Math.max(display.sizerWidth, displayWidth(cm) - display.sizer.offsetLeft) - padding.right;
-var rightSide = display.lineDiv.offsetWidth - padding.right;
-```
-
-# Compatibility
-
-* :triangular_flag_on_post: <a href="https://github.com/theme-next/hexo-theme-next" target="_blank">NexT theme</a>
-
-# Hexo Help
-- [Hexo](https://hexo.io)
-- [EasyHexo](https://easyhexo.github.io/Easy-Hexo/)
-
-# QQ Group:
-- Name：HexoEditor        
-- QQID：602883087   
-- PASS：HexoEditor           
-- Data：2017-12-29  
