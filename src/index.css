@@ -560,3 +560,473 @@
   font-style: normal;
   color: #71717a;
 }
+
+/* ============================================================================
+ * Code Block Highlight Themes (4 lightweight scoped presets)
+ * ============================================================================ */
+
+/* 1. GitHub Light */
+[data-code-theme="github-light"] .code-block-wrapper,
+[data-code-theme="github-light"] .hexo-codeblock {
+  background-color: #fafafa;
+  border-color: #e4e4e7;
+}
+
+[data-code-theme="github-light"] .code-lang-badge {
+  color: #a1a1aa;
+}
+
+[data-code-theme="github-light"] .hljs {
+  color: #24292e;
+  background: transparent;
+}
+
+[data-code-theme="github-light"] .hljs-doctag,
+[data-code-theme="github-light"] .hljs-keyword,
+[data-code-theme="github-light"] .hljs-meta .hljs-keyword,
+[data-code-theme="github-light"] .hljs-template-tag,
+[data-code-theme="github-light"] .hljs-template-variable,
+[data-code-theme="github-light"] .hljs-type,
+[data-code-theme="github-light"] .hljs-variable.language_ {
+  color: #d73a49;
+}
+
+[data-code-theme="github-light"] .hljs-title,
+[data-code-theme="github-light"] .hljs-title.class_,
+[data-code-theme="github-light"] .hljs-title.function_ {
+  color: #6f42c1;
+}
+
+[data-code-theme="github-light"] .hljs-attr,
+[data-code-theme="github-light"] .hljs-attribute,
+[data-code-theme="github-light"] .hljs-literal,
+[data-code-theme="github-light"] .hljs-meta,
+[data-code-theme="github-light"] .hljs-number,
+[data-code-theme="github-light"] .hljs-operator,
+[data-code-theme="github-light"] .hljs-selector-attr,
+[data-code-theme="github-light"] .hljs-selector-class,
+[data-code-theme="github-light"] .hljs-selector-id,
+[data-code-theme="github-light"] .hljs-variable {
+  color: #005cc5;
+}
+
+[data-code-theme="github-light"] .hljs-meta .hljs-string,
+[data-code-theme="github-light"] .hljs-regexp,
+[data-code-theme="github-light"] .hljs-string {
+  color: #032f62;
+}
+
+[data-code-theme="github-light"] .hljs-built_in,
+[data-code-theme="github-light"] .hljs-symbol {
+  color: #e36209;
+}
+
+[data-code-theme="github-light"] .hljs-comment,
+[data-code-theme="github-light"] .hljs-code,
+[data-code-theme="github-light"] .hljs-formula {
+  color: #6a737d;
+}
+
+[data-code-theme="github-light"] .hljs-name,
+[data-code-theme="github-light"] .hljs-quote,
+[data-code-theme="github-light"] .hljs-selector-pseudo,
+[data-code-theme="github-light"] .hljs-selector-tag {
+  color: #22863a;
+}
+
+[data-code-theme="github-light"] .hljs-addition {
+  color: #22863a;
+  background-color: #f0fff4;
+}
+
+[data-code-theme="github-light"] .hljs-deletion {
+  color: #b31d28;
+  background-color: #ffeef0;
+}
+
+/* 2. Atom One Light */
+[data-code-theme="atom-one-light"] .code-block-wrapper,
+[data-code-theme="atom-one-light"] .hexo-codeblock {
+  background-color: #fafafa;
+  border-color: #e4e4e7;
+}
+
+[data-code-theme="atom-one-light"] .code-lang-badge {
+  color: #a0a1a7;
+}
+
+[data-code-theme="atom-one-light"] .hljs {
+  color: #383a42;
+  background: transparent;
+}
+
+[data-code-theme="atom-one-light"] .hljs-comment,
+[data-code-theme="atom-one-light"] .hljs-quote {
+  color: #a0a1a7;
+  font-style: italic;
+}
+
+[data-code-theme="atom-one-light"] .hljs-doctag,
+[data-code-theme="atom-one-light"] .hljs-keyword,
+[data-code-theme="atom-one-light"] .hljs-formula {
+  color: #a626a4;
+}
+
+[data-code-theme="atom-one-light"] .hljs-section,
+[data-code-theme="atom-one-light"] .hljs-name,
+[data-code-theme="atom-one-light"] .hljs-selector-tag,
+[data-code-theme="atom-one-light"] .hljs-deletion,
+[data-code-theme="atom-one-light"] .hljs-subst {
+  color: #e45649;
+}
+
+[data-code-theme="atom-one-light"] .hljs-literal {
+  color: #0184bb;
+}
+
+[data-code-theme="atom-one-light"] .hljs-string,
+[data-code-theme="atom-one-light"] .hljs-regexp,
+[data-code-theme="atom-one-light"] .hljs-addition,
+[data-code-theme="atom-one-light"] .hljs-attribute,
+[data-code-theme="atom-one-light"] .hljs-meta .hljs-string {
+  color: #50a14f;
+}
+
+[data-code-theme="atom-one-light"] .hljs-attr,
+[data-code-theme="atom-one-light"] .hljs-variable,
+[data-code-theme="atom-one-light"] .hljs-template-variable,
+[data-code-theme="atom-one-light"] .hljs-type,
+[data-code-theme="atom-one-light"] .hljs-selector-class,
+[data-code-theme="atom-one-light"] .hljs-selector-attr,
+[data-code-theme="atom-one-light"] .hljs-selector-pseudo,
+[data-code-theme="atom-one-light"] .hljs-number {
+  color: #986801;
+}
+
+[data-code-theme="atom-one-light"] .hljs-symbol,
+[data-code-theme="atom-one-light"] .hljs-bullet,
+[data-code-theme="atom-one-light"] .hljs-link,
+[data-code-theme="atom-one-light"] .hljs-meta,
+[data-code-theme="atom-one-light"] .hljs-selector-id,
+[data-code-theme="atom-one-light"] .hljs-title {
+  color: #4078f2;
+}
+
+[data-code-theme="atom-one-light"] .hljs-built_in,
+[data-code-theme="atom-one-light"] .hljs-title.class_,
+[data-code-theme="atom-one-light"] .hljs-class .hljs-title {
+  color: #c18401;
+}
+
+/* 3. GitHub Dark */
+[data-code-theme="github-dark"] .code-block-wrapper,
+[data-code-theme="github-dark"] .hexo-codeblock {
+  background-color: #0d1117;
+  border-color: #30363d;
+}
+
+[data-code-theme="github-dark"] .hexo-codeblock .code-block-wrapper {
+  background-color: transparent;
+}
+
+[data-code-theme="github-dark"] .hexo-codeblock-header,
+[data-code-theme="github-dark"] .hexo-codeblock figcaption {
+  background-color: #161b22;
+  border-bottom-color: #30363d;
+  color: #8b949e;
+}
+
+[data-code-theme="github-dark"] .hexo-codeblock-title {
+  color: #e6edf3;
+}
+
+[data-code-theme="github-dark"] .hexo-codeblock-link {
+  color: #58a6ff;
+}
+
+[data-code-theme="github-dark"] .code-lang-badge {
+  color: #8b949e;
+}
+
+[data-code-theme="github-dark"] .hljs {
+  color: #c9d1d9;
+  background: transparent;
+}
+
+[data-code-theme="github-dark"] .hljs-doctag,
+[data-code-theme="github-dark"] .hljs-keyword,
+[data-code-theme="github-dark"] .hljs-meta .hljs-keyword,
+[data-code-theme="github-dark"] .hljs-template-tag,
+[data-code-theme="github-dark"] .hljs-template-variable,
+[data-code-theme="github-dark"] .hljs-type,
+[data-code-theme="github-dark"] .hljs-variable.language_ {
+  color: #ff7b72;
+}
+
+[data-code-theme="github-dark"] .hljs-title,
+[data-code-theme="github-dark"] .hljs-title.class_,
+[data-code-theme="github-dark"] .hljs-title.function_ {
+  color: #d2a8ff;
+}
+
+[data-code-theme="github-dark"] .hljs-attr,
+[data-code-theme="github-dark"] .hljs-attribute,
+[data-code-theme="github-dark"] .hljs-literal,
+[data-code-theme="github-dark"] .hljs-meta,
+[data-code-theme="github-dark"] .hljs-number,
+[data-code-theme="github-dark"] .hljs-operator,
+[data-code-theme="github-dark"] .hljs-selector-attr,
+[data-code-theme="github-dark"] .hljs-selector-class,
+[data-code-theme="github-dark"] .hljs-selector-id,
+[data-code-theme="github-dark"] .hljs-variable {
+  color: #79c0ff;
+}
+
+[data-code-theme="github-dark"] .hljs-meta .hljs-string,
+[data-code-theme="github-dark"] .hljs-regexp,
+[data-code-theme="github-dark"] .hljs-string {
+  color: #a5d6ff;
+}
+
+[data-code-theme="github-dark"] .hljs-built_in,
+[data-code-theme="github-dark"] .hljs-symbol {
+  color: #ffa657;
+}
+
+[data-code-theme="github-dark"] .hljs-comment,
+[data-code-theme="github-dark"] .hljs-code,
+[data-code-theme="github-dark"] .hljs-formula {
+  color: #8b949e;
+}
+
+[data-code-theme="github-dark"] .hljs-name,
+[data-code-theme="github-dark"] .hljs-quote,
+[data-code-theme="github-dark"] .hljs-selector-pseudo,
+[data-code-theme="github-dark"] .hljs-selector-tag {
+  color: #7ee787;
+}
+
+[data-code-theme="github-dark"] .hljs-addition {
+  color: #aff5b4;
+  background-color: #033a16;
+}
+
+[data-code-theme="github-dark"] .hljs-deletion {
+  color: #ffdcd7;
+  background-color: #67060c;
+}
+
+/* 4. Atom One Dark */
+[data-code-theme="atom-one-dark"] .code-block-wrapper,
+[data-code-theme="atom-one-dark"] .hexo-codeblock {
+  background-color: #282c34;
+  border-color: #3e4451;
+}
+
+[data-code-theme="atom-one-dark"] .hexo-codeblock .code-block-wrapper {
+  background-color: transparent;
+}
+
+[data-code-theme="atom-one-dark"] .hexo-codeblock-header,
+[data-code-theme="atom-one-dark"] .hexo-codeblock figcaption {
+  background-color: #21252b;
+  border-bottom-color: #3e4451;
+  color: #9da5b4;
+}
+
+[data-code-theme="atom-one-dark"] .hexo-codeblock-title {
+  color: #dcdfe4;
+}
+
+[data-code-theme="atom-one-dark"] .hexo-codeblock-link {
+  color: #61afef;
+}
+
+[data-code-theme="atom-one-dark"] .code-lang-badge {
+  color: #7f848e;
+}
+
+[data-code-theme="atom-one-dark"] .hljs {
+  color: #abb2bf;
+  background: transparent;
+}
+
+[data-code-theme="atom-one-dark"] .hljs-comment,
+[data-code-theme="atom-one-dark"] .hljs-quote {
+  color: #5c6370;
+  font-style: italic;
+}
+
+[data-code-theme="atom-one-dark"] .hljs-doctag,
+[data-code-theme="atom-one-dark"] .hljs-keyword,
+[data-code-theme="atom-one-dark"] .hljs-formula {
+  color: #c678dd;
+}
+
+[data-code-theme="atom-one-dark"] .hljs-section,
+[data-code-theme="atom-one-dark"] .hljs-name,
+[data-code-theme="atom-one-dark"] .hljs-selector-tag,
+[data-code-theme="atom-one-dark"] .hljs-deletion,
+[data-code-theme="atom-one-dark"] .hljs-subst {
+  color: #e06c75;
+}
+
+[data-code-theme="atom-one-dark"] .hljs-literal {
+  color: #56b6c2;
+}
+
+[data-code-theme="atom-one-dark"] .hljs-string,
+[data-code-theme="atom-one-dark"] .hljs-regexp,
+[data-code-theme="atom-one-dark"] .hljs-addition,
+[data-code-theme="atom-one-dark"] .hljs-attribute,
+[data-code-theme="atom-one-dark"] .hljs-meta .hljs-string {
+  color: #98c379;
+}
+
+[data-code-theme="atom-one-dark"] .hljs-attr,
+[data-code-theme="atom-one-dark"] .hljs-variable,
+[data-code-theme="atom-one-dark"] .hljs-template-variable,
+[data-code-theme="atom-one-dark"] .hljs-type,
+[data-code-theme="atom-one-dark"] .hljs-selector-class,
+[data-code-theme="atom-one-dark"] .hljs-selector-attr,
+[data-code-theme="atom-one-dark"] .hljs-selector-pseudo,
+[data-code-theme="atom-one-dark"] .hljs-number {
+  color: #d19a66;
+}
+
+[data-code-theme="atom-one-dark"] .hljs-symbol,
+[data-code-theme="atom-one-dark"] .hljs-bullet,
+[data-code-theme="atom-one-dark"] .hljs-link,
+[data-code-theme="atom-one-dark"] .hljs-meta,
+[data-code-theme="atom-one-dark"] .hljs-selector-id,
+[data-code-theme="atom-one-dark"] .hljs-title {
+  color: #61afef;
+}
+
+[data-code-theme="atom-one-dark"] .hljs-built_in,
+[data-code-theme="atom-one-dark"] .hljs-title.class_,
+[data-code-theme="atom-one-dark"] .hljs-class .hljs-title {
+  color: #e6c07b;
+}
+
+/* ============================================================================
+ * Print / Save-as-PDF Styles
+ * ============================================================================ */
+@page {
+  margin: 16mm 14mm;
+}
+
+@media print {
+  html,
+  body,
+  #root {
+    height: auto !important;
+    min-height: 0 !important;
+    width: auto !important;
+    overflow: visible !important;
+    background-color: #ffffff !important;
+    color: #18181b !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Hide application chrome, sidebars, tabs, toolbars, forms, drawers, and modals */
+  .no-print,
+  [data-print-hidden="true"],
+  [data-panel-resize-handle-id],
+  [data-radix-portal] {
+    display: none !important;
+  }
+
+  /* Release viewport & scroll container locks so multi-page documents paginate fully */
+  #root .h-screen,
+  #root .h-full,
+  #root .min-h-0,
+  #root .overflow-hidden,
+  #root .overflow-y-auto,
+  #root .overflow-auto,
+  #root [data-panel-group],
+  #root [data-panel] {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  #root [data-panel-group] {
+    display: block !important;
+  }
+
+  #root [data-panel] {
+    flex: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  #root article {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .markdown-preview {
+    font-size: 13.5px;
+    line-height: 1.7;
+  }
+
+  .markdown-preview p {
+    orphans: 3;
+    widows: 3;
+  }
+
+  /* Prevent headings from stranding at the bottom of a page */
+  .markdown-preview h1,
+  .markdown-preview h2,
+  .markdown-preview h3,
+  .markdown-preview h4,
+  .markdown-preview h5,
+  .markdown-preview h6 {
+    break-after: avoid;
+    page-break-after: avoid;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Prevent code blocks, images, diagrams, callouts, and table rows from splitting */
+  .markdown-preview .code-block-wrapper,
+  .markdown-preview .hexo-codeblock,
+  .markdown-preview pre,
+  .markdown-preview blockquote,
+  .markdown-preview .hexo-note,
+  .markdown-preview .hexo-pullquote,
+  .markdown-preview .hexo-tabs,
+  .markdown-preview .mermaid-block,
+  .markdown-preview .katex-display-wrapper,
+  .markdown-preview img,
+  .markdown-preview figure,
+  .markdown-preview tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .markdown-preview table {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .markdown-preview thead {
+    display: table-header-group;
+  }
+
+  .markdown-preview pre {
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    overflow-x: visible !important;
+  }
+
+  .markdown-preview img {
+    max-height: 85vh;
+    box-shadow: none !important;
+    cursor: default !important;
+  }
+}
