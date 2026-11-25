@@ -1,6 +1,7 @@
 mod error;
 mod hexo;
 mod hexo_cli;
+mod image_bed;
 mod images;
 mod models;
 mod theme_css;
@@ -121,9 +122,10 @@ fn build_app_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
 use crate::error::AppResult;
 use crate::hexo_cli::HexoCliState;
 use crate::models::{
-    DocumentContent, HexoCliStatus, HexoSiteConfig, KillPortResult, PostSummary, QuickOpenResult,
-    RenameImageResult, RenamePostResult, ResolvedImageResult, SavedImageResult, SiteScanResult,
-    ThemeCssResult,
+    DeleteLocalImagesResult, DeleteRemoteImagesResult, DocumentContent, HexoCliStatus,
+    HexoSiteConfig, ImageBedConfig, ImageBedConnectionResult, ImageBedUploadBatchResult,
+    KillPortResult, PostSummary, QuickOpenResult, RenameImageResult, RenamePostResult,
+    ResolvedImageResult, SavedImageResult, ScanUnusedImagesResult, SiteScanResult, ThemeCssResult,
 };
 use crate::watcher::FileWatcherState;
 
@@ -369,6 +371,57 @@ fn resolve_quick_open(
     )
 }
 
+#[tauri::command]
+async fn test_image_bed_connection(config: ImageBedConfig) -> AppResult<ImageBedConnectionResult> {
+    image_bed::test_image_bed_connection(&config).await
+}
+
+#[tauri::command]
+async fn upload_images_to_bed(
+    config: ImageBedConfig,
+    file_paths: Vec<String>,
+) -> AppResult<ImageBedUploadBatchResult> {
+    image_bed::upload_images_to_bed(&config, &file_paths).await
+}
+
+#[tauri::command]
+async fn delete_remote_images(
+    config: ImageBedConfig,
+    remote_keys: Vec<String>,
+) -> AppResult<DeleteRemoteImagesResult> {
+    image_bed::delete_remote_images(&config, &remote_keys).await
+}
+
+#[tauri::command]
+fn scan_unused_local_images(
+    doc_path: String,
+    site_root: Option<String>,
+    post_asset_folder: bool,
+    source_dir: Option<String>,
+    current_content: String,
+) -> AppResult<ScanUnusedImagesResult> {
+    image_bed::scan_unused_local_images(
+        &doc_path,
+        site_root.as_deref(),
+        post_asset_folder,
+        source_dir.as_deref(),
+        &current_content,
+    )
+}
+
+#[tauri::command]
+fn delete_local_images(
+    paths: Vec<String>,
+    allowed_dirs: Vec<String>,
+) -> AppResult<DeleteLocalImagesResult> {
+    image_bed::delete_local_images(&paths, &allowed_dirs)
+}
+
+#[tauri::command]
+fn read_local_file_as_data_uri(file_path: String) -> AppResult<String> {
+    image_bed::read_local_file_as_data_uri(&file_path)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
@@ -417,6 +470,12 @@ pub fn run() {
             load_site_theme_css,
             read_custom_css_file,
             resolve_quick_open,
+            test_image_bed_connection,
+            upload_images_to_bed,
+            delete_remote_images,
+            scan_unused_local_images,
+            delete_local_images,
+            read_local_file_as_data_uri,
         ])
         .build(tauri::generate_context!())
         .expect("error while building HexoEditor");

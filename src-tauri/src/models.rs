@@ -149,3 +149,130 @@ pub struct QuickOpenResult {
     pub value: String,
     pub exists: bool,
 }
+
+#[derive(Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageBedConfig {
+    #[serde(default)]
+    pub provider: String,
+    #[serde(default)]
+    pub picgo_url: String,
+    #[serde(default)]
+    pub picgo_uploader: Option<String>,
+    #[serde(default)]
+    pub picgo_config_name: Option<String>,
+    #[serde(default)]
+    pub endpoint: Option<String>,
+    #[serde(default)]
+    pub bucket: Option<String>,
+    #[serde(default)]
+    pub region: Option<String>,
+    #[serde(default)]
+    pub access_key_id: Option<String>,
+    #[serde(default)]
+    pub secret_access_key: Option<String>,
+    #[serde(default)]
+    pub custom_domain: Option<String>,
+    #[serde(default)]
+    pub path_prefix: Option<String>,
+    #[serde(default)]
+    pub keep_local_after_upload: Option<bool>,
+}
+
+impl std::fmt::Debug for ImageBedConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ImageBedConfig")
+            .field("provider", &self.provider)
+            .field("picgo_url", &self.picgo_url)
+            .field("picgo_uploader", &self.picgo_uploader)
+            .field("picgo_config_name", &self.picgo_config_name)
+            .field("endpoint", &self.endpoint)
+            .field("bucket", &self.bucket)
+            .field("region", &self.region)
+            .field("access_key_id", &self.access_key_id)
+            .field(
+                "secret_access_key",
+                &self
+                    .secret_access_key
+                    .as_deref()
+                    .filter(|s| !s.is_empty())
+                    .map(|_| "[REDACTED]"),
+            )
+            .field("custom_domain", &self.custom_domain)
+            .field("path_prefix", &self.path_prefix)
+            .field("keep_local_after_upload", &self.keep_local_after_upload)
+            .finish()
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageBedConnectionResult {
+    pub ok: bool,
+    pub provider: String,
+    pub message: String,
+    pub latency_ms: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct UploadedImageItem {
+    pub local_path: String,
+    pub remote_url: Option<String>,
+    pub remote_key: Option<String>,
+    pub success: bool,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageBedUploadBatchResult {
+    pub provider: String,
+    pub total: usize,
+    pub succeeded: usize,
+    pub failed: usize,
+    pub items: Vec<UploadedImageItem>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoteDeleteFailure {
+    pub remote_key: String,
+    pub error: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct DeleteRemoteImagesResult {
+    pub provider: String,
+    pub supported: bool,
+    pub deleted_keys: Vec<String>,
+    pub failed_keys: Vec<RemoteDeleteFailure>,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct UnusedLocalImage {
+    pub absolute_path: String,
+    pub file_name: String,
+    pub size_bytes: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ScanUnusedImagesResult {
+    pub scanned_dirs: Vec<String>,
+    pub total_local_images: usize,
+    pub unused_images: Vec<UnusedLocalImage>,
+    pub total_unused_bytes: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct DeleteLocalImagesResult {
+    pub deleted_paths: Vec<String>,
+    pub skipped_paths: Vec<String>,
+    pub deleted_count: usize,
+    pub freed_bytes: u64,
+}
