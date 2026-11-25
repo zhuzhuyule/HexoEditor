@@ -9,6 +9,7 @@ import { yamlFrontmatter } from "@codemirror/lang-yaml";
 import {
   HighlightStyle,
   bracketMatching,
+  indentUnit,
   syntaxHighlighting,
 } from "@codemirror/language";
 import { languages } from "@codemirror/language-data";
@@ -40,6 +41,14 @@ import {
   shouldConvertHtmlPaste,
 } from "@/lib/markdown/htmlToMarkdown";
 import * as api from "@/lib/tauri/api";
+import {
+  DEFAULT_EDITOR_PREFS,
+  EDITOR_FONT_STACKS,
+  clampEditorFontSize,
+  clampEditorLineHeight,
+  normalizeEditorTabSize,
+  type EditorFontFamily,
+} from "@/types/settings";
 
 export interface MarkdownEditorHandle {
   getView: () => EditorView | null;
@@ -66,6 +75,10 @@ export interface MarkdownEditorProps {
   placeholder?: string;
   focusMode?: boolean;
   showLineNumbers?: boolean;
+  fontFamily?: EditorFontFamily;
+  fontSize?: number;
+  lineHeight?: number;
+  tabSize?: number;
 }
 
 const lightHighlightStyle = HighlightStyle.define([
@@ -94,13 +107,9 @@ const minimalistLightTheme = EditorView.theme({
     height: "100%",
     backgroundColor: "#F8F8F9",
     color: "#18181b",
-    fontSize: "14px",
   },
   ".cm-scroller": {
     overflow: "auto",
-    fontFamily:
-      "'JetBrains Mono', 'SF Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'PingFang SC', 'Hiragino Sans GB', monospace",
-    lineHeight: "1.82",
     padding: "24px 0 40vh 0",
   },
   ".cm-content": {
@@ -137,6 +146,33 @@ const minimalistLightTheme = EditorView.theme({
   },
 });
 
+function createTypographyTheme(
+  fontFamily: EditorFontFamily,
+  fontSize: number,
+  lineHeight: number
+) {
+  const safeFontSize = clampEditorFontSize(fontSize);
+  const safeLineHeight = clampEditorLineHeight(lineHeight);
+  const fontStack = EDITOR_FONT_STACKS[fontFamily] ?? EDITOR_FONT_STACKS.mono;
+  return EditorView.theme({
+    "&": {
+      fontSize: `${safeFontSize}px`,
+    },
+    ".cm-scroller": {
+      fontFamily: fontStack,
+      lineHeight: String(safeLineHeight),
+    },
+  });
+}
+
+function createTabSizeExtensions(tabSize: number) {
+  const safeTabSize = normalizeEditorTabSize(tabSize);
+  return [
+    EditorState.tabSize.of(safeTabSize),
+    indentUnit.of(" ".repeat(safeTabSize)),
+  ];
+}
+
 function inferExtensionFromMime(mime: string, fallbackName?: string): string {
   if (fallbackName && fallbackName.includes(".")) {
     const ext = fallbackName.split(".").pop()?.toLowerCase();
@@ -168,13 +204,21 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
       placeholder = "开始写作...",
       focusMode = false,
       showLineNumbers = false,
+      fontFamily = DEFAULT_EDITOR_PREFS.fontFamily,
+      fontSize = DEFAULT_EDITOR_PREFS.fontSize,
+      lineHeight = DEFAULT_EDITOR_PREFS.lineHeight,
+      tabSize = DEFAULT_EDITOR_PREFS.tabSize,
     },
     ref
   ) {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const viewRef = useRef<EditorView | null>(null);
     const lineNumbersCompartmentRef = useRef<Compartment>(new Compartment());
+    const typographyCompartmentRef = useRef<Compartment>(new Compartment());
+    const tabSizeCompartmentRef = useRef<Compartment>(new Compartment());
     const initialShowLineNumbersRef = useRef(showLineNumbers);
+    const initialTypographyRef = useRef({ fontFamily, fontSize, lineHeight });
+    const initialTabSizeRef = useRef(tabSize);
     const programmaticScrollUntilRef = useRef<number>(0);
 
     // Latest callbacks stored in refs to avoid re-instantiating CodeMirror
@@ -355,6 +399,16 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
           }),
           syntaxHighlighting(lightHighlightStyle),
           minimalistLightTheme,
+          typographyCompartmentRef.current.of(
+            createTypographyTheme(
+              initialTypographyRef.current.fontFamily,
+              initialTypographyRef.current.fontSize,
+              initialTypographyRef.current.lineHeight
+            )
+          ),
+          tabSizeCompartmentRef.current.of(
+            createTabSizeExtensions(initialTabSizeRef.current)
+          ),
           cmPlaceholder(placeholder),
           keymap.of([
             ...mdKeymap,
@@ -416,6 +470,30 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
       });
     }, [showLineNumbers]);
 
+    // Dynamically update typography (font family, font size, line height) without recreating EditorView
+    useEffect(() => {
+      initialTypographyRef.current = { fontFamily, fontSize, lineHeight };
+      const view = viewRef.current;
+      if (!view) return;
+      view.dispatch({
+        effects: typographyCompartmentRef.current.reconfigure(
+          createTypographyTheme(fontFamily, fontSize, lineHeight)
+        ),
+      });
+    }, [fontFamily, fontSize, lineHeight]);
+
+    // Dynamically update tabSize & indentUnit without recreating EditorView
+    useEffect(() => {
+      initialTabSizeRef.current = tabSize;
+      const view = viewRef.current;
+      if (!view) return;
+      view.dispatch({
+        effects: tabSizeCompartmentRef.current.reconfigure(
+          createTabSizeExtensions(tabSize)
+        ),
+      });
+    }, [tabSize]);
+
     // Sync external value updates (e.g., Front-Matter bar edits, disk reload, image rename)
     useEffect(() => {
       const view = viewRef.current;
@@ -430,7 +508,13 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     }, [value]);
 
     return (
-      <div className="h-full w-full overflow-hidden bg-[#F8F8F9]">
+      <div
+        className="h-full w-full overflow-hidden bg-[#F8F8F9]"
+        data-font-family={fontFamily}
+        data-font-size={clampEditorFontSize(fontSize)}
+        data-line-height={clampEditorLineHeight(lineHeight)}
+        data-tab-size={normalizeEditorTabSize(tabSize)}
+      >
         <div
           ref={containerRef}
           className={`h-full w-full ${focusMode ? "mx-auto max-w-3xl" : ""}`}
