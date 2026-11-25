@@ -73,6 +73,17 @@ function formatActionCommand(action: string | null): string {
   }
 }
 
+function localizeIdleStatusMessage(message: string, isEn: boolean): string {
+  if (isEn) return message;
+  const stopped = message.match(/^Stopped `([^`]+)`\.?$/i);
+  if (stopped) return `已停止 ${stopped[1]}`;
+  const completed = message.match(/^Completed `([^`]+)`\.?$/i);
+  if (completed) return `已完成 ${completed[1]}`;
+  const exited = message.match(/^`([^`]+)` exited with code (.+)\.?$/i);
+  if (exited) return `${exited[1]} 已退出（退出码 ${exited[2]}）`;
+  return message;
+}
+
 function formatLogTime(timestamp: number): string {
   if (!Number.isFinite(timestamp) || timestamp <= 0) return "";
   const d = new Date(timestamp);
@@ -124,7 +135,7 @@ export function HexoTerminalDrawer({
       return isEn ? `Running ${cmd}...` : `正在运行 ${cmd}...`;
     }
     if (status.message) {
-      return status.message;
+      return localizeIdleStatusMessage(status.message, isEn);
     }
     return isEn ? "Hexo Console" : "Hexo 终端";
   })();

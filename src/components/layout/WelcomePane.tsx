@@ -6,6 +6,7 @@ import {
   FolderOpen,
   FolderPlus,
   FolderTree,
+  Settings,
 } from "lucide-react";
 
 import { getMessages } from "@/lib/i18n";
@@ -25,6 +26,7 @@ export interface WelcomePaneProps {
   recentEntries?: WelcomeRecentEntry[];
   onOpenRecent?: (entry: WelcomeRecentEntry) => void;
   onRequestNewPost?: () => void;
+  onOpenSettings?: () => void;
 }
 
 function formatRecentTime(timestamp: number, locale: Locale): string {
@@ -61,6 +63,7 @@ export function WelcomePane({
   recentEntries = [],
   onOpenRecent,
   onRequestNewPost,
+  onOpenSettings,
 }: WelcomePaneProps = {}) {
   const {
     locale,
@@ -221,9 +224,19 @@ export function WelcomePane({
           </section>
         )}
 
-        <p className="text-center text-[11px] text-zinc-400">
-          {msg.welcome.shortcutHint}
-        </p>
+        <div className="flex flex-wrap items-center justify-center gap-3 text-[11px] text-zinc-400">
+          <p className="text-center">{msg.welcome.shortcutHint}</p>
+          {onOpenSettings && (
+            <button
+              type="button"
+              onClick={onOpenSettings}
+              className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-zinc-500 transition-colors hover:bg-zinc-200/60 hover:text-zinc-900 cursor-pointer"
+            >
+              <Settings className="h-3 w-3" />
+              <span>{isEn ? "Settings (⌘,)" : "设置 (⌘,)"}</span>
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

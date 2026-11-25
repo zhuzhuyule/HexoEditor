@@ -275,6 +275,7 @@ export function Sidebar({ onRequestNewPost, onSelectOutline }: SidebarProps) {
             emptyText={
               activeTab ? msg.sidebar.emptyOutline : msg.sidebar.noActiveDocOutline
             }
+            locale={locale}
           />
         </div>
       ) : !activeSiteRoot ? (

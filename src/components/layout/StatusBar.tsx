@@ -30,7 +30,7 @@ export function StatusBar({ activeTab }: StatusBarProps) {
   );
 
   return (
-    <footer className="flex h-7 shrink-0 items-center justify-between border-t border-zinc-200/80 bg-zinc-50/70 px-3 text-[11px] text-zinc-500 select-none">
+    <footer className="no-print flex h-7 shrink-0 items-center justify-between border-t border-zinc-200/80 bg-zinc-50/70 px-3 text-[11px] text-zinc-500 select-none">
       {/* Left: Cursor, Word count, Read time */}
       <div className="flex items-center gap-3 min-w-0">
         {activeTab && stats ? (

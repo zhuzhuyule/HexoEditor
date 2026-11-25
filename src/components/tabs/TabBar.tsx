@@ -1,9 +1,12 @@
 import {
   BookOpen,
   Check,
+  CloudUpload,
   Columns2,
   Command,
+  Download,
   FileCode2,
+  FileText,
   FolderSymlink,
   Globe,
   Hash,
@@ -11,7 +14,9 @@ import {
   Palette,
   PanelLeft,
   PenLine,
+  Printer,
   Save,
+  Settings,
   SlidersHorizontal,
   Sparkles,
   Trash2,
@@ -40,11 +45,19 @@ import type { ViewMode } from "@/types";
 interface TabBarProps {
   onRequestCloseTab: (tabId: string) => void;
   onOpenCommandPalette: () => void;
+  onOpenSettings: () => void;
+  onOpenImageManager: () => void;
+  onExportHtml: () => void;
+  onExportPdf: () => void;
 }
 
 export function TabBar({
   onRequestCloseTab,
   onOpenCommandPalette,
+  onOpenSettings,
+  onOpenImageManager,
+  onExportHtml,
+  onExportPdf,
 }: TabBarProps) {
   const {
     locale,
@@ -104,7 +117,7 @@ export function TabBar({
   const isLivePreview = previewSource === "live";
 
   return (
-    <header className="flex h-10 shrink-0 items-center justify-between gap-2 border-b border-zinc-200/80 bg-zinc-50/50 px-2 select-none">
+    <header className="no-print flex h-10 shrink-0 items-center justify-between gap-2 border-b border-zinc-200/80 bg-zinc-50/50 px-2 select-none">
       {/* Left: Sidebar Toggle + Open Tabs */}
       <div className="flex min-w-0 flex-1 items-center gap-1">
         <Button
@@ -168,7 +181,7 @@ export function TabBar({
       </div>
 
       {/* Right: Minimalist Icon Actions + View Mode Switcher */}
-      <div className="flex shrink-0 items-center gap-1">
+      <div className="flex shrink-0 items-center gap-0.5">
         {activeTab && (
           <Button
             variant="ghost"
@@ -274,6 +287,43 @@ export function TabBar({
           </DropdownMenuContent>
         </DropdownMenu>
 
+        {/* Image Bed & Local Asset Manager */}
+        <Button
+          variant="ghost"
+          size="icon"
+          title={msg.tabs.imageManager}
+          aria-label={msg.tabs.imageManager}
+          disabled={!activeTab}
+          onClick={onOpenImageManager}
+        >
+          <CloudUpload className="h-3.5 w-3.5" />
+        </Button>
+
+        {/* Export Menu (Standalone HTML / Print PDF) */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              title={msg.tabs.exportMenu}
+              aria-label={msg.tabs.exportMenu}
+              disabled={!activeTab}
+            >
+              <Download className="h-3.5 w-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem disabled={!activeTab} onSelect={onExportHtml}>
+              <FileText className="h-3.5 w-3.5 text-zinc-500" />
+              <span>{msg.export.exportHtml}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem disabled={!activeTab} onSelect={onExportPdf}>
+              <Printer className="h-3.5 w-3.5 text-zinc-500" />
+              <span>{msg.export.exportPdf}</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         {/* Markdown Preview / Live Hexo Server Preview Switcher */}
         <Button
           variant="ghost"
@@ -319,7 +369,18 @@ export function TabBar({
           <Command className="h-3.5 w-3.5" />
         </Button>
 
-        <span className="mx-0.5 h-3.5 w-px bg-zinc-200/80" aria-hidden="true" />
+        {/* Settings Dialog Trigger (Cmd+,) */}
+        <Button
+          variant="ghost"
+          size="icon"
+          title={`${msg.tabs.settings} (⌘,)`}
+          aria-label={msg.tabs.settings}
+          onClick={onOpenSettings}
+        >
+          <Settings className="h-3.5 w-3.5" />
+        </Button>
+
+        <span className="mx-1 h-3.5 w-px bg-zinc-200/80" aria-hidden="true" />
 
         {/* 4 View Modes */}
         <div className="inline-flex items-center rounded-md bg-zinc-200/60 p-0.5">

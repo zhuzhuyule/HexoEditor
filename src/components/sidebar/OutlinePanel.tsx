@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 
 import { cn } from "@/lib/utils";
+import type { Locale } from "@/types";
 
 export interface OutlineItem {
   id: string;
@@ -14,6 +15,7 @@ export interface OutlinePanelProps {
   activeLine: number;
   onSelectLine: (line: number, id: string) => void;
   emptyText: string;
+  locale?: Locale;
   className?: string;
 }
 
@@ -27,6 +29,7 @@ export function OutlinePanel({
   activeLine,
   onSelectLine,
   emptyText,
+  locale = "zh-CN",
   className,
 }: OutlinePanelProps) {
   const activeButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -73,7 +76,7 @@ export function OutlinePanel({
 
   return (
     <nav
-      aria-label="Document Outline"
+      aria-label={locale === "en-US" ? "Document Outline" : "文档大纲"}
       className={cn(
         "h-full w-full overflow-y-auto px-2 py-2 select-none",
         className

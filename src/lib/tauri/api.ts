@@ -107,6 +107,24 @@ export async function pickSaveMarkdownPath(
   return selected ?? null;
 }
 
+export async function pickSaveHtmlPath(
+  defaultPath?: string
+): Promise<string | null> {
+  if (!isTauriRuntime()) return null;
+  const selected = await saveDialog({
+    defaultPath,
+    filters: [{ name: "HTML", extensions: ["html", "htm"] }],
+  });
+  return selected ?? null;
+}
+
+export async function writeTextFilePath(
+  filePath: string,
+  content: string
+): Promise<number> {
+  return writeDocument(filePath, content);
+}
+
 export async function revealInFileManager(path: string): Promise<void> {
   if (!isTauriRuntime()) return;
   await revealItemInDir(path);

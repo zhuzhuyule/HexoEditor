@@ -10,6 +10,10 @@ import * as api from "@/lib/tauri/api";
 import * as hexoApi from "@/lib/tauri/hexoApi";
 import { useAppStore } from "@/stores/useAppStore";
 import type { EditorTab } from "@/types";
+import {
+  DEFAULT_EDITOR_PREFS,
+  DEFAULT_IMAGE_BED_SETTINGS,
+} from "@/types/settings";
 
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -108,6 +112,9 @@ function resetStage2Store() {
     },
     hexoLogs: [],
     terminalOpen: false,
+    editorPrefs: { ...DEFAULT_EDITOR_PREFS },
+    imageBed: { ...DEFAULT_IMAGE_BED_SETTINGS },
+    lastUploadBatches: {},
     toasts: [],
   });
 }

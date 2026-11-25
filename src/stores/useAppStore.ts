@@ -2,6 +2,10 @@ import { create } from "zustand";
 
 import { parseMarkdownDocument } from "@/lib/frontmatter";
 import { formatMessage, getMessages } from "@/lib/i18n";
+import {
+  replaceLocalImageInMarkdown,
+  restoreRemoteImageInMarkdown,
+} from "@/lib/markdown/imageRefs";
 import * as api from "@/lib/tauri/api";
 import * as hexoApi from "@/lib/tauri/hexoApi";
 import type {
@@ -10,6 +14,8 @@ import type {
   HexoCliStatus,
   QuickOpenTarget,
 } from "@/lib/tauri/hexoApi";
+import * as imageBedApi from "@/lib/tauri/imageBedApi";
+import type { ImageBedUploadBatchResult } from "@/lib/tauri/imageBedApi";
 import { getFileName, isPathInsideDir } from "@/lib/utils";
 import type {
   EditorTab,
@@ -27,6 +33,17 @@ import type {
   ViewMode,
   WelcomeRecentEntry,
 } from "@/types";
+import {
+  clampEditorFontSize,
+  clampEditorLineHeight,
+  clampEditorZoomLevel,
+  DEFAULT_EDITOR_PREFS,
+  DEFAULT_IMAGE_BED_SETTINGS,
+  normalizeEditorTabSize,
+  type EditorPreferences,
+  type ImageBedProvider,
+  type ImageBedSettings,
+} from "@/types/settings";
 
 const MAX_RECENT_ENTRIES = 10;
 const MAX_HEXO_LOGS = 500;
@@ -39,6 +56,27 @@ const INITIAL_HEXO_STATUS: HexoCliStatus = {
   exitCode: null,
   message: null,
 };
+
+export interface UploadedReplacementRecord {
+  rawSrc: string;
+  localPath: string;
+  remoteUrl: string;
+  remoteKey: string | null;
+  localDeleted: boolean;
+}
+
+export interface StoredUploadBatch {
+  tabId: string;
+  timestamp: number;
+  provider: ImageBedProvider;
+  canDeleteRemote: boolean;
+  records: UploadedReplacementRecord[];
+}
+
+export interface UploadTabImageInput {
+  rawSrc: string;
+  absolutePath: string;
+}
 
 interface AppState {
   hydrated: boolean;
@@ -80,6 +118,11 @@ interface AppState {
   hexoLogs: HexoTerminalLogItem[];
   terminalOpen: boolean;
 
+  // Stage 3 persisted preferences & image bed upload undo state
+  editorPrefs: EditorPreferences;
+  imageBed: ImageBedSettings;
+  lastUploadBatches: Record<string, StoredUploadBatch>;
+
   toasts: ToastItem[];
 
   // Actions
@@ -105,6 +148,20 @@ interface AppState {
   setEnableHexoTags: (enabled: boolean) => void;
   setPreviewSource: (source: PreviewSource) => void;
   recordRecentEntry: (entry: Omit<WelcomeRecentEntry, "openedAt">) => void;
+  clearRecentEntries: () => void;
+
+  setEditorPrefs: (patch: Partial<EditorPreferences>) => void;
+  resetEditorPrefs: () => void;
+  setImageBed: (patch: Partial<ImageBedSettings>) => void;
+
+  uploadTabImagesToBed: (
+    tabId: string,
+    items: UploadTabImageInput[]
+  ) => Promise<ImageBedUploadBatchResult | null>;
+  undoLastTabUpload: (
+    tabId: string,
+    options: { deleteRemote: boolean }
+  ) => Promise<void>;
 
   loadSiteThemeCssAction: () => Promise<void>;
   importCustomThemeCssAction: () => Promise<void>;
@@ -142,6 +199,7 @@ interface AppState {
   updateTabCursor: (tabId: string, line: number, col: number) => void;
   saveTab: (tabId: string, silent?: boolean) => Promise<boolean>;
   saveTabAs: (tabId: string) => Promise<boolean>;
+  saveAllTabs: () => Promise<number>;
   closeTab: (tabId: string) => void;
 
   toggleDraftStatus: (
@@ -194,6 +252,93 @@ function extractPortFromUrl(url: string | null): number | null {
   }
 }
 
+function sanitizeEditorPrefs(
+  raw: Partial<EditorPreferences> | null | undefined,
+  base: EditorPreferences = DEFAULT_EDITOR_PREFS
+): EditorPreferences {
+  const merged = { ...base, ...(raw ?? {}) };
+  return {
+    fontFamily:
+      merged.fontFamily === "sans" || merged.fontFamily === "serif"
+        ? merged.fontFamily
+        : "mono",
+    fontSize: clampEditorFontSize(merged.fontSize),
+    lineHeight: clampEditorLineHeight(merged.lineHeight),
+    tabSize: normalizeEditorTabSize(merged.tabSize),
+    zoomLevel: clampEditorZoomLevel(merged.zoomLevel),
+    codeTheme:
+      merged.codeTheme === "atom-one-light" ||
+      merged.codeTheme === "github-dark" ||
+      merged.codeTheme === "atom-one-dark"
+        ? merged.codeTheme
+        : "github-light",
+    externalChangePolicy:
+      merged.externalChangePolicy === "auto" ||
+      merged.externalChangePolicy === "ignore"
+        ? merged.externalChangePolicy
+        : "prompt",
+  };
+}
+
+function sanitizeImageBedSettings(
+  raw: Partial<ImageBedSettings> | null | undefined,
+  base: ImageBedSettings = DEFAULT_IMAGE_BED_SETTINGS
+): ImageBedSettings {
+  const merged = { ...base, ...(raw ?? {}) };
+  const validProviders: ImageBedProvider[] = ["none", "picgo", "s3", "oss", "cos"];
+  const provider: ImageBedProvider = validProviders.includes(merged.provider)
+    ? merged.provider
+    : "none";
+  return {
+    provider,
+    picgoUrl:
+      typeof merged.picgoUrl === "string"
+        ? merged.picgoUrl
+        : DEFAULT_IMAGE_BED_SETTINGS.picgoUrl,
+    picgoUploader: typeof merged.picgoUploader === "string" ? merged.picgoUploader : "",
+    picgoConfigName:
+      typeof merged.picgoConfigName === "string" ? merged.picgoConfigName : "",
+    endpoint: typeof merged.endpoint === "string" ? merged.endpoint : "",
+    bucket: typeof merged.bucket === "string" ? merged.bucket : "",
+    region: typeof merged.region === "string" ? merged.region : "",
+    accessKeyId: typeof merged.accessKeyId === "string" ? merged.accessKeyId : "",
+    secretAccessKey:
+      typeof merged.secretAccessKey === "string" ? merged.secretAccessKey : "",
+    customDomain: typeof merged.customDomain === "string" ? merged.customDomain : "",
+    pathPrefix: typeof merged.pathPrefix === "string" ? merged.pathPrefix : "",
+    keepLocalAfterUpload:
+      typeof merged.keepLocalAfterUpload === "boolean"
+        ? merged.keepLocalAfterUpload
+        : true,
+  };
+}
+
+function buildAllowedAssetDirsForTab(tab: EditorTab): string[] {
+  const dirs = new Set<string>();
+  if (tab.filePath) {
+    const normalized = tab.filePath.replace(/\\/g, "/");
+    const lastSlash = normalized.lastIndexOf("/");
+    const parentDir = lastSlash > 0 ? normalized.slice(0, lastSlash) : "";
+    const fileName = lastSlash >= 0 ? normalized.slice(lastSlash + 1) : normalized;
+    const stem = fileName.replace(/\.(md|markdown|mdx)$/i, "");
+
+    if (parentDir) {
+      dirs.add(parentDir);
+      if (stem) dirs.add(`${parentDir}/${stem}`);
+      dirs.add(`${parentDir}/assets`);
+    }
+    if (tab.siteRoot) {
+      const cleanRoot = tab.siteRoot.replace(/\\/g, "/").replace(/\/+$/, "");
+      const cleanSource = (tab.sourceDir || "source").replace(/^\/+|\/+$/g, "");
+      dirs.add(`${cleanRoot}/${cleanSource}/images`);
+      if (stem) {
+        dirs.add(`${cleanRoot}/${cleanSource}/images/${stem}`);
+      }
+    }
+  }
+  return Array.from(dirs);
+}
+
 export const useAppStore = create<AppState>((set, get) => ({
   hydrated: false,
   locale: "zh-CN",
@@ -232,6 +377,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   hexoLogs: [],
   terminalOpen: false,
 
+  editorPrefs: { ...DEFAULT_EDITOR_PREFS },
+  imageBed: { ...DEFAULT_IMAGE_BED_SETTINGS },
+  lastUploadBatches: {},
+
   toasts: [],
 
   hydrate: async () => {
@@ -248,6 +397,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       enableHexoTags,
       themeCss,
       themeCssLabel,
+      rawEditorPrefs,
+      rawImageBed,
     ] = await Promise.all([
       api.loadSetting<Locale>("locale", "zh-CN"),
       api.loadSetting<SavedSiteEntry[]>("sites", []),
@@ -260,6 +411,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       api.loadSetting<boolean>("enableHexoTags", true),
       api.loadSetting<string | null>("themeCss", null),
       api.loadSetting<string | null>("themeCssLabel", null),
+      api.loadSetting<Partial<EditorPreferences> | null>("editorPrefs", null),
+      api.loadSetting<Partial<ImageBedSettings> | null>("imageBed", null),
     ]);
 
     const sanitizedRecents = Array.isArray(recentEntries)
@@ -279,6 +432,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       enableHexoTags,
       themeCss,
       themeCssLabel,
+      editorPrefs: sanitizeEditorPrefs(rawEditorPrefs),
+      imageBed: sanitizeImageBedSettings(rawImageBed),
     });
 
     const targetRoot = activeSiteRoot || sites[0]?.rootPath || null;
@@ -370,6 +525,218 @@ export const useAppStore = create<AppState>((set, get) => ({
     const updated = [nextItem, ...filtered].slice(0, MAX_RECENT_ENTRIES);
     set({ recentEntries: updated });
     void api.saveSetting("recentEntries", updated);
+  },
+
+  clearRecentEntries: () => {
+    const msg = getMessages(get().locale);
+    set({ recentEntries: [] });
+    void api.saveSetting("recentEntries", []);
+    get().pushToast(msg.toast.recentCleared, "info");
+  },
+
+  setEditorPrefs: (patch) => {
+    const next = sanitizeEditorPrefs(patch, get().editorPrefs);
+    set({ editorPrefs: next });
+    void api.saveSetting("editorPrefs", next);
+  },
+
+  resetEditorPrefs: () => {
+    const msg = getMessages(get().locale);
+    const next = { ...DEFAULT_EDITOR_PREFS };
+    set({ editorPrefs: next });
+    void api.saveSetting("editorPrefs", next);
+    get().pushToast(msg.toast.prefsReset, "info");
+  },
+
+  setImageBed: (patch) => {
+    const next = sanitizeImageBedSettings(patch, get().imageBed);
+    set({ imageBed: next });
+    void api.saveSetting("imageBed", next);
+  },
+
+  uploadTabImagesToBed: async (tabId, items) => {
+    const state = get();
+    const msg = getMessages(state.locale);
+    const tab = state.tabs.find((t) => t.id === tabId);
+    if (!tab || items.length === 0) return null;
+
+    const imageBed = state.imageBed;
+    if (imageBed.provider === "none") {
+      get().pushToast(msg.imageBed.notConfigured, "info");
+      return null;
+    }
+
+    const uniquePaths = Array.from(new Set(items.map((item) => item.absolutePath)));
+    try {
+      const batchResult = await imageBedApi.uploadImagesToBed(imageBed, uniquePaths);
+      const byPath = new Map(
+        batchResult.items.map((entry) => [entry.localPath, entry])
+      );
+
+      const latestTab = get().tabs.find((t) => t.id === tabId);
+      if (!latestTab) return batchResult;
+
+      let nextContent = latestTab.content;
+      const records: UploadedReplacementRecord[] = [];
+      const succeededLocalPathsToDelete: string[] = [];
+
+      for (const item of items) {
+        const res = byPath.get(item.absolutePath);
+        if (!res || !res.success || !res.remoteUrl) continue;
+        const { content: replacedContent, replaced } = replaceLocalImageInMarkdown(
+          nextContent,
+          item.rawSrc,
+          res.remoteUrl
+        );
+        if (replaced > 0) {
+          nextContent = replacedContent;
+          records.push({
+            rawSrc: item.rawSrc,
+            localPath: item.absolutePath,
+            remoteUrl: res.remoteUrl,
+            remoteKey: res.remoteKey ?? null,
+            localDeleted: false,
+          });
+          if (!imageBed.keepLocalAfterUpload) {
+            succeededLocalPathsToDelete.push(item.absolutePath);
+          }
+        }
+      }
+
+      if (nextContent !== latestTab.content) {
+        get().updateTabContent(tabId, nextContent);
+      }
+
+      if (!imageBed.keepLocalAfterUpload && succeededLocalPathsToDelete.length > 0) {
+        const allowedDirs = buildAllowedAssetDirsForTab(latestTab);
+        if (allowedDirs.length > 0) {
+          try {
+            const delRes = await imageBedApi.deleteLocalImages(
+              Array.from(new Set(succeededLocalPathsToDelete)),
+              allowedDirs
+            );
+            const deletedSet = new Set(delRes.deletedPaths);
+            for (const rec of records) {
+              if (deletedSet.has(rec.localPath)) {
+                rec.localDeleted = true;
+              }
+            }
+          } catch (err) {
+            get().pushToast(String(err), "error");
+          }
+        }
+      }
+
+      if (records.length > 0) {
+        const remoteKeys = records.filter((r) => Boolean(r.remoteKey));
+        const canDeleteRemote =
+          imageBed.provider !== "picgo" && remoteKeys.length > 0;
+        const batch: StoredUploadBatch = {
+          tabId,
+          timestamp: Date.now(),
+          provider: imageBed.provider,
+          canDeleteRemote,
+          records,
+        };
+        set((s) => ({
+          lastUploadBatches: {
+            ...s.lastUploadBatches,
+            [tabId]: batch,
+          },
+        }));
+      }
+
+      if (batchResult.succeeded > 0 && batchResult.failed === 0) {
+        get().pushToast(
+          formatMessage(msg.imageBed.uploadSuccess, {
+            succeeded: batchResult.succeeded,
+          }),
+          "success"
+        );
+      } else if (batchResult.succeeded > 0) {
+        get().pushToast(
+          formatMessage(msg.imageBed.uploadPartial, {
+            succeeded: batchResult.succeeded,
+            failed: batchResult.failed,
+          }),
+          "info"
+        );
+      } else {
+        get().pushToast(msg.imageBed.uploadNone, "error");
+      }
+
+      return batchResult;
+    } catch (err) {
+      get().pushToast(String(err), "error");
+      return null;
+    }
+  },
+
+  undoLastTabUpload: async (tabId, { deleteRemote }) => {
+    const state = get();
+    const msg = getMessages(state.locale);
+    const batch = state.lastUploadBatches[tabId];
+    const tab = state.tabs.find((t) => t.id === tabId);
+    if (!batch || !tab) return;
+
+    let nextContent = tab.content;
+    let totalRestored = 0;
+    for (const rec of batch.records) {
+      const { content: restoredContent, restored } = restoreRemoteImageInMarkdown(
+        nextContent,
+        rec.remoteUrl,
+        rec.rawSrc
+      );
+      nextContent = restoredContent;
+      totalRestored += restored;
+    }
+
+    if (nextContent !== tab.content) {
+      get().updateTabContent(tabId, nextContent);
+    }
+
+    let remoteDeletedCount = 0;
+    if (deleteRemote && batch.canDeleteRemote) {
+      const keys = Array.from(
+        new Set(
+          batch.records
+            .map((r) => r.remoteKey)
+            .filter((k): k is string => Boolean(k))
+        )
+      );
+      if (keys.length > 0) {
+        try {
+          const delRes = await imageBedApi.deleteRemoteImages(
+            get().imageBed,
+            keys
+          );
+          remoteDeletedCount = delRes.deletedKeys.length;
+        } catch (err) {
+          get().pushToast(String(err), "error");
+        }
+      }
+    }
+
+    set((s) => {
+      const next = { ...s.lastUploadBatches };
+      delete next[tabId];
+      return { lastUploadBatches: next };
+    });
+
+    if (deleteRemote && remoteDeletedCount > 0) {
+      get().pushToast(
+        formatMessage(msg.imageBed.undoWithRemote, {
+          count: totalRestored,
+          remote: remoteDeletedCount,
+        }),
+        "success"
+      );
+    } else {
+      get().pushToast(
+        formatMessage(msg.imageBed.undoSuccess, { count: totalRestored }),
+        "success"
+      );
+    }
   },
 
   loadSiteThemeCssAction: async () => {
@@ -1059,6 +1426,27 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
+  saveAllTabs: async () => {
+    const msg = getMessages(get().locale);
+    const dirtyFileTabs = get().tabs.filter((t) => t.isDirty && Boolean(t.filePath));
+    if (dirtyFileTabs.length === 0) {
+      get().pushToast(msg.toast.noDirtyTabs, "info");
+      return 0;
+    }
+    let savedCount = 0;
+    for (const tab of dirtyFileTabs) {
+      const ok = await get().saveTab(tab.id, true);
+      if (ok) savedCount++;
+    }
+    if (savedCount > 0) {
+      get().pushToast(
+        formatMessage(msg.toast.savedAll, { count: savedCount }),
+        "success"
+      );
+    }
+    return savedCount;
+  },
+
   closeTab: (tabId) => {
     const closing = get().tabs.find((t) => t.id === tabId);
     if (closing?.filePath) {
@@ -1073,7 +1461,9 @@ export const useAppStore = create<AppState>((set, get) => ({
         const fallback = nextTabs[idx] || nextTabs[idx - 1] || null;
         nextActive = fallback ? fallback.id : null;
       }
-      return { tabs: nextTabs, activeTabId: nextActive };
+      const nextBatches = { ...state.lastUploadBatches };
+      delete nextBatches[tabId];
+      return { tabs: nextTabs, activeTabId: nextActive, lastUploadBatches: nextBatches };
     });
   },
 
@@ -1178,18 +1568,34 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   handleExternalChange: (event) => {
     const normalized = event.filePath.replace(/\\/g, "/");
+    const policy = get().editorPrefs.externalChangePolicy;
     let matchedOpenTab = false;
+    const autoReloadTabIds: string[] = [];
 
-    set((state) => ({
-      tabs: state.tabs.map((tab) => {
-        if (!tab.filePath) return tab;
-        if (tab.filePath.replace(/\\/g, "/") === normalized) {
-          matchedOpenTab = true;
-          return { ...tab, externalChange: event };
-        }
-        return tab;
-      }),
-    }));
+    if (policy === "ignore") {
+      matchedOpenTab = get().tabs.some(
+        (tab) => tab.filePath && tab.filePath.replace(/\\/g, "/") === normalized
+      );
+    } else {
+      set((state) => ({
+        tabs: state.tabs.map((tab) => {
+          if (!tab.filePath) return tab;
+          if (tab.filePath.replace(/\\/g, "/") === normalized) {
+            matchedOpenTab = true;
+            if (policy === "auto" && !tab.isDirty) {
+              autoReloadTabIds.push(tab.id);
+              return tab;
+            }
+            return { ...tab, externalChange: event };
+          }
+          return tab;
+        }),
+      }));
+    }
+
+    for (const tabId of autoReloadTabIds) {
+      void get().reloadTabFromDisk(tabId);
+    }
 
     const activeRoot = get().activeSiteRoot;
     if (activeRoot && isPathInsideDir(normalized, activeRoot) && !matchedOpenTab) {

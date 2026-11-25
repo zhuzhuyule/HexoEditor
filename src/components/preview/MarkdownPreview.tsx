@@ -22,6 +22,7 @@ import { useAppStore } from "@/stores/useAppStore";
 export interface MarkdownPreviewHandle {
   scrollToSourceLine: (line: number, fallbackRatio: number) => void;
   scrollToHeadingId: (id: string) => void;
+  getRenderedHtml: () => string;
 }
 
 export interface MarkdownPreviewProps {
@@ -37,6 +38,8 @@ export interface MarkdownPreviewProps {
   themeCss?: string | null;
   /** Whether to preprocess Hexo tag plugins (default: true) */
   enableHexoTags?: boolean;
+  /** Preview typography zoom percentage (85-125, default: 100) */
+  zoomLevel?: number;
 }
 
 const CONDITIONAL_AT_RULES = new Set([
@@ -303,6 +306,7 @@ export const MarkdownPreview = forwardRef<MarkdownPreviewHandle, MarkdownPreview
       centered = false,
       themeCss = null,
       enableHexoTags = true,
+      zoomLevel = 100,
     },
     ref
   ) {
@@ -495,8 +499,9 @@ export const MarkdownPreview = forwardRef<MarkdownPreviewHandle, MarkdownPreview
           scroller.scrollTop = Math.max(0, targetTop - 16);
         },
         scrollToHeadingId,
+        getRenderedHtml: () => contentRef.current?.innerHTML ?? renderedHtml,
       }),
-      [scrollToHeadingId]
+      [renderedHtml, scrollToHeadingId]
     );
 
     const handleScroll = () => {
@@ -635,6 +640,11 @@ export const MarkdownPreview = forwardRef<MarkdownPreviewHandle, MarkdownPreview
           <div
             ref={contentRef}
             onClick={handlePreviewClick}
+            style={
+              zoomLevel !== 100
+                ? { fontSize: `${Math.round(15 * (zoomLevel / 100) * 10) / 10}px` }
+                : undefined
+            }
             className="markdown-preview markdown-preview-scoped"
             dangerouslySetInnerHTML={{ __html: renderedHtml }}
           />

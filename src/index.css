@@ -912,11 +912,18 @@
 /* ============================================================================
  * Print / Save-as-PDF Styles
  * ============================================================================ */
+.print-only-article {
+  display: none;
+}
+
 @page {
   margin: 16mm 14mm;
 }
 
 @media print {
+  .print-only-article {
+    display: block !important;
+  }
   html,
   body,
   #root {

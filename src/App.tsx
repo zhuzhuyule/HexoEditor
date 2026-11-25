@@ -1,7 +1,9 @@
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import {
   BookOpen,
+  CloudUpload,
   Columns2,
+  Download,
   Eraser,
   ExternalLink,
   FileCode2,
@@ -25,14 +27,17 @@ import {
   PenLine,
   Play,
   PlugZap,
+  Printer,
   RefreshCw,
   Rocket,
   Save,
   Send,
+  Settings,
   SlidersHorizontal,
   Sparkles,
   Square,
   Terminal,
+  Trash2,
   Upload,
   X,
 } from "lucide-react";
@@ -49,6 +54,16 @@ import {
   MarkdownEditor,
   type MarkdownEditorHandle,
 } from "@/components/editor/MarkdownEditor";
+import {
+  formatBytes,
+  ImageBedUploadDialog,
+  type ImageBedConfigSummary,
+  type ImageManagerTab,
+  type ImageUploadStatusItem,
+  type LastUploadBatchInfo,
+  type LocalDocumentImageItem,
+  type UnusedImageItem,
+} from "@/components/images/ImageBedUploadDialog";
 import { ExternalChangeBanner } from "@/components/layout/ExternalChangeBanner";
 import { StatusBar } from "@/components/layout/StatusBar";
 import { ToastHost } from "@/components/layout/ToastHost";
@@ -63,8 +78,10 @@ import {
 import { LiveSitePreview } from "@/components/preview/LiveSitePreview";
 import {
   MarkdownPreview,
+  scopePreviewThemeCss,
   type MarkdownPreviewHandle,
 } from "@/components/preview/MarkdownPreview";
+import { SettingsDialog } from "@/components/settings/SettingsDialog";
 import { NewPostDialog } from "@/components/sidebar/NewPostDialog";
 import { Sidebar } from "@/components/sidebar/Sidebar";
 import { TabBar } from "@/components/tabs/TabBar";
@@ -78,18 +95,68 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { buildStandaloneHtmlDocument } from "@/lib/export/htmlExport";
+import { triggerDocumentPrint } from "@/lib/export/printPdf";
+import { parseMarkdownDocument } from "@/lib/frontmatter";
 import { formatMessage, getMessages } from "@/lib/i18n";
+import {
+  extractLocalImageSrcs,
+  renderMarkdownToHtml,
+  type LocalImageEntry,
+} from "@/lib/markdown/renderer";
 import * as api from "@/lib/tauri/api";
 import * as hexoApi from "@/lib/tauri/hexoApi";
-import { formatMarkdownImageSnippet } from "@/lib/utils";
+import * as imageBedApi from "@/lib/tauri/imageBedApi";
+import { formatMarkdownImageSnippet, getFileName } from "@/lib/utils";
 import { useAppStore } from "@/stores/useAppStore";
+import type { ImageBedSettings, SettingsSectionId } from "@/types/settings";
 
 const IMAGE_EXT_RE = /\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i;
 const MD_EXT_RE = /\.(md|markdown|mdx)$/i;
 
+function summarizeImageBed(settings: ImageBedSettings): ImageBedConfigSummary {
+  const provider = settings.provider;
+  if (provider === "none") {
+    return {
+      provider: "none",
+      configured: false,
+      supportsRemoteDelete: false,
+      keepLocalAfterUpload: settings.keepLocalAfterUpload,
+    };
+  }
+  if (provider === "picgo") {
+    const url = settings.picgoUrl.trim();
+    return {
+      provider: "picgo",
+      targetLabel: url || undefined,
+      configured: Boolean(url),
+      supportsRemoteDelete: false,
+      keepLocalAfterUpload: settings.keepLocalAfterUpload,
+    };
+  }
+  const hasCreds = Boolean(
+    settings.bucket.trim() &&
+      settings.accessKeyId.trim() &&
+      settings.secretAccessKey.trim() &&
+      (settings.endpoint.trim() || settings.region.trim())
+  );
+  return {
+    provider,
+    targetLabel:
+      settings.customDomain.trim() ||
+      settings.bucket.trim() ||
+      settings.endpoint.trim() ||
+      undefined,
+    configured: hasCreds,
+    supportsRemoteDelete: true,
+    keepLocalAfterUpload: settings.keepLocalAfterUpload,
+  };
+}
+
 export function App() {
   const {
     locale,
+    setLocale,
     sidebarOpen,
     toggleSidebar,
     setSidebarOpen,
@@ -109,13 +176,17 @@ export function App() {
     autoSave,
     setAutoSave,
     showToolbar,
+    setShowToolbar,
     toggleToolbar,
     showLineNumbers,
+    setShowLineNumbers,
     toggleLineNumbers,
     recentEntries,
+    clearRecentEntries,
     enableHexoTags,
     setEnableHexoTags,
     themeCss,
+    themeCssLabel,
     loadSiteThemeCssAction,
     importCustomThemeCssAction,
     clearThemeCssAction,
@@ -132,6 +203,14 @@ export function App() {
     stopHexoAction,
     killHexoPort,
     openQuickOpenTarget,
+    editorPrefs,
+    setEditorPrefs,
+    resetEditorPrefs,
+    imageBed,
+    setImageBed,
+    lastUploadBatches,
+    uploadTabImagesToBed,
+    undoLastTabUpload,
     hydrate,
     addSite,
     switchSite,
@@ -141,6 +220,7 @@ export function App() {
     updateTabCursor,
     saveTab,
     saveTabAs,
+    saveAllTabs,
     closeTab,
     openStandaloneFile,
     createScratchTab,
@@ -161,9 +241,39 @@ export function App() {
 
   const [newPostOpen, setNewPostOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsSection, setSettingsSection] =
+    useState<SettingsSectionId>("general");
+  const [imageManagerOpen, setImageManagerOpen] = useState(false);
+  const [imageManagerTab, setImageManagerTab] =
+    useState<ImageManagerTab>("upload");
   const [closeConfirmTabId, setCloseConfirmTabId] = useState<string | null>(null);
-  const [selectedImage, setSelectedImage] = useState<SelectedLocalImage | null>(null);
+  const [selectedImage, setSelectedImage] = useState<SelectedLocalImage | null>(
+    null
+  );
   const [imageVersion, setImageVersion] = useState(0);
+
+  // Image manager modal runtime states
+  const [localDocImages, setLocalDocImages] = useState<LocalDocumentImageItem[]>(
+    []
+  );
+  const [uploadStatuses, setUploadStatuses] = useState<
+    Record<string, ImageUploadStatusItem>
+  >({});
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [undoingUpload, setUndoingUpload] = useState(false);
+  const [unusedImages, setUnusedImages] = useState<UnusedImageItem[]>([]);
+  const [unusedAllowedDirs, setUnusedAllowedDirs] = useState<string[]>([]);
+  const [scanningUnused, setScanningUnused] = useState(false);
+  const [cleaningUnused, setCleaningUnused] = useState(false);
+
+  const openSettingsModal = useCallback(
+    (section: SettingsSectionId = "general") => {
+      setSettingsSection(section);
+      setSettingsOpen(true);
+    },
+    []
+  );
 
   // Hydrate persisted state & active Hexo site on boot
   useEffect(() => {
@@ -264,7 +374,6 @@ export function App() {
           extension,
           preferredName,
         });
-        // Avoid inserting into a different tab if user switched tabs mid-save
         if (useAppStore.getState().activeTabId !== targetTabId) {
           return false;
         }
@@ -467,13 +576,13 @@ export function App() {
     }
   }, [viewMode]);
 
-  // Global keyboard shortcuts (capture phase ensures Cmd/Ctrl+K works even when CodeMirror has focus)
+  // Global keyboard shortcuts (capture phase ensures Cmd/Ctrl+K and Cmd/Ctrl+, work inside CodeMirror)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
       const key = e.key.toLowerCase();
 
-      // Cmd/Ctrl + K -> Command Palette (never conflicts with Mod-Shift-k code block)
+      // Cmd/Ctrl + K -> Command Palette
       if (mod && !e.shiftKey && !e.altKey && (key === "k" || e.code === "KeyK")) {
         e.preventDefault();
         e.stopPropagation();
@@ -481,10 +590,20 @@ export function App() {
         return;
       }
 
+      // Cmd/Ctrl + , -> Settings Center
+      if (mod && !e.shiftKey && !e.altKey && (e.key === "," || e.code === "Comma")) {
+        e.preventDefault();
+        e.stopPropagation();
+        setSettingsOpen((open) => !open);
+        return;
+      }
+
       if (
         e.key === "Escape" &&
         viewMode === "focus" &&
         !commandPaletteOpen &&
+        !settingsOpen &&
+        !imageManagerOpen &&
         !closeConfirmTabId &&
         !newPostOpen &&
         !selectedImage
@@ -496,7 +615,7 @@ export function App() {
 
       if (!mod) return;
 
-      // Support both Cmd/Ctrl+Shift+1..4 and Cmd/Ctrl+Option/Alt+1..4 (avoids macOS screenshot shortcuts)
+      // Support both Cmd/Ctrl+Shift+1..4 and Cmd/Ctrl+Option/Alt+1..4
       const isViewModeModifier =
         (e.shiftKey && !e.altKey) || (e.altKey && !e.shiftKey);
       if (isViewModeModifier) {
@@ -520,6 +639,13 @@ export function App() {
           setViewMode("focus");
           return;
         }
+      }
+
+      // Cmd/Ctrl + Alt/Option + S -> Save All Modified Tabs
+      if (e.altKey && !e.shiftKey && (key === "s" || e.code === "KeyS")) {
+        e.preventDefault();
+        void saveAllTabs();
+        return;
       }
 
       if (key === "s" && e.shiftKey) {
@@ -560,17 +686,309 @@ export function App() {
     commandPaletteOpen,
     createScratchTab,
     exitFocusMode,
+    imageManagerOpen,
     msg.sidebar.openFile,
     newPostOpen,
     openStandaloneFile,
+    saveAllTabs,
     saveTab,
     saveTabAs,
     selectedImage,
+    settingsOpen,
     setViewMode,
     toggleSidebar,
     triggerShortcutCloseActiveTab,
     viewMode,
   ]);
+
+  // Image Manager data loaders
+  const refreshLocalDocImages = useCallback(async () => {
+    const tab = useAppStore
+      .getState()
+      .tabs.find((t) => t.id === useAppStore.getState().activeTabId);
+    if (!tab) {
+      setLocalDocImages([]);
+      return;
+    }
+    const parsed = parseMarkdownDocument(tab.content);
+    const srcs = extractLocalImageSrcs(parsed.body, {
+      enableHexoTags: useAppStore.getState().enableHexoTags,
+    });
+    if (srcs.length === 0) {
+      setLocalDocImages([]);
+      return;
+    }
+    try {
+      const resolved = await api.resolveLocalImages({
+        docPath: tab.filePath,
+        siteRoot: tab.siteRoot,
+        sourceDir: tab.sourceDir,
+        srcs,
+      });
+      const items: LocalDocumentImageItem[] = [];
+      for (const entry of resolved) {
+        if (entry.exists && entry.absolutePath) {
+          items.push({
+            rawSrc: entry.rawSrc,
+            absolutePath: entry.absolutePath,
+            fileName: getFileName(entry.absolutePath),
+            previewUrl: api.toAssetUrl(entry.absolutePath),
+          });
+        }
+      }
+      setLocalDocImages(items);
+    } catch {
+      setLocalDocImages([]);
+    }
+  }, []);
+
+  const handleScanUnusedImages = useCallback(async () => {
+    const tab = useAppStore
+      .getState()
+      .tabs.find((t) => t.id === useAppStore.getState().activeTabId);
+    if (!tab?.filePath) {
+      setUnusedImages([]);
+      setUnusedAllowedDirs([]);
+      return;
+    }
+    setScanningUnused(true);
+    try {
+      const res = await imageBedApi.scanUnusedLocalImages({
+        docPath: tab.filePath,
+        siteRoot: tab.siteRoot,
+        postAssetFolder: tab.postAssetFolder,
+        sourceDir: tab.sourceDir,
+        currentContent: tab.content,
+      });
+      setUnusedAllowedDirs(res.scannedDirs);
+      setUnusedImages(
+        res.unusedImages.map((img) => ({
+          absolutePath: img.absolutePath,
+          fileName: img.fileName,
+          sizeBytes: img.sizeBytes,
+          previewUrl: api.toAssetUrl(img.absolutePath),
+        }))
+      );
+    } catch (err) {
+      pushToast(String(err), "error");
+    } finally {
+      setScanningUnused(false);
+    }
+  }, [pushToast]);
+
+  const openImageManagerModal = useCallback(
+    (tab: ImageManagerTab = "upload") => {
+      setImageManagerTab(tab);
+      setUploadStatuses({});
+      setImageManagerOpen(true);
+      void refreshLocalDocImages();
+      void handleScanUnusedImages();
+    },
+    [handleScanUnusedImages, refreshLocalDocImages]
+  );
+
+  const handleBatchUploadImages = useCallback(
+    async (items: LocalDocumentImageItem[]) => {
+      const currentTabId = useAppStore.getState().activeTabId;
+      if (!currentTabId || items.length === 0) return;
+
+      const initialStatuses: Record<string, ImageUploadStatusItem> = {};
+      for (const item of items) {
+        initialStatuses[item.absolutePath] = {
+          absolutePath: item.absolutePath,
+          status: "uploading",
+        };
+      }
+      setUploadStatuses(initialStatuses);
+      setUploadingImages(true);
+      try {
+        const res = await uploadTabImagesToBed(
+          currentTabId,
+          items.map((item) => ({
+            rawSrc: item.rawSrc,
+            absolutePath: item.absolutePath,
+          }))
+        );
+        if (res) {
+          const nextStatuses: Record<string, ImageUploadStatusItem> = {};
+          for (const item of res.items) {
+            nextStatuses[item.localPath] = {
+              absolutePath: item.localPath,
+              status: item.success ? "success" : "error",
+              remoteUrl: item.remoteUrl,
+              remoteKey: item.remoteKey,
+              error: item.error,
+            };
+          }
+          setUploadStatuses(nextStatuses);
+          setImageVersion((v) => v + 1);
+          await refreshLocalDocImages();
+        }
+      } finally {
+        setUploadingImages(false);
+      }
+    },
+    [refreshLocalDocImages, uploadTabImagesToBed]
+  );
+
+  const handleUndoLastUpload = useCallback(
+    async (options: { deleteRemote: boolean }) => {
+      const currentTabId = useAppStore.getState().activeTabId;
+      if (!currentTabId) return;
+      setUndoingUpload(true);
+      try {
+        await undoLastTabUpload(currentTabId, options);
+        setImageVersion((v) => v + 1);
+        await refreshLocalDocImages();
+      } finally {
+        setUndoingUpload(false);
+      }
+    },
+    [refreshLocalDocImages, undoLastTabUpload]
+  );
+
+  const handleDeleteUnusedImages = useCallback(
+    async (paths: string[]) => {
+      if (paths.length === 0) return;
+      setCleaningUnused(true);
+      try {
+        const res = await imageBedApi.deleteLocalImages(paths, unusedAllowedDirs);
+        pushToast(
+          formatMessage(msg.imageBed.cleanupSuccess, {
+            count: res.deletedCount,
+            size: formatBytes(res.freedBytes),
+          }),
+          "success"
+        );
+        await handleScanUnusedImages();
+      } catch (err) {
+        pushToast(String(err), "error");
+      } finally {
+        setCleaningUnused(false);
+      }
+    },
+    [
+      handleScanUnusedImages,
+      msg.imageBed.cleanupSuccess,
+      pushToast,
+      unusedAllowedDirs,
+    ]
+  );
+
+  const handleTestImageBed = useCallback(async (settings: ImageBedSettings) => {
+    const res = await imageBedApi.testImageBedConnection(settings);
+    return {
+      ok: res.ok,
+      message: res.message,
+    };
+  }, []);
+
+  // Export standalone HTML (with offline Data URI images & preserved Mermaid SVGs)
+  const handleExportHtml = useCallback(async () => {
+    const state = useAppStore.getState();
+    const tab = state.tabs.find((t) => t.id === state.activeTabId);
+    if (!tab) {
+      pushToast(msg.export.exportNoDoc, "info");
+      return;
+    }
+
+    const parsed = parseMarkdownDocument(tab.content);
+    const exportTitle =
+      (parsed.hasFrontMatter && parsed.data.title.trim()) ||
+      tab.title.replace(/\.(md|markdown|mdx)$/i, "") ||
+      msg.appName;
+
+    try {
+      let bodyHtml: string;
+      const canReuseLivePreviewDom =
+        state.previewSource === "markdown" &&
+        (state.viewMode === "split" || state.viewMode === "read") &&
+        Boolean(previewRef.current);
+
+      if (canReuseLivePreviewDom) {
+        bodyHtml = previewRef.current!.getRenderedHtml();
+      } else {
+        const srcs = extractLocalImageSrcs(parsed.body, {
+          enableHexoTags: state.enableHexoTags,
+        });
+        const imageMap: Record<string, LocalImageEntry> = {};
+        if (srcs.length > 0) {
+          const resolved = await api.resolveLocalImages({
+            docPath: tab.filePath,
+            siteRoot: tab.siteRoot,
+            sourceDir: tab.sourceDir,
+            srcs,
+          });
+          for (const entry of resolved) {
+            if (entry.exists && entry.absolutePath) {
+              imageMap[entry.rawSrc] = {
+                assetUrl: api.toAssetUrl(entry.absolutePath),
+                absolutePath: entry.absolutePath,
+              };
+            }
+          }
+        }
+        bodyHtml = renderMarkdownToHtml(parsed.body, {
+          bodyStartLine: parsed.bodyStartLine,
+          imageMap,
+          enableHexoTags: state.enableHexoTags,
+        });
+      }
+
+      const htmlDocument = await buildStandaloneHtmlDocument({
+        title: exportTitle,
+        date: parsed.hasFrontMatter ? parsed.data.date : null,
+        categories: parsed.hasFrontMatter ? parsed.data.categories : [],
+        tags: parsed.hasFrontMatter ? parsed.data.tags : [],
+        markdownContent: tab.content,
+        bodyHtml,
+        themeCss: state.themeCss,
+        codeTheme: state.editorPrefs.codeTheme,
+        lang: state.locale,
+        resolveLocalImageDataUri: async (absPath) => {
+          try {
+            return await imageBedApi.readLocalFileAsDataUri(absPath);
+          } catch {
+            return null;
+          }
+        },
+      });
+
+      const defaultName = `${exportTitle.replace(/[\\/:*?"<>|]/g, "_")}.html`;
+      const targetPath = await api.pickSaveHtmlPath(defaultName);
+      if (!targetPath) return;
+
+      await api.writeTextFilePath(targetPath, htmlDocument);
+      pushToast(
+        formatMessage(msg.export.exportHtmlSuccess, {
+          file: getFileName(targetPath),
+        }),
+        "success"
+      );
+    } catch (err) {
+      pushToast(String(err), "error");
+    }
+  }, [msg.appName, msg.export.exportHtmlSuccess, msg.export.exportNoDoc, pushToast]);
+
+  // Export PDF via native WebView print
+  const handleExportPdf = useCallback(() => {
+    const state = useAppStore.getState();
+    const tab = state.tabs.find((t) => t.id === state.activeTabId);
+    if (!tab) {
+      pushToast(msg.export.exportNoDoc, "info");
+      return;
+    }
+    const parsed = parseMarkdownDocument(tab.content);
+    const printTitle =
+      (parsed.hasFrontMatter && parsed.data.title.trim()) ||
+      tab.title.replace(/\.(md|markdown|mdx)$/i, "") ||
+      msg.appName;
+    try {
+      triggerDocumentPrint({ title: printTitle });
+    } catch (err) {
+      pushToast(String(err), "error");
+    }
+  }, [msg.appName, msg.export.exportNoDoc, pushToast]);
 
   const handleFormatTables = useCallback(() => {
     const count = editorRef.current?.formatTables() ?? 0;
@@ -640,6 +1058,47 @@ export function App() {
     const name = activeTab.filePath.split(/[/\\]/).pop() ?? "";
     return name.replace(/\.(md|markdown|mdx)$/i, "") || null;
   }, [activeTab?.filePath, posts]);
+
+  const activeUploadBatchInfo = useMemo<LastUploadBatchInfo | null>(() => {
+    if (!activeTab) return null;
+    const stored = lastUploadBatches[activeTab.id];
+    if (!stored || stored.records.length === 0) return null;
+    const remoteKeyCount = stored.records.filter((r) => Boolean(r.remoteKey)).length;
+    return {
+      uploadedCount: stored.records.length,
+      timestamp: stored.timestamp,
+      canDeleteRemote: stored.canDeleteRemote,
+      remoteKeyCount,
+    };
+  }, [activeTab, lastUploadBatches]);
+
+  const imageBedSummary = useMemo(
+    () => summarizeImageBed(imageBed),
+    [imageBed]
+  );
+
+  const effectiveEditorFontSize = useMemo(
+    () => Math.round((editorPrefs.fontSize * editorPrefs.zoomLevel) / 100),
+    [editorPrefs.fontSize, editorPrefs.zoomLevel]
+  );
+
+  // Fallback print-only article for Write / Focus / Live-preview modes so Cmd+P and Export PDF always print full formatted article
+  const needsPrintFallback = Boolean(
+    activeTab &&
+      (viewMode === "write" ||
+        viewMode === "focus" ||
+        previewSource === "live")
+  );
+  const printFallbackData = useMemo(() => {
+    if (!needsPrintFallback || !activeTab) return null;
+    const parsed = parseMarkdownDocument(activeTab.content);
+    const html = renderMarkdownToHtml(parsed.body, {
+      bodyStartLine: parsed.bodyStartLine,
+      enableHexoTags,
+    });
+    const scopedCss = scopePreviewThemeCss(themeCss);
+    return { parsed, html, scopedCss };
+  }, [needsPrintFallback, activeTab?.content, enableHexoTags, themeCss]);
 
   const commandItems = useMemo<CommandPaletteItem[]>(() => {
     const items: CommandPaletteItem[] = [];
@@ -748,6 +1207,52 @@ export function App() {
         },
       },
       {
+        id: "doc:save-all",
+        label: msg.command.saveAllTabs,
+        group: msg.command.groupDocument,
+        shortcut: "⌘⌥S",
+        disabled: tabs.length === 0,
+        keywords: ["save", "all", "tabs"],
+        icon: <Save className="h-3.5 w-3.5" />,
+        onSelect: () => void saveAllTabs(),
+      },
+      {
+        id: "doc:export-html",
+        label: msg.command.exportHtml,
+        group: msg.command.groupDocument,
+        disabled: !activeTab,
+        keywords: ["export", "html", "standalone", "offline"],
+        icon: <Download className="h-3.5 w-3.5" />,
+        onSelect: () => void handleExportHtml(),
+      },
+      {
+        id: "doc:export-pdf",
+        label: msg.command.exportPdf,
+        group: msg.command.groupDocument,
+        disabled: !activeTab,
+        keywords: ["export", "pdf", "print"],
+        icon: <Printer className="h-3.5 w-3.5" />,
+        onSelect: handleExportPdf,
+      },
+      {
+        id: "doc:image-upload",
+        label: msg.command.openImageManager,
+        group: msg.command.groupDocument,
+        disabled: !activeTab,
+        keywords: ["image", "bed", "upload", "picgo", "s3", "oss", "cos"],
+        icon: <CloudUpload className="h-3.5 w-3.5" />,
+        onSelect: () => openImageManagerModal("upload"),
+      },
+      {
+        id: "doc:image-cleanup",
+        label: msg.command.openImageCleanup,
+        group: msg.command.groupDocument,
+        disabled: !activeTab?.filePath,
+        keywords: ["image", "unused", "clean", "cleanup"],
+        icon: <Trash2 className="h-3.5 w-3.5" />,
+        onSelect: () => openImageManagerModal("cleanup"),
+      },
+      {
         id: "doc:close-tab",
         label: msg.command.closeActiveTab,
         group: msg.command.groupDocument,
@@ -758,6 +1263,15 @@ export function App() {
         onSelect: () => {
           if (activeTab) handleRequestCloseTab(activeTab.id);
         },
+      },
+      {
+        id: "doc:settings",
+        label: msg.command.openSettings,
+        group: msg.command.groupDocument,
+        shortcut: "⌘,",
+        keywords: ["settings", "preferences", "config", "font", "theme"],
+        icon: <Settings className="h-3.5 w-3.5" />,
+        onSelect: () => openSettingsModal("general"),
       },
       {
         id: "doc:toggle-sidebar",
@@ -1066,6 +1580,8 @@ export function App() {
     clearThemeCssAction,
     createScratchTab,
     enableHexoTags,
+    handleExportHtml,
+    handleExportPdf,
     handleRequestCloseTab,
     handleRequestNewPost,
     hexoCliStatus.running,
@@ -1075,12 +1591,15 @@ export function App() {
     killHexoPort,
     loadSiteThemeCssAction,
     msg,
+    openImageManagerModal,
     openPost,
     openQuickOpenTarget,
+    openSettingsModal,
     openStandaloneFile,
     posts,
     refreshActiveSite,
     runHexoAction,
+    saveAllTabs,
     saveTab,
     saveTabAs,
     setActiveTab,
@@ -1112,16 +1631,18 @@ export function App() {
   const renderPreviewPane = (centered = false) => {
     if (previewSource === "live") {
       return (
-        <LiveSitePreview
-          serverUrl={hexoCliStatus.serverUrl}
-          serverRunning={hexoCliStatus.serverRunning}
-          currentPostSlug={activePostSlug}
-          onStartServer={
-            activeSiteRoot ? () => void runHexoAction("server") : undefined
-          }
-          onOpenExternal={(url) => void api.openExternalUrl(url)}
-          locale={locale}
-        />
+        <div className="no-print h-full w-full">
+          <LiveSitePreview
+            serverUrl={hexoCliStatus.serverUrl}
+            serverRunning={hexoCliStatus.serverRunning}
+            currentPostSlug={activePostSlug}
+            onStartServer={
+              activeSiteRoot ? () => void runHexoAction("server") : undefined
+            }
+            onOpenExternal={(url) => void api.openExternalUrl(url)}
+            locale={locale}
+          />
+        </div>
       );
     }
 
@@ -1137,6 +1658,7 @@ export function App() {
         imageVersion={imageVersion}
         themeCss={themeCss}
         enableHexoTags={enableHexoTags}
+        zoomLevel={editorPrefs.zoomLevel}
         onScrollLine={
           centered
             ? undefined
@@ -1153,19 +1675,30 @@ export function App() {
   };
 
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden bg-white text-zinc-900">
+    <div
+      data-code-theme={editorPrefs.codeTheme}
+      data-zoom-level={editorPrefs.zoomLevel}
+      className="flex h-screen w-screen flex-col overflow-hidden bg-white text-zinc-900"
+    >
       {/* Main Area (Sidebar + Editor Workspace) */}
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <PanelGroup direction="horizontal" autoSaveId="hexo-v2-main-layout">
           {showSidebar && (
             <>
-              <Panel id="sidebar" defaultSize={21} minSize={15} maxSize={36} order={1}>
+              <Panel
+                id="sidebar"
+                defaultSize={21}
+                minSize={15}
+                maxSize={36}
+                order={1}
+                className="no-print"
+              >
                 <Sidebar
                   onRequestNewPost={() => setNewPostOpen(true)}
                   onSelectOutline={handleSelectOutline}
                 />
               </Panel>
-              <PanelResizeHandle className="w-[1px] bg-transparent hover:bg-zinc-300 transition-colors cursor-col-resize" />
+              <PanelResizeHandle className="no-print w-[1px] bg-transparent hover:bg-zinc-300 transition-colors cursor-col-resize" />
             </>
           )}
 
@@ -1181,12 +1714,16 @@ export function App() {
                 <TabBar
                   onRequestCloseTab={handleRequestCloseTab}
                   onOpenCommandPalette={() => setCommandPaletteOpen(true)}
+                  onOpenSettings={() => openSettingsModal("general")}
+                  onOpenImageManager={() => openImageManagerModal("upload")}
+                  onExportHtml={() => void handleExportHtml()}
+                  onExportPdf={handleExportPdf}
                 />
               )}
 
               {/* Focus Mode Floating Exit Pill */}
               {isFocusMode && (
-                <div className="fixed right-4 top-3 z-40">
+                <div className="no-print fixed right-4 top-3 z-40">
                   <Button
                     variant="outline"
                     size="xs"
@@ -1205,19 +1742,30 @@ export function App() {
                   recentEntries={recentEntries}
                   onOpenRecent={handleOpenRecent}
                   onRequestNewPost={handleRequestNewPost}
+                  onOpenSettings={() => openSettingsModal("general")}
                 />
               ) : (
                 <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                  <ExternalChangeBanner tab={activeTab} />
+                  <div className="no-print shrink-0">
+                    <ExternalChangeBanner tab={activeTab} />
+                  </div>
 
-                  {!isFocusMode && <FrontMatterBar tab={activeTab} />}
+                  {!isFocusMode && (
+                    <div className="no-print shrink-0">
+                      <FrontMatterBar tab={activeTab} />
+                    </div>
+                  )}
 
                   {showToolbar && !isFocusMode && viewMode !== "read" && (
-                    <EditorToolbar
-                      getView={() => editorRef.current?.getView() ?? null}
-                      onInsertLocalImage={() => void handleInsertLocalImagePicker()}
-                      onFormatTables={handleFormatTables}
-                    />
+                    <div className="no-print shrink-0">
+                      <EditorToolbar
+                        getView={() => editorRef.current?.getView() ?? null}
+                        onInsertLocalImage={() =>
+                          void handleInsertLocalImagePicker()
+                        }
+                        onFormatTables={handleFormatTables}
+                      />
+                    </div>
                   )}
 
                   {/* Editor / Preview Region */}
@@ -1227,7 +1775,7 @@ export function App() {
                       aria-hidden={viewMode === "read"}
                       className={
                         viewMode === "read"
-                          ? "pointer-events-none invisible absolute inset-0"
+                          ? "no-print pointer-events-none invisible absolute inset-0"
                           : "h-full w-full"
                       }
                     >
@@ -1240,6 +1788,7 @@ export function App() {
                           defaultSize={viewMode === "split" ? 50 : 100}
                           minSize={25}
                           order={1}
+                          className="no-print"
                         >
                           <MarkdownEditor
                             key={activeTab.id}
@@ -1274,11 +1823,15 @@ export function App() {
                             placeholder={msg.tabs.editorPlaceholder}
                             focusMode={isFocusMode}
                             showLineNumbers={showLineNumbers}
+                            fontFamily={editorPrefs.fontFamily}
+                            fontSize={effectiveEditorFontSize}
+                            lineHeight={editorPrefs.lineHeight}
+                            tabSize={editorPrefs.tabSize}
                           />
                         </Panel>
                         {viewMode === "split" && (
                           <>
-                            <PanelResizeHandle className="w-[1px] bg-zinc-200/80 hover:bg-zinc-400 transition-colors cursor-col-resize" />
+                            <PanelResizeHandle className="no-print w-[1px] bg-zinc-200/80 hover:bg-zinc-400 transition-colors cursor-col-resize" />
                             <Panel
                               id="preview"
                               defaultSize={50}
@@ -1296,6 +1849,31 @@ export function App() {
                       <div className="relative z-10 h-full w-full bg-white">
                         {renderPreviewPane(true)}
                       </div>
+                    )}
+
+                    {/* Print-only article fallback for Write / Focus / Live preview modes */}
+                    {printFallbackData && (
+                      <article className="print-only-article bg-white">
+                        {printFallbackData.scopedCss && (
+                          <style data-hexo-print-theme-css="true">
+                            {printFallbackData.scopedCss}
+                          </style>
+                        )}
+                        {printFallbackData.parsed.hasFrontMatter &&
+                          printFallbackData.parsed.data.title && (
+                            <header className="mb-6 border-b border-zinc-100 pb-4">
+                              <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
+                                {printFallbackData.parsed.data.title}
+                              </h1>
+                            </header>
+                          )}
+                        <div
+                          className="markdown-preview markdown-preview-scoped"
+                          dangerouslySetInnerHTML={{
+                            __html: printFallbackData.html,
+                          }}
+                        />
+                      </article>
                     )}
                   </div>
                 </div>
@@ -1315,6 +1893,7 @@ export function App() {
                   onOpenServerUrl={(url) => void api.openExternalUrl(url)}
                   disabled={!activeSiteRoot}
                   locale={locale}
+                  className="no-print"
                 />
               )}
             </div>
@@ -1333,6 +1912,63 @@ export function App() {
         placeholder={msg.command.placeholder}
         emptyText={msg.command.empty}
         locale={locale}
+      />
+
+      {/* In-App Settings Center (Cmd/Ctrl + ,) */}
+      <SettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        locale={locale}
+        initialSection={settingsSection}
+        onLocaleChange={setLocale}
+        autoSave={autoSave}
+        onAutoSaveChange={setAutoSave}
+        recentCount={recentEntries.length}
+        onClearRecent={clearRecentEntries}
+        editorPrefs={editorPrefs}
+        onEditorPrefsChange={setEditorPrefs}
+        onResetEditorPrefs={resetEditorPrefs}
+        showLineNumbers={showLineNumbers}
+        onShowLineNumbersChange={setShowLineNumbers}
+        showToolbar={showToolbar}
+        onShowToolbarChange={setShowToolbar}
+        syncScroll={syncScroll}
+        onSyncScrollChange={setSyncScroll}
+        enableHexoTags={enableHexoTags}
+        onEnableHexoTagsChange={setEnableHexoTags}
+        themeCssLabel={themeCssLabel}
+        hasActiveSite={Boolean(activeSiteRoot)}
+        onLoadSiteThemeCss={loadSiteThemeCssAction}
+        onImportCustomThemeCss={importCustomThemeCssAction}
+        onClearThemeCss={clearThemeCssAction}
+        imageBed={imageBed}
+        onImageBedChange={setImageBed}
+        onTestImageBedConnection={handleTestImageBed}
+      />
+
+      {/* Image Bed Batch Upload & Unused Local Asset Cleanup Dialog */}
+      <ImageBedUploadDialog
+        open={imageManagerOpen}
+        onOpenChange={setImageManagerOpen}
+        initialTab={imageManagerTab}
+        locale={locale}
+        localImages={localDocImages}
+        imageBedConfig={imageBedSummary}
+        uploadStatuses={uploadStatuses}
+        uploading={uploadingImages}
+        onBatchUpload={handleBatchUploadImages}
+        onOpenSettings={() => {
+          setImageManagerOpen(false);
+          openSettingsModal("imagebed");
+        }}
+        lastUploadBatch={activeUploadBatchInfo}
+        undoing={undoingUpload}
+        onUndoLastUpload={handleUndoLastUpload}
+        unusedImages={unusedImages}
+        scanningUnused={scanningUnused}
+        cleaningUnused={cleaningUnused}
+        onScanUnused={handleScanUnusedImages}
+        onDeleteUnused={handleDeleteUnusedImages}
       />
 
       {/* Modals & Toasts */}
