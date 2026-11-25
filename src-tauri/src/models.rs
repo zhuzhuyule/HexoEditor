@@ -104,3 +104,48 @@ pub struct ExternalChangeEvent {
     pub file_path: String,
     pub kind: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct HexoCliOutputEvent {
+    pub stream: String,
+    pub line: String,
+    pub timestamp: u64,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct HexoCliStatus {
+    pub running: bool,
+    pub action: Option<String>,
+    pub server_running: bool,
+    pub server_url: Option<String>,
+    pub exit_code: Option<i32>,
+    pub message: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct KillPortResult {
+    pub port: u16,
+    pub killed_pids: Vec<u32>,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ThemeCssResult {
+    pub theme_name: Option<String>,
+    pub css_dir: String,
+    pub files: Vec<String>,
+    pub css_content: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct QuickOpenResult {
+    pub target: String,
+    pub kind: String,
+    pub value: String,
+    pub exists: bool,
+}

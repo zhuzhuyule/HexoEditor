@@ -1,7 +1,9 @@
 mod error;
 mod hexo;
+mod hexo_cli;
 mod images;
 mod models;
+mod theme_css;
 mod watcher;
 
 use std::path::Path;
@@ -117,9 +119,11 @@ fn build_app_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
 }
 
 use crate::error::AppResult;
+use crate::hexo_cli::HexoCliState;
 use crate::models::{
-    DocumentContent, HexoSiteConfig, PostSummary, RenameImageResult, RenamePostResult,
-    ResolvedImageResult, SavedImageResult, SiteScanResult,
+    DocumentContent, HexoCliStatus, HexoSiteConfig, KillPortResult, PostSummary, QuickOpenResult,
+    RenameImageResult, RenamePostResult, ResolvedImageResult, SavedImageResult, SiteScanResult,
+    ThemeCssResult,
 };
 use crate::watcher::FileWatcherState;
 
@@ -306,9 +310,68 @@ fn unwatch_path(watcher: State<'_, FileWatcherState>, path: String) -> AppResult
     watcher.unwatch_path(Path::new(&path))
 }
 
+#[tauri::command]
+async fn run_hexo_command(
+    app: AppHandle,
+    cli: State<'_, HexoCliState>,
+    site_root: String,
+    action: String,
+) -> AppResult<HexoCliStatus> {
+    cli.run_command(app, &site_root, &action).await
+}
+
+#[tauri::command]
+async fn stop_hexo_command(
+    app: AppHandle,
+    cli: State<'_, HexoCliState>,
+) -> AppResult<HexoCliStatus> {
+    cli.stop_command(app).await
+}
+
+#[tauri::command]
+async fn kill_hexo_port(
+    app: AppHandle,
+    cli: State<'_, HexoCliState>,
+    port: u16,
+) -> AppResult<KillPortResult> {
+    cli.kill_port(app, port).await
+}
+
+#[tauri::command]
+fn get_hexo_cli_status(cli: State<'_, HexoCliState>) -> HexoCliStatus {
+    cli.get_status()
+}
+
+#[tauri::command]
+fn load_site_theme_css(root_path: String) -> AppResult<ThemeCssResult> {
+    theme_css::load_site_theme_css(&root_path)
+}
+
+#[tauri::command]
+fn read_custom_css_file(file_path: String) -> AppResult<ThemeCssResult> {
+    theme_css::read_custom_css_file(&file_path)
+}
+
+#[tauri::command]
+fn resolve_quick_open(
+    target: String,
+    site_root: Option<String>,
+    doc_path: Option<String>,
+    post_asset_folder: Option<bool>,
+    source_dir: Option<String>,
+) -> AppResult<QuickOpenResult> {
+    theme_css::resolve_quick_open_target(
+        &target,
+        site_root.as_deref(),
+        doc_path.as_deref(),
+        post_asset_folder.unwrap_or(false),
+        source_dir.as_deref(),
+    )
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .menu(build_app_menu)
         .on_menu_event(|app, event| {
             if event.id() == MENU_CLOSE_TAB_ID {
@@ -319,7 +382,13 @@ pub fn run() {
                 }
             }
         })
+        .on_window_event(|window, event| {
+            if matches!(event, tauri::WindowEvent::Destroyed) && window.label() == "main" {
+                window.app_handle().state::<HexoCliState>().stop_all_blocking();
+            }
+        })
         .manage(FileWatcherState::default())
+        .manage(HexoCliState::default())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
@@ -341,7 +410,20 @@ pub fn run() {
             rename_local_image,
             watch_path,
             unwatch_path,
+            run_hexo_command,
+            stop_hexo_command,
+            kill_hexo_port,
+            get_hexo_cli_status,
+            load_site_theme_css,
+            read_custom_css_file,
+            resolve_quick_open,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running HexoEditor");
+        .build(tauri::generate_context!())
+        .expect("error while building HexoEditor");
+
+    app.run(|app_handle, event| {
+        if matches!(event, tauri::RunEvent::Exit) {
+            app_handle.state::<HexoCliState>().stop_all_blocking();
+        }
+    });
 }
