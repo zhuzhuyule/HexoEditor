@@ -143,4 +143,83 @@ describe("markdown renderer (KaTeX, hljs, Mermaid, local images, DOMPurify)", ()
     expect(html).toContain("language-unknownlang");
     expect(html).toContain("1 &lt; 2 &amp;&amp; 3 &gt; 1;");
   });
+
+  it("renders Hexo tags end-to-end and preserves DOMPurify-whitelisted attributes safely", () => {
+    const body = [
+      "# Hexo 标签演示",
+      "",
+      "{% note warning %}",
+      "请勿在生产环境开启 **debug** 模式。",
+      "{% endnote %}",
+      "",
+      "{% tabs lang_demo, 2 %}",
+      "<!-- tab JS -->",
+      "`console.log(1)`",
+      "<!-- endtab -->",
+      "<!-- tab Rust -->",
+      "`println!(\"hi\")`",
+      "<!-- endtab -->",
+      "{% endtabs %}",
+      "",
+      "{% blockquote Lu Xun, Call to Arms %}",
+      "Hope is like a road in the country.",
+      "{% endblockquote %}",
+      "",
+      "{% iframe https://example.com/widget 640 360 %}",
+      '<iframe src="javascript:alert(1)"></iframe>',
+      '<iframe src="https://example.com/ok" srcdoc="<script>alert(2)</script>"></iframe>',
+    ].join("\n");
+
+    const html = renderMarkdownToHtml(body, { bodyStartLine: 4 });
+    expect(html).toContain('<h1 id="hexo-标签演示" data-source-line="4">Hexo 标签演示</h1>');
+    expect(html).toContain('class="hexo-note hexo-note-warning"');
+    expect(html).toContain("<strong>debug</strong>");
+    expect(html).toContain('data-hexo-tabs="lang_demo"');
+    expect(html).toContain('data-tab-index="0"');
+    expect(html).toContain('data-tab-panel="1"');
+    expect(html).toContain('<blockquote class="hexo-blockquote">');
+    expect(html).toContain("<strong>Lu Xun</strong><cite>Call to Arms</cite>");
+    expect(html).toContain('src="https://example.com/widget"');
+    expect(html).toContain('sandbox="allow-scripts allow-same-origin allow-popups allow-presentation"');
+    expect(html).not.toContain("javascript:alert");
+    expect(html).not.toContain("srcdoc");
+  });
+
+  it("extracts and resolves local images from Hexo {% asset_img %} and {% img %} tags", () => {
+    const body = [
+      "{% asset_img 架构图.png 系统架构 %}",
+      "{% img center my-post/banner.png 600 300 标题 %}",
+      "{% img https://cdn.example.com/remote.jpg %}",
+    ].join("\n");
+
+    const srcs = extractLocalImageSrcs(body);
+    expect(srcs).toEqual(["架构图.png", "my-post/banner.png"]);
+
+    const html = renderMarkdownToHtml(body, {
+      imageMap: {
+        "架构图.png": {
+          assetUrl: "asset://localhost/%2Ftmp%2F%E6%9E%B6%E6%9E%84%E5%9B%BE.png",
+          absolutePath: "/tmp/架构图.png",
+        },
+        "my-post/banner.png": {
+          assetUrl: "asset://localhost/%2Ftmp%2Fmy-post%2Fbanner.png",
+          absolutePath: "/tmp/my-post/banner.png",
+        },
+      },
+    });
+
+    expect(html).not.toContain("local-image-missing");
+    expect(html).toContain('data-local-image="true"');
+    expect(html).toContain('data-local-abs-path="/tmp/架构图.png"');
+    expect(html).toContain('data-local-abs-path="/tmp/my-post/banner.png"');
+    expect(html).toContain('width="600"');
+    expect(html).toContain('height="300"');
+  });
+
+  it("allows disabling Hexo tag preprocessing via enableHexoTags: false", () => {
+    const body = "{% note info %}\nHello\n{% endnote %}";
+    const html = renderMarkdownToHtml(body, { enableHexoTags: false });
+    expect(html).toContain("{% note info %}");
+    expect(html).not.toContain("hexo-note-info");
+  });
 });

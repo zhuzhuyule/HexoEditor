@@ -6,6 +6,12 @@ import type StateBlock from "markdown-it/lib/rules_block/state_block.mjs";
 import type StateInline from "markdown-it/lib/rules_inline/state_inline.mjs";
 import type Token from "markdown-it/lib/token.mjs";
 
+import {
+  extractHexoTagImageSrcs,
+  preprocessHexoTagsWithMeta,
+} from "@/lib/markdown/hexoTags";
+import { createHeadingSlugger } from "@/lib/markdown/toc";
+
 export interface LocalImageEntry {
   assetUrl: string;
   absolutePath: string;
@@ -16,6 +22,28 @@ export interface RenderOptions {
   bodyStartLine?: number;
   /** Map of raw markdown src -> resolved Tauri assetUrl + absolutePath */
   imageMap?: Record<string, LocalImageEntry>;
+  /** Whether to preprocess Hexo tag plugins (default: true) */
+  enableHexoTags?: boolean;
+}
+
+const IFRAME_SANDBOX_ATTR =
+  "allow-scripts allow-same-origin allow-popups allow-presentation";
+
+let iframeHookRegistered = false;
+function ensureIframeSanitizeHook() {
+  if (iframeHookRegistered) return;
+  iframeHookRegistered = true;
+  DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+    if (node.tagName === "IFRAME") {
+      const src = (node.getAttribute("src") || "").trim();
+      if (!/^https?:\/\//i.test(src)) {
+        node.parentNode?.removeChild(node);
+        return;
+      }
+      node.removeAttribute("srcdoc");
+      node.setAttribute("sandbox", IFRAME_SANDBOX_ATTR);
+    }
+  });
 }
 
 function escapeHtml(str: string): string {
@@ -56,6 +84,36 @@ function lookupLocalImage(
     // ignore malformed URI
   }
   return undefined;
+}
+
+function resolveSourceLine(
+  mapStart: number,
+  env: Record<string, unknown> | undefined
+): number {
+  const offset = typeof env?.bodyStartLine === "number" ? env.bodyStartLine - 1 : 0;
+  const lineMap = Array.isArray(env?.lineMap) ? (env.lineMap as number[]) : undefined;
+  const origLine =
+    lineMap && mapStart >= 0 && mapStart < lineMap.length ? lineMap[mapStart] : mapStart;
+  return origLine + 1 + offset;
+}
+
+function extractTokenPlainText(tokens: Token[] | null | undefined): string {
+  if (!tokens) return "";
+  let out = "";
+  for (const child of tokens) {
+    if (
+      child.type === "text" ||
+      child.type === "code_inline" ||
+      child.type === "math_inline"
+    ) {
+      out += child.content;
+    } else if (child.type === "image") {
+      out += child.content || extractTokenPlainText(child.children);
+    } else if (child.type === "softbreak" || child.type === "hardbreak") {
+      out += " ";
+    }
+  }
+  return out.replace(/\s+/g, " ").trim();
 }
 
 function isValidMathDelim(
@@ -221,14 +279,25 @@ function createMarkdownIt(): MarkdownIt {
     renderKatex(tokens[idx].content, false);
 
   md.renderer.rules.math_block = (tokens, idx, _options, env) => {
-    const offset = typeof env?.bodyStartLine === "number" ? env.bodyStartLine - 1 : 0;
-    const line = tokens[idx].map ? tokens[idx].map[0] + 1 + offset : undefined;
+    const line = tokens[idx].map ? resolveSourceLine(tokens[idx].map[0], env) : undefined;
     const lineAttr = line ? ` data-source-line="${line}"` : "";
     return `<div class="katex-display-wrapper"${lineAttr}>${renderKatex(
       tokens[idx].content,
       true
     )}</div>\n`;
   };
+
+  // Inject deterministic heading IDs matching extractMarkdownToc
+  md.core.ruler.after("inline", "heading_ids", (state) => {
+    const slugger = createHeadingSlugger();
+    const tokens = state.tokens;
+    for (let i = 0; i < tokens.length - 1; i++) {
+      if (tokens[i].type === "heading_open" && tokens[i + 1].type === "inline") {
+        const plainText = extractTokenPlainText(tokens[i + 1].children);
+        tokens[i].attrSet("id", slugger(plainText));
+      }
+    }
+  });
 
   // Task list support: transform `[ ] ` / `[x] ` at start of list items
   md.core.ruler.after("inline", "gfm_task_lists", (state) => {
@@ -279,8 +348,7 @@ function createMarkdownIt(): MarkdownIt {
     md.renderer.rules[ruleName] = (tokens, idx, options, env, self) => {
       const token = tokens[idx];
       if (token.map && token.level >= 0) {
-        const offset = typeof env?.bodyStartLine === "number" ? env.bodyStartLine - 1 : 0;
-        token.attrSet("data-source-line", String(token.map[0] + 1 + offset));
+        token.attrSet("data-source-line", String(resolveSourceLine(token.map[0], env)));
       }
       return orig(tokens, idx, options, env, self);
     };
@@ -291,8 +359,7 @@ function createMarkdownIt(): MarkdownIt {
     const token = tokens[idx];
     const info = token.info ? md.utils.unescapeAll(token.info).trim() : "";
     const lang = info.split(/\s+/g)[0]?.toLowerCase() || "";
-    const offset = typeof env?.bodyStartLine === "number" ? env.bodyStartLine - 1 : 0;
-    const line = token.map ? token.map[0] + 1 + offset : undefined;
+    const line = token.map ? resolveSourceLine(token.map[0], env) : undefined;
     const lineAttr = line ? ` data-source-line="${line}"` : "";
 
     if (lang === "mermaid") {
@@ -362,9 +429,13 @@ function createMarkdownIt(): MarkdownIt {
 const mdInstance = createMarkdownIt();
 
 /**
- * Extracts all unique non-remote image src strings from Markdown & HTML <img> tags.
+ * Extracts all unique non-remote image src strings from Markdown, HTML `<img>`,
+ * and Hexo `{% asset_img %}` / `{% img %}` tags.
  */
-export function extractLocalImageSrcs(markdownBody: string): string[] {
+export function extractLocalImageSrcs(
+  markdownBody: string,
+  options?: { enableHexoTags?: boolean }
+): string[] {
   const srcs = new Set<string>();
   const addIfLocal = (raw: string) => {
     const trimmed = raw.trim().replace(/^<|>$/g, "");
@@ -386,30 +457,62 @@ export function extractLocalImageSrcs(markdownBody: string): string[] {
     addIfLocal(match[1]);
   }
 
+  // Hexo {% asset_img %} & {% img %} tags
+  if (options?.enableHexoTags !== false) {
+    for (const src of extractHexoTagImageSrcs(markdownBody)) {
+      addIfLocal(src);
+    }
+  }
+
   return Array.from(srcs);
 }
 
 /**
- * Replaces raw HTML <img src="local"> attributes too (outside markdown image rule)
+ * Replaces raw HTML <img src="local"> attributes too (outside markdown image rule),
+ * including images emitted by Hexo `{% img %}` with class/width/height attributes.
  */
 function rewriteRawHtmlImages(
   html: string,
   imageMap?: Record<string, LocalImageEntry>
 ): string {
-  if (!imageMap || Object.keys(imageMap).length === 0) return html;
   return html.replace(
     /<img\b([^>]*?)\bsrc=(["'])([^"']+)\2([^>]*)>/gi,
     (full, before: string, quote: string, src: string, after: string) => {
-      if (before.includes("data-local-image") || after.includes("data-local-image")) {
+      if (
+        before.includes("data-local-image") ||
+        after.includes("data-local-image") ||
+        before.includes("data-raw-src") ||
+        after.includes("data-raw-src")
+      ) {
         return full;
       }
       const entry = lookupLocalImage(imageMap, src);
-      if (!entry) return full;
-      return `<img${before}src=${quote}${escapeHtml(
-        entry.assetUrl
-      )}${quote} data-local-image="true" data-local-abs-path="${escapeHtml(
-        entry.absolutePath
-      )}" data-raw-src="${escapeHtml(src)}"${after}>`;
+      if (entry) {
+        return `<img${before}src=${quote}${escapeHtml(
+          entry.assetUrl
+        )}${quote} data-local-image="true" data-local-abs-path="${escapeHtml(
+          entry.absolutePath
+        )}" data-raw-src="${escapeHtml(safeDecodeURI(src))}"${after}>`;
+      }
+      if (!/^(https?:|data:|blob:|asset:|\/\/)/i.test(src)) {
+        const combined = `${before}${after}`;
+        if (/\bclass=(["'])/i.test(combined)) {
+          const updatedBefore = /\bclass=(["'])/i.test(before)
+            ? before.replace(/\bclass=(["'])([^"']*)\1/i, 'class=$1$2 local-image-missing$1')
+            : before;
+          const updatedAfter =
+            updatedBefore === before && /\bclass=(["'])/i.test(after)
+              ? after.replace(/\bclass=(["'])([^"']*)\1/i, 'class=$1$2 local-image-missing$1')
+              : after;
+          return `<img${updatedBefore}src=${quote}${src}${quote} data-raw-src="${escapeHtml(
+            safeDecodeURI(src)
+          )}"${updatedAfter}>`;
+        }
+        return `<img${before}src=${quote}${src}${quote} data-raw-src="${escapeHtml(
+          safeDecodeURI(src)
+        )}" class="local-image-missing"${after}>`;
+      }
+      return full;
     }
   );
 }
@@ -418,10 +521,31 @@ export function renderMarkdownToHtml(
   markdownBody: string,
   options: RenderOptions = {}
 ): string {
-  const rawHtml = mdInstance.render(markdownBody, {
+  ensureIframeSanitizeHook();
+
+  const enableHexoTags = options.enableHexoTags !== false;
+  let sourceForMd = markdownBody;
+  let rawBlocks: Map<string, string> | undefined;
+  let lineMap: number[] | undefined;
+
+  if (enableHexoTags) {
+    const processed = preprocessHexoTagsWithMeta(markdownBody);
+    sourceForMd = processed.markdown;
+    rawBlocks = processed.rawBlocks;
+    lineMap = processed.lineMap;
+  }
+
+  let rawHtml = mdInstance.render(sourceForMd, {
     bodyStartLine: options.bodyStartLine ?? 1,
     imageMap: options.imageMap ?? {},
+    lineMap,
   });
+
+  if (rawBlocks && rawBlocks.size > 0) {
+    for (const [token, originalRaw] of rawBlocks.entries()) {
+      rawHtml = rawHtml.replace(token, () => originalRaw);
+    }
+  }
 
   const withLocalHtmlImgs = rewriteRawHtmlImages(rawHtml, options.imageMap);
 
@@ -432,15 +556,31 @@ export function renderMarkdownToHtml(
     ADD_ATTR: [
       "target",
       "rel",
+      "class",
+      "id",
+      "width",
+      "height",
+      "frameborder",
+      "allowfullscreen",
+      "sandbox",
+      "loading",
+      "role",
+      "aria-selected",
+      "hidden",
       "data-source-line",
       "data-mermaid-source",
       "data-local-image",
       "data-local-abs-path",
       "data-raw-src",
+      "data-hexo-tabs",
+      "data-tab-index",
+      "data-tab-panel",
+      "data-youtube-id",
       "checked",
       "disabled",
       "aria-hidden",
     ],
-    ADD_TAGS: ["input"],
+    ADD_TAGS: ["input", "iframe"],
+    FORBID_ATTR: ["srcdoc"],
   });
 }
