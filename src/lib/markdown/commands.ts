@@ -303,7 +303,7 @@ export function createMarkdownKeymap(callbacks: {
     { key: "Mod-Shift-x", run: toggleStrikethrough },
     { key: "Mod-e", run: toggleInlineCode },
     { key: "Mod-Shift-k", run: insertCodeBlock },
-    { key: "Mod-k", run: insertLink },
+    { key: "Mod-Shift-l", run: insertLink },
     { key: "Mod-Shift-8", run: toggleUnorderedList },
     { key: "Mod-Shift-7", run: toggleOrderedList },
     { key: "Mod-Shift-9", run: toggleTaskList },

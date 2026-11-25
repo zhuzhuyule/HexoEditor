@@ -1,45 +1,107 @@
 import {
   BookOpen,
+  Check,
   Columns2,
+  Command,
+  FileCode2,
+  FolderSymlink,
+  Globe,
+  Hash,
   Maximize2,
+  Palette,
   PanelLeft,
   PenLine,
   Save,
+  SlidersHorizontal,
+  Sparkles,
+  Trash2,
+  Upload,
   X,
 } from "lucide-react";
 
+import {
+  QuickOpenMenu,
+  type QuickOpenAvailability,
+} from "@/components/quickopen/QuickOpenMenu";
 import { Button } from "@/components/ui/button";
-import { getMessages } from "@/lib/i18n";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { formatMessage, getMessages } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/stores/useAppStore";
 import type { ViewMode } from "@/types";
 
 interface TabBarProps {
   onRequestCloseTab: (tabId: string) => void;
+  onOpenCommandPalette: () => void;
 }
 
-export function TabBar({ onRequestCloseTab }: TabBarProps) {
+export function TabBar({
+  onRequestCloseTab,
+  onOpenCommandPalette,
+}: TabBarProps) {
   const {
     locale,
     sidebarOpen,
     toggleSidebar,
+    activeSiteRoot,
+    siteConfig,
     tabs,
     activeTabId,
     setActiveTab,
     viewMode,
     setViewMode,
     saveTab,
+    showToolbar,
+    toggleToolbar,
+    showLineNumbers,
+    toggleLineNumbers,
+    enableHexoTags,
+    setEnableHexoTags,
+    themeCss,
+    themeCssLabel,
+    loadSiteThemeCssAction,
+    importCustomThemeCssAction,
+    clearThemeCssAction,
+    previewSource,
+    setPreviewSource,
+    hexoCliStatus,
+    openQuickOpenTarget,
   } = useAppStore();
 
   const msg = getMessages(locale);
   const activeTab = tabs.find((t) => t.id === activeTabId) ?? null;
 
-  const modes: { id: ViewMode; icon: typeof PenLine; label: string; shortcut: string }[] = [
-    { id: "write", icon: PenLine, label: msg.viewMode.write, shortcut: "⌘⇧1" },
-    { id: "split", icon: Columns2, label: msg.viewMode.split, shortcut: "⌘⇧2" },
-    { id: "read", icon: BookOpen, label: msg.viewMode.read, shortcut: "⌘⇧3" },
-    { id: "focus", icon: Maximize2, label: msg.viewMode.focus, shortcut: "⌘⇧4" },
+  const modes: {
+    id: ViewMode;
+    icon: typeof PenLine;
+    label: string;
+    shortcut: string;
+  }[] = [
+    { id: "write", icon: PenLine, label: msg.viewMode.write, shortcut: "⌘⌥1" },
+    { id: "split", icon: Columns2, label: msg.viewMode.split, shortcut: "⌘⌥2" },
+    { id: "read", icon: BookOpen, label: msg.viewMode.read, shortcut: "⌘⌥3" },
+    { id: "focus", icon: Maximize2, label: msg.viewMode.focus, shortcut: "⌘⌥4" },
   ];
+
+  const quickOpenAvailability: QuickOpenAvailability = {
+    postDir: Boolean(activeTab?.filePath),
+    postAssetDir: Boolean(activeTab?.filePath),
+    imagesDir: Boolean(activeSiteRoot),
+    siteRoot: Boolean(activeSiteRoot),
+    blogHome: Boolean(siteConfig?.url?.trim()),
+    localPreview: Boolean(
+      activeSiteRoot || (hexoCliStatus.serverRunning && hexoCliStatus.serverUrl)
+    ),
+  };
+
+  const isLivePreview = previewSource === "live";
 
   return (
     <header className="flex h-10 shrink-0 items-center justify-between gap-2 border-b border-zinc-200/80 bg-zinc-50/50 px-2 select-none">
@@ -49,6 +111,7 @@ export function TabBar({ onRequestCloseTab }: TabBarProps) {
           variant="ghost"
           size="icon"
           title={msg.tabs.toggleSidebar}
+          aria-label={msg.tabs.toggleSidebar}
           onClick={toggleSidebar}
           className={cn(!sidebarOpen && "text-zinc-900 bg-zinc-200/60")}
         >
@@ -91,7 +154,9 @@ export function TabBar({ onRequestCloseTab }: TabBarProps) {
                   }}
                   className={cn(
                     "ml-0.5 rounded p-0.5 text-zinc-400 hover:bg-zinc-200/80 hover:text-zinc-700 cursor-pointer",
-                    isActive ? "opacity-70 group-hover:opacity-100" : "opacity-0 group-hover:opacity-100"
+                    isActive
+                      ? "opacity-70 group-hover:opacity-100"
+                      : "opacity-0 group-hover:opacity-100"
                   )}
                 >
                   <X className="h-3 w-3" />
@@ -102,13 +167,14 @@ export function TabBar({ onRequestCloseTab }: TabBarProps) {
         </div>
       </div>
 
-      {/* Right: Save + View Mode Switcher */}
-      <div className="flex shrink-0 items-center gap-1.5">
+      {/* Right: Minimalist Icon Actions + View Mode Switcher */}
+      <div className="flex shrink-0 items-center gap-1">
         {activeTab && (
           <Button
             variant="ghost"
             size="icon"
             title={`${msg.tabs.save} (⌘S)`}
+            aria-label={msg.tabs.save}
             disabled={!activeTab.isDirty && Boolean(activeTab.filePath)}
             onClick={() => void saveTab(activeTab.id)}
           >
@@ -116,6 +182,146 @@ export function TabBar({ onRequestCloseTab }: TabBarProps) {
           </Button>
         )}
 
+        <Button
+          variant="ghost"
+          size="icon"
+          title={msg.toolbar.toggleToolbar}
+          aria-label={msg.toolbar.toggleToolbar}
+          aria-pressed={showToolbar}
+          onClick={toggleToolbar}
+          className={cn(showToolbar && "bg-zinc-200/70 text-zinc-900")}
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          title={msg.toolbar.toggleLineNumbers}
+          aria-label={msg.toolbar.toggleLineNumbers}
+          aria-pressed={showLineNumbers}
+          onClick={toggleLineNumbers}
+          className={cn(showLineNumbers && "bg-zinc-200/70 text-zinc-900")}
+        >
+          <Hash className="h-3.5 w-3.5" />
+        </Button>
+
+        {/* Theme CSS & Hexo Tag Rendering Menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              title={
+                themeCssLabel
+                  ? formatMessage(msg.preview.themeCssActive, {
+                      label: themeCssLabel,
+                    })
+                  : msg.preview.themeCss
+              }
+              aria-label={msg.preview.themeCss}
+              className={cn(
+                "relative",
+                themeCss && "bg-zinc-200/70 text-zinc-900"
+              )}
+            >
+              <Palette className="h-3.5 w-3.5" />
+              {themeCss && (
+                <span
+                  aria-hidden="true"
+                  className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-zinc-900"
+                />
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-60">
+            <DropdownMenuLabel className="truncate font-normal text-zinc-500">
+              {themeCssLabel
+                ? formatMessage(msg.preview.themeCssActive, {
+                    label: themeCssLabel,
+                  })
+                : msg.preview.themeCssNone}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              disabled={!activeSiteRoot}
+              onSelect={() => void loadSiteThemeCssAction()}
+            >
+              <Sparkles className="h-3.5 w-3.5 text-zinc-500" />
+              <span>{msg.preview.loadSiteCss}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => void importCustomThemeCssAction()}>
+              <Upload className="h-3.5 w-3.5 text-zinc-500" />
+              <span>{msg.preview.pickCustomCss}</span>
+            </DropdownMenuItem>
+            {themeCss && (
+              <DropdownMenuItem onSelect={clearThemeCssAction}>
+                <Trash2 className="h-3.5 w-3.5 text-zinc-500" />
+                <span>{msg.preview.clearThemeCss}</span>
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={() => setEnableHexoTags(!enableHexoTags)}
+              className="justify-between"
+            >
+              <span className="inline-flex items-center gap-2">
+                <FileCode2 className="h-3.5 w-3.5 text-zinc-500" />
+                <span>{msg.preview.toggleHexoTags}</span>
+              </span>
+              {enableHexoTags && <Check className="h-3.5 w-3.5 text-zinc-900" />}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Markdown Preview / Live Hexo Server Preview Switcher */}
+        <Button
+          variant="ghost"
+          size="icon"
+          title={
+            isLivePreview ? msg.preview.sourceMarkdown : msg.preview.sourceLive
+          }
+          aria-label={
+            isLivePreview ? msg.preview.sourceMarkdown : msg.preview.sourceLive
+          }
+          aria-pressed={isLivePreview}
+          onClick={() => setPreviewSource(isLivePreview ? "markdown" : "live")}
+          className={cn(isLivePreview && "bg-zinc-200/70 text-zinc-900")}
+        >
+          <Globe className="h-3.5 w-3.5" />
+        </Button>
+
+        {/* Quick Open Menu (Minimal Icon Trigger) */}
+        <QuickOpenMenu
+          availability={quickOpenAvailability}
+          onSelectTarget={(target) => void openQuickOpenTarget(target)}
+          locale={locale}
+          trigger={
+            <Button
+              variant="ghost"
+              size="icon"
+              title={msg.quickOpen.trigger}
+              aria-label={msg.quickOpen.trigger}
+            >
+              <FolderSymlink className="h-3.5 w-3.5" />
+            </Button>
+          }
+        />
+
+        {/* Command Palette Trigger (Cmd+K) */}
+        <Button
+          variant="ghost"
+          size="icon"
+          title={msg.command.openPalette}
+          aria-label={msg.command.openPalette}
+          onClick={onOpenCommandPalette}
+        >
+          <Command className="h-3.5 w-3.5" />
+        </Button>
+
+        <span className="mx-0.5 h-3.5 w-px bg-zinc-200/80" aria-hidden="true" />
+
+        {/* 4 View Modes */}
         <div className="inline-flex items-center rounded-md bg-zinc-200/60 p-0.5">
           {modes.map((m) => {
             const Icon = m.icon;
@@ -134,7 +340,7 @@ export function TabBar({ onRequestCloseTab }: TabBarProps) {
                 )}
               >
                 <Icon className="h-3 w-3" />
-                <span className="hidden lg:inline">{m.label}</span>
+                <span className="hidden xl:inline">{m.label}</span>
               </button>
             );
           })}

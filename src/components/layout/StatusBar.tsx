@@ -87,7 +87,7 @@ export function StatusBar({ activeTab }: StatusBarProps) {
           type="button"
           onClick={() => setLocale(locale === "zh-CN" ? "en-US" : "zh-CN")}
           className="rounded px-1.5 py-0.5 font-mono text-[10px] text-zinc-500 hover:bg-zinc-200/60 hover:text-zinc-900 cursor-pointer"
-          title="Switch Language"
+          title={msg.status.switchLanguage}
         >
           {locale === "zh-CN" ? "中文" : "EN"}
         </button>

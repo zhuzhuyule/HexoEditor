@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { OutlinePanel } from "@/components/sidebar/OutlinePanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +39,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatMessage, getMessages } from "@/lib/i18n";
+import { extractMarkdownToc } from "@/lib/markdown/toc";
 import * as api from "@/lib/tauri/api";
 import { cn, formatShortDate } from "@/lib/utils";
 import { useAppStore } from "@/stores/useAppStore";
@@ -45,9 +47,10 @@ import type { PostSummary } from "@/types";
 
 interface SidebarProps {
   onRequestNewPost: () => void;
+  onSelectOutline?: (line: number, id: string) => void;
 }
 
-export function Sidebar({ onRequestNewPost }: SidebarProps) {
+export function Sidebar({ onRequestNewPost, onSelectOutline }: SidebarProps) {
   const {
     locale,
     sites,
@@ -57,6 +60,8 @@ export function Sidebar({ onRequestNewPost }: SidebarProps) {
     allTags,
     allCategories,
     isScanning,
+    sidebarTab,
+    setSidebarTab,
     filterTab,
     searchQuery,
     selectedCategory,
@@ -82,9 +87,16 @@ export function Sidebar({ onRequestNewPost }: SidebarProps) {
   const [deleteTarget, setDeleteTarget] = useState<PostSummary | null>(null);
   const [deleteAssets, setDeleteAssets] = useState(true);
 
-  const activeFilePath = useMemo(
-    () => tabs.find((t) => t.id === activeTabId)?.filePath ?? null,
+  const activeTab = useMemo(
+    () => tabs.find((t) => t.id === activeTabId) ?? null,
     [tabs, activeTabId]
+  );
+
+  const activeFilePath = activeTab?.filePath ?? null;
+
+  const outlineItems = useMemo(
+    () => (activeTab ? extractMarkdownToc(activeTab.content) : []),
+    [activeTab?.content]
   );
 
   const filteredPosts = useMemo(() => {
@@ -220,8 +232,52 @@ export function Sidebar({ onRequestNewPost }: SidebarProps) {
         </Button>
       </div>
 
-      {/* Empty Site State */}
-      {!activeSiteRoot ? (
+      {/* Posts / Outline Switcher */}
+      <div className="border-b border-zinc-200/70 px-2.5 py-1.5 shrink-0">
+        <div
+          role="tablist"
+          aria-label={msg.sidebar.panelPosts}
+          className="grid grid-cols-2 rounded-md bg-zinc-200/60 p-0.5"
+        >
+          {(["posts", "outline"] as const).map((tabKey) => {
+            const active = sidebarTab === tabKey;
+            const label =
+              tabKey === "posts" ? msg.sidebar.panelPosts : msg.sidebar.panelOutline;
+            return (
+              <button
+                key={tabKey}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                data-sidebar-tab={tabKey}
+                onClick={() => setSidebarTab(tabKey)}
+                className={cn(
+                  "rounded py-1 text-[11px] font-medium transition-colors cursor-pointer",
+                  active
+                    ? "bg-white text-zinc-900 shadow-2xs"
+                    : "text-zinc-500 hover:text-zinc-800"
+                )}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Outline Panel or Posts Panel */}
+      {sidebarTab === "outline" ? (
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <OutlinePanel
+            items={outlineItems}
+            activeLine={activeTab?.cursorLine ?? 1}
+            onSelectLine={(line, id) => onSelectOutline?.(line, id)}
+            emptyText={
+              activeTab ? msg.sidebar.emptyOutline : msg.sidebar.noActiveDocOutline
+            }
+          />
+        </div>
+      ) : !activeSiteRoot ? (
         <div className="flex flex-1 flex-col items-center justify-center px-5 text-center">
           <div className="mb-3 rounded-lg border border-zinc-200 bg-white p-2.5 text-zinc-400">
             <FolderTree className="h-5 w-5" />

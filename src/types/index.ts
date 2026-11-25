@@ -4,6 +4,24 @@ export type ViewMode = "write" | "split" | "read" | "focus";
 
 export type PostFilterTab = "all" | "posts" | "drafts";
 
+export type PreviewSource = "markdown" | "live";
+
+export type SidebarTab = "posts" | "outline";
+
+export interface WelcomeRecentEntry {
+  path: string;
+  title: string;
+  kind: "file" | "site";
+  openedAt: number;
+}
+
+export interface HexoTerminalLogItem {
+  id: string;
+  stream: "stdout" | "stderr" | "system";
+  line: string;
+  timestamp: number;
+}
+
 export interface HexoSiteConfig {
   rootPath: string;
   title: string;

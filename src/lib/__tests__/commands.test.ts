@@ -4,7 +4,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   adjustHeadingLevel,
+  createMarkdownKeymap,
   formatTablesInEditor,
+  insertLink,
   setHeadingLevel,
   smartMarkdownEnter,
   toggleBold,
@@ -85,5 +87,13 @@ describe("CodeMirror 6 Markdown editing commands", () => {
     expect(count).toBe(1);
     expect(view.state.doc.toString()).toContain("| 1   | longcell |");
     view.destroy();
+  });
+
+  it("binds insertLink to Mod-Shift-l and leaves Mod-k free for CommandPalette", () => {
+    const bindings = createMarkdownKeymap({});
+    expect(bindings.find((b) => b.key === "Mod-k")).toBeUndefined();
+    const linkBinding = bindings.find((b) => b.key === "Mod-Shift-l");
+    expect(linkBinding).toBeDefined();
+    expect(linkBinding?.run).toBe(insertLink);
   });
 });

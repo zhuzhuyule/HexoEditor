@@ -3,19 +3,42 @@ import { create } from "zustand";
 import { parseMarkdownDocument } from "@/lib/frontmatter";
 import { formatMessage, getMessages } from "@/lib/i18n";
 import * as api from "@/lib/tauri/api";
+import * as hexoApi from "@/lib/tauri/hexoApi";
+import type {
+  HexoCliAction,
+  HexoCliOutputEvent,
+  HexoCliStatus,
+  QuickOpenTarget,
+} from "@/lib/tauri/hexoApi";
 import { getFileName, isPathInsideDir } from "@/lib/utils";
 import type {
   EditorTab,
   ExternalChangeEvent,
   HexoSiteConfig,
+  HexoTerminalLogItem,
   Locale,
   PostFilterTab,
   PostSummary,
+  PreviewSource,
   SavedSiteEntry,
+  SidebarTab,
   TaxonomyCount,
   ToastItem,
   ViewMode,
+  WelcomeRecentEntry,
 } from "@/types";
+
+const MAX_RECENT_ENTRIES = 10;
+const MAX_HEXO_LOGS = 500;
+
+const INITIAL_HEXO_STATUS: HexoCliStatus = {
+  running: false,
+  action: null,
+  serverRunning: false,
+  serverUrl: null,
+  exitCode: null,
+  message: null,
+};
 
 interface AppState {
   hydrated: boolean;
@@ -29,6 +52,7 @@ interface AppState {
   isScanning: boolean;
 
   sidebarOpen: boolean;
+  sidebarTab: SidebarTab;
   filterTab: PostFilterTab;
   searchQuery: string;
   selectedCategory: string | null;
@@ -42,6 +66,20 @@ interface AppState {
   syncScroll: boolean;
   autoSave: boolean;
 
+  // Stage 2 persisted preferences & workbench state
+  showToolbar: boolean;
+  showLineNumbers: boolean;
+  recentEntries: WelcomeRecentEntry[];
+  enableHexoTags: boolean;
+  themeCss: string | null;
+  themeCssLabel: string | null;
+  previewSource: PreviewSource;
+
+  // Stage 2 Hexo CLI runtime state
+  hexoCliStatus: HexoCliStatus;
+  hexoLogs: HexoTerminalLogItem[];
+  terminalOpen: boolean;
+
   toasts: ToastItem[];
 
   // Actions
@@ -49,6 +87,7 @@ interface AppState {
   setLocale: (locale: Locale) => void;
   setSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
+  setSidebarTab: (tab: SidebarTab) => void;
   setFilterTab: (tab: PostFilterTab) => void;
   setSearchQuery: (q: string) => void;
   setSelectedCategory: (cat: string | null) => void;
@@ -59,11 +98,32 @@ interface AppState {
   setSyncScroll: (enabled: boolean) => void;
   setAutoSave: (enabled: boolean) => void;
 
+  setShowToolbar: (show: boolean) => void;
+  toggleToolbar: () => void;
+  setShowLineNumbers: (show: boolean) => void;
+  toggleLineNumbers: () => void;
+  setEnableHexoTags: (enabled: boolean) => void;
+  setPreviewSource: (source: PreviewSource) => void;
+  recordRecentEntry: (entry: Omit<WelcomeRecentEntry, "openedAt">) => void;
+
+  loadSiteThemeCssAction: () => Promise<void>;
+  importCustomThemeCssAction: () => Promise<void>;
+  clearThemeCssAction: () => void;
+
+  setTerminalOpen: (open: boolean) => void;
+  setHexoCliStatus: (status: HexoCliStatus) => void;
+  appendHexoLog: (event: HexoCliOutputEvent) => void;
+  clearHexoLogs: () => void;
+  runHexoAction: (action: HexoCliAction) => Promise<void>;
+  stopHexoAction: () => Promise<void>;
+  killHexoPort: (port?: number) => Promise<void>;
+  openQuickOpenTarget: (target: QuickOpenTarget) => Promise<void>;
+
   pushToast: (message: string, tone?: ToastItem["tone"]) => void;
   dismissToast: (id: string) => void;
 
   addSite: (rootPath: string) => Promise<void>;
-  switchSite: (rootPath: string) => Promise<void>;
+  switchSite: (rootPath: string, options?: { recordRecent?: boolean }) => Promise<void>;
   removeSite: (rootPath: string) => Promise<void>;
   refreshActiveSite: () => Promise<void>;
 
@@ -84,7 +144,9 @@ interface AppState {
   saveTabAs: (tabId: string) => Promise<boolean>;
   closeTab: (tabId: string) => void;
 
-  toggleDraftStatus: (post: Pick<PostSummary, "filePath"> & { siteRoot?: string | null }) => Promise<void>;
+  toggleDraftStatus: (
+    post: Pick<PostSummary, "filePath"> & { siteRoot?: string | null }
+  ) => Promise<void>;
   deletePostItem: (filePath: string, deleteAssetFolder: boolean) => Promise<void>;
   renameTabPostWithAssets: (tabId: string, newTitleOrSlug: string) => Promise<void>;
 
@@ -118,6 +180,20 @@ function deriveTabTitle(filePath: string | null, content: string, fallback: stri
   return fallback;
 }
 
+function extractPortFromUrl(url: string | null): number | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    if (parsed.port) {
+      const n = Number(parsed.port);
+      if (Number.isInteger(n) && n > 0 && n <= 65535) return n;
+    }
+    return parsed.protocol === "https:" ? 443 : 80;
+  } catch {
+    return null;
+  }
+}
+
 export const useAppStore = create<AppState>((set, get) => ({
   hydrated: false,
   locale: "zh-CN",
@@ -130,6 +206,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   isScanning: false,
 
   sidebarOpen: true,
+  sidebarTab: "posts",
   filterTab: "all",
   searchQuery: "",
   selectedCategory: null,
@@ -143,17 +220,51 @@ export const useAppStore = create<AppState>((set, get) => ({
   syncScroll: true,
   autoSave: false,
 
+  showToolbar: false,
+  showLineNumbers: false,
+  recentEntries: [],
+  enableHexoTags: true,
+  themeCss: null,
+  themeCssLabel: null,
+  previewSource: "markdown",
+
+  hexoCliStatus: { ...INITIAL_HEXO_STATUS },
+  hexoLogs: [],
+  terminalOpen: false,
+
   toasts: [],
 
   hydrate: async () => {
     if (get().hydrated) return;
-    const [locale, sites, activeSiteRoot, syncScroll, autoSave] = await Promise.all([
+    const [
+      locale,
+      sites,
+      activeSiteRoot,
+      syncScroll,
+      autoSave,
+      showToolbar,
+      showLineNumbers,
+      recentEntries,
+      enableHexoTags,
+      themeCss,
+      themeCssLabel,
+    ] = await Promise.all([
       api.loadSetting<Locale>("locale", "zh-CN"),
       api.loadSetting<SavedSiteEntry[]>("sites", []),
       api.loadSetting<string | null>("activeSiteRoot", null),
       api.loadSetting<boolean>("syncScroll", true),
       api.loadSetting<boolean>("autoSave", false),
+      api.loadSetting<boolean>("showToolbar", false),
+      api.loadSetting<boolean>("showLineNumbers", false),
+      api.loadSetting<WelcomeRecentEntry[]>("recentEntries", []),
+      api.loadSetting<boolean>("enableHexoTags", true),
+      api.loadSetting<string | null>("themeCss", null),
+      api.loadSetting<string | null>("themeCssLabel", null),
     ]);
+
+    const sanitizedRecents = Array.isArray(recentEntries)
+      ? recentEntries.slice(0, MAX_RECENT_ENTRIES)
+      : [];
 
     set({
       hydrated: true,
@@ -162,11 +273,17 @@ export const useAppStore = create<AppState>((set, get) => ({
       activeSiteRoot,
       syncScroll,
       autoSave,
+      showToolbar,
+      showLineNumbers,
+      recentEntries: sanitizedRecents,
+      enableHexoTags,
+      themeCss,
+      themeCssLabel,
     });
 
     const targetRoot = activeSiteRoot || sites[0]?.rootPath || null;
     if (targetRoot) {
-      await get().switchSite(targetRoot);
+      await get().switchSite(targetRoot, { recordRecent: false });
     }
   },
 
@@ -177,6 +294,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
+  setSidebarTab: (sidebarTab) => set({ sidebarTab }),
   setFilterTab: (filterTab) => set({ filterTab }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   setSelectedCategory: (selectedCategory) => set({ selectedCategory }),
@@ -210,6 +328,221 @@ export const useAppStore = create<AppState>((set, get) => ({
     void api.saveSetting("autoSave", autoSave);
   },
 
+  setShowToolbar: (showToolbar) => {
+    set({ showToolbar });
+    void api.saveSetting("showToolbar", showToolbar);
+  },
+
+  toggleToolbar: () => {
+    const next = !get().showToolbar;
+    get().setShowToolbar(next);
+  },
+
+  setShowLineNumbers: (showLineNumbers) => {
+    set({ showLineNumbers });
+    void api.saveSetting("showLineNumbers", showLineNumbers);
+  },
+
+  toggleLineNumbers: () => {
+    const next = !get().showLineNumbers;
+    get().setShowLineNumbers(next);
+  },
+
+  setEnableHexoTags: (enableHexoTags) => {
+    set({ enableHexoTags });
+    void api.saveSetting("enableHexoTags", enableHexoTags);
+  },
+
+  setPreviewSource: (previewSource) => set({ previewSource }),
+
+  recordRecentEntry: (entry) => {
+    const trimmedPath = entry.path.trim();
+    if (!trimmedPath) return;
+    const nextItem: WelcomeRecentEntry = {
+      path: trimmedPath,
+      title: entry.title.trim() || getFileName(trimmedPath),
+      kind: entry.kind,
+      openedAt: Date.now(),
+    };
+    const filtered = get().recentEntries.filter(
+      (item) => !(item.kind === nextItem.kind && item.path === nextItem.path)
+    );
+    const updated = [nextItem, ...filtered].slice(0, MAX_RECENT_ENTRIES);
+    set({ recentEntries: updated });
+    void api.saveSetting("recentEntries", updated);
+  },
+
+  loadSiteThemeCssAction: async () => {
+    const rootPath = get().activeSiteRoot;
+    const msg = getMessages(get().locale);
+    if (!rootPath) {
+      get().pushToast(msg.toast.needSiteForHexo, "info");
+      return;
+    }
+    try {
+      const res = await hexoApi.loadSiteThemeCss(rootPath);
+      const label = res.themeName
+        ? `${res.themeName} (${res.files.length} CSS)`
+        : `public/css (${res.files.length} CSS)`;
+      set({ themeCss: res.cssContent, themeCssLabel: label });
+      void api.saveSetting("themeCss", res.cssContent);
+      void api.saveSetting("themeCssLabel", label);
+      get().pushToast(formatMessage(msg.toast.themeCssLoaded, { label }), "success");
+    } catch (err) {
+      get().pushToast(String(err), "error");
+    }
+  },
+
+  importCustomThemeCssAction: async () => {
+    const msg = getMessages(get().locale);
+    try {
+      const picked = await hexoApi.pickCustomCssFile(msg.preview.pickCustomCss);
+      if (!picked) return;
+      const res = await hexoApi.readCustomCssFile(picked);
+      const label = res.files[0] || getFileName(picked);
+      set({ themeCss: res.cssContent, themeCssLabel: label });
+      void api.saveSetting("themeCss", res.cssContent);
+      void api.saveSetting("themeCssLabel", label);
+      get().pushToast(formatMessage(msg.toast.themeCssLoaded, { label }), "success");
+    } catch (err) {
+      get().pushToast(String(err), "error");
+    }
+  },
+
+  clearThemeCssAction: () => {
+    const msg = getMessages(get().locale);
+    set({ themeCss: null, themeCssLabel: null });
+    void api.saveSetting("themeCss", null);
+    void api.saveSetting("themeCssLabel", null);
+    get().pushToast(msg.toast.themeCssCleared, "info");
+  },
+
+  setTerminalOpen: (terminalOpen) => set({ terminalOpen }),
+
+  setHexoCliStatus: (hexoCliStatus) => set({ hexoCliStatus }),
+
+  appendHexoLog: (event) => {
+    const entry: HexoTerminalLogItem = {
+      id: makeId("log"),
+      stream: event.stream,
+      line: event.line,
+      timestamp: event.timestamp || Date.now(),
+    };
+    set((state) => ({
+      hexoLogs: [...state.hexoLogs.slice(-(MAX_HEXO_LOGS - 1)), entry],
+    }));
+  },
+
+  clearHexoLogs: () => set({ hexoLogs: [] }),
+
+  runHexoAction: async (action) => {
+    const rootPath = get().activeSiteRoot;
+    const msg = getMessages(get().locale);
+    if (!rootPath) {
+      get().pushToast(msg.toast.needSiteForHexo, "info");
+      return;
+    }
+    set({ terminalOpen: true });
+    try {
+      const status = await hexoApi.runHexoCommand(rootPath, action);
+      set({ hexoCliStatus: status });
+    } catch (err) {
+      const errText = String(err);
+      get().appendHexoLog({
+        stream: "stderr",
+        line: errText,
+        timestamp: Date.now(),
+      });
+      get().pushToast(errText, "error");
+    }
+  },
+
+  stopHexoAction: async () => {
+    const msg = getMessages(get().locale);
+    try {
+      const status = await hexoApi.stopHexoCommand();
+      set({ hexoCliStatus: status });
+      get().pushToast(msg.toast.hexoStopped, "info");
+    } catch (err) {
+      get().pushToast(String(err), "error");
+    }
+  },
+
+  killHexoPort: async (port) => {
+    const msg = getMessages(get().locale);
+    const resolvedPort = port ?? extractPortFromUrl(get().hexoCliStatus.serverUrl) ?? 4000;
+    set({ terminalOpen: true });
+    try {
+      const res = await hexoApi.killHexoPort(resolvedPort);
+      get().appendHexoLog({
+        stream: "system",
+        line: res.message,
+        timestamp: Date.now(),
+      });
+      if (res.killedPids.length > 0) {
+        get().pushToast(
+          formatMessage(msg.toast.portKilled, {
+            port: res.port,
+            count: res.killedPids.length,
+          }),
+          "success"
+        );
+      } else {
+        get().pushToast(
+          formatMessage(msg.toast.portNotInUse, { port: res.port }),
+          "info"
+        );
+      }
+    } catch (err) {
+      const errText = String(err);
+      get().appendHexoLog({
+        stream: "stderr",
+        line: errText,
+        timestamp: Date.now(),
+      });
+      get().pushToast(errText, "error");
+    }
+  },
+
+  openQuickOpenTarget: async (target) => {
+    const state = get();
+    const msg = getMessages(state.locale);
+    const activeTab = state.tabs.find((t) => t.id === state.activeTabId) ?? null;
+
+    if (
+      (target === "local_preview" || target === "local_url") &&
+      state.hexoCliStatus.serverRunning &&
+      state.hexoCliStatus.serverUrl
+    ) {
+      await api.openExternalUrl(state.hexoCliStatus.serverUrl);
+      return;
+    }
+
+    try {
+      const resolved = await hexoApi.resolveQuickOpen({
+        target,
+        siteRoot: state.activeSiteRoot,
+        docPath: activeTab?.filePath ?? null,
+        postAssetFolder:
+          activeTab?.postAssetFolder ?? state.siteConfig?.postAssetFolder ?? false,
+        sourceDir: activeTab?.sourceDir ?? state.siteConfig?.sourceDir ?? "source",
+      });
+
+      if (resolved.kind === "url") {
+        await api.openExternalUrl(resolved.value);
+      } else if (!resolved.exists) {
+        get().pushToast(
+          formatMessage(msg.quickOpen.targetMissing, { value: resolved.value }),
+          "info"
+        );
+      } else {
+        await api.revealInFileManager(resolved.value);
+      }
+    } catch (err) {
+      get().pushToast(String(err), "error");
+    }
+  },
+
   pushToast: (message, tone = "info") => {
     const id = makeId("toast");
     set((s) => ({ toasts: [...s.toasts.slice(-3), { id, message, tone }] }));
@@ -233,18 +566,19 @@ export const useAppStore = create<AppState>((set, get) => ({
       ];
       set({ sites: updatedSites });
       void api.saveSetting("sites", updatedSites);
-      await get().switchSite(config.rootPath);
+      await get().switchSite(config.rootPath, { recordRecent: true });
       get().pushToast(formatMessage(msg.toast.siteAdded, { title: config.title }), "success");
     } catch (err) {
       get().pushToast(String(err), "error");
     }
   },
 
-  switchSite: async (rootPath) => {
+  switchSite: async (rootPath, options = { recordRecent: true }) => {
     for (const dir of watchedSiteDirs) {
       void api.unwatchPath(dir);
     }
     watchedSiteDirs = [];
+    const matchedSite = get().sites.find((s) => s.rootPath === rootPath);
     set({
       activeSiteRoot: rootPath,
       selectedCategory: null,
@@ -252,6 +586,13 @@ export const useAppStore = create<AppState>((set, get) => ({
       searchQuery: "",
     });
     void api.saveSetting("activeSiteRoot", rootPath);
+    if (options.recordRecent !== false) {
+      get().recordRecentEntry({
+        kind: "site",
+        path: rootPath,
+        title: matchedSite?.title || getFileName(rootPath),
+      });
+    }
     await get().refreshActiveSite();
   },
 
@@ -265,7 +606,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
       watchedSiteDirs = [];
       if (remaining[0]) {
-        await get().switchSite(remaining[0].rootPath);
+        await get().switchSite(remaining[0].rootPath, { recordRecent: false });
       } else {
         set({
           activeSiteRoot: null,
@@ -286,21 +627,25 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ isScanning: true });
     try {
       const res = await api.scanHexoSite(rootPath);
-      // Discard stale scan results if the user switched sites while scanning
       if (seq !== activeScanSeq || get().activeSiteRoot !== rootPath) {
         return;
       }
       const updatedSites = get().sites.map((s) =>
         s.rootPath === res.config.rootPath ? { ...s, title: res.config.title } : s
       );
+      const updatedRecents = get().recentEntries.map((r) =>
+        r.kind === "site" && r.path === res.config.rootPath
+          ? { ...r, title: res.config.title }
+          : r
+      );
       set((state) => ({
         sites: updatedSites,
+        recentEntries: updatedRecents,
         siteConfig: res.config,
         posts: res.posts,
         allTags: res.allTags,
         allCategories: res.allCategories,
         isScanning: false,
-        // Keep open tabs belonging to this site in sync with site config changes
         tabs: state.tabs.map((t) =>
           t.siteRoot === res.config.rootPath
             ? {
@@ -312,8 +657,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         ),
       }));
       void api.saveSetting("sites", updatedSites);
+      void api.saveSetting("recentEntries", updatedRecents);
 
-      // Watch _posts and _drafts directories for external edits
       const srcBase = `${res.config.rootPath}/${res.config.sourceDir}`;
       const postsDir = `${srcBase}/_posts`;
       const draftsDir = `${srcBase}/_drafts`;
@@ -331,16 +676,22 @@ export const useAppStore = create<AppState>((set, get) => ({
     const existing = get().tabs.find((t) => t.filePath === post.filePath);
     if (existing) {
       get().setActiveTab(existing.id);
+      get().recordRecentEntry({
+        kind: "file",
+        path: post.filePath,
+        title: post.title || existing.title,
+      });
       return;
     }
 
     try {
       const doc = await api.readDocument(post.filePath);
       const cfg = get().siteConfig;
+      const tabTitle = post.title || getFileName(doc.filePath);
       const tab: EditorTab = {
         id: makeId("tab"),
         filePath: doc.filePath,
-        title: post.title || getFileName(doc.filePath),
+        title: tabTitle,
         content: doc.content,
         savedContent: doc.content,
         isDirty: false,
@@ -365,6 +716,11 @@ export const useAppStore = create<AppState>((set, get) => ({
         tabs: [...s.tabs, tab],
         activeTabId: tab.id,
       }));
+      get().recordRecentEntry({
+        kind: "file",
+        path: doc.filePath,
+        title: tabTitle,
+      });
       void api.watchPath(doc.filePath, false);
     } catch (err) {
       get().pushToast(String(err), "error");
@@ -375,6 +731,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     const existing = get().tabs.find((t) => t.filePath === filePath);
     if (existing) {
       get().setActiveTab(existing.id);
+      get().recordRecentEntry({
+        kind: "file",
+        path: filePath,
+        title: existing.title,
+      });
       return;
     }
 
@@ -397,10 +758,15 @@ export const useAppStore = create<AppState>((set, get) => ({
             )
         );
 
+      const tabTitle = deriveTabTitle(
+        doc.filePath,
+        doc.content,
+        getFileName(doc.filePath)
+      );
       const tab: EditorTab = {
         id: makeId("tab"),
         filePath: doc.filePath,
-        title: deriveTabTitle(doc.filePath, doc.content, getFileName(doc.filePath)),
+        title: tabTitle,
         content: doc.content,
         savedContent: doc.content,
         isDirty: false,
@@ -425,6 +791,11 @@ export const useAppStore = create<AppState>((set, get) => ({
         tabs: [...s.tabs, tab],
         activeTabId: tab.id,
       }));
+      get().recordRecentEntry({
+        kind: "file",
+        path: doc.filePath,
+        title: tabTitle,
+      });
       void api.watchPath(doc.filePath, false);
     } catch (err) {
       get().pushToast(String(err), "error");
@@ -627,6 +998,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             `${activeSiteRoot}/${cfg?.sourceDir ?? "source"}/_drafts`
           )
       );
+      const nextTitle = deriveTabTitle(chosen, latestTab.content, getFileName(chosen));
 
       set((state) => ({
         tabs: state.tabs.map((t) =>
@@ -634,7 +1006,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             ? {
                 ...t,
                 filePath: chosen,
-                title: deriveTabTitle(chosen, t.content, getFileName(chosen)),
+                title: nextTitle,
                 savedContent: contentToSave,
                 isDirty: t.content !== contentToSave,
                 isStandalone: !isInsideActiveSite,
@@ -648,6 +1020,11 @@ export const useAppStore = create<AppState>((set, get) => ({
             : t
         ),
       }));
+      get().recordRecentEntry({
+        kind: "file",
+        path: chosen,
+        title: nextTitle,
+      });
       if (tab.filePath && tab.filePath !== chosen) {
         void api.unwatchPath(tab.filePath);
       }
@@ -686,7 +1063,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     const msg = getMessages(get().locale);
     if (!rootPath) return;
 
-    // If open & dirty, save first so move doesn't drop unsaved edits
     const openTab = get().tabs.find((t) => t.filePath === post.filePath);
     if (openTab?.isDirty) {
       const saved = await get().saveTab(openTab.id, true);
