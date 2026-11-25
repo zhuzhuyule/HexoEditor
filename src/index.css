@@ -19,7 +19,12 @@
   }
 }
 
-/* Subtle minimalist scrollbars */
+/* Subtle minimalist light scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(161, 161, 170, 0.32) transparent;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -30,12 +35,18 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: rgba(161, 161, 170, 0.35);
+  background-color: rgba(161, 161, 170, 0.32);
   border-radius: 9999px;
+  border: 1px solid transparent;
+  background-clip: content-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(113, 113, 122, 0.55);
+  background-color: rgba(113, 113, 122, 0.52);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -290,4 +301,262 @@
   padding: 8px 12px;
   width: 100%;
   font-family: monospace;
+}
+
+/* Hexo Tags Minimalist Light Styles */
+.markdown-preview .hexo-note {
+  margin: 1.15em 0;
+  padding: 0.85em 1.05em;
+  border: 1px solid #e4e4e7;
+  border-left: 3.5px solid #71717a;
+  border-radius: 0 8px 8px 0;
+  background-color: #f8f8f9;
+  color: #3f3f46;
+}
+
+.markdown-preview .hexo-note > p:last-child,
+.markdown-preview .hexo-note > ul:last-child,
+.markdown-preview .hexo-note > ol:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-preview .hexo-note-default,
+.markdown-preview .hexo-note.default {
+  border-color: #e4e4e7;
+  border-left-color: #71717a;
+  background-color: #f8f8f9;
+  color: #3f3f46;
+}
+
+.markdown-preview .hexo-note-primary,
+.markdown-preview .hexo-note.primary {
+  border-color: #ddd6fe;
+  border-left-color: #7c3aed;
+  background-color: #f5f3ff;
+  color: #4c1d95;
+}
+
+.markdown-preview .hexo-note-success,
+.markdown-preview .hexo-note.success {
+  border-color: #bbf7d0;
+  border-left-color: #16a34a;
+  background-color: #f0fdf4;
+  color: #14532d;
+}
+
+.markdown-preview .hexo-note-info,
+.markdown-preview .hexo-note.info {
+  border-color: #bae6fd;
+  border-left-color: #0284c7;
+  background-color: #f0f9ff;
+  color: #0c4a6e;
+}
+
+.markdown-preview .hexo-note-warning,
+.markdown-preview .hexo-note.warning {
+  border-color: #fde68a;
+  border-left-color: #d97706;
+  background-color: #fffbeb;
+  color: #78350f;
+}
+
+.markdown-preview .hexo-note-danger,
+.markdown-preview .hexo-note.danger {
+  border-color: #fecaca;
+  border-left-color: #dc2626;
+  background-color: #fef2f2;
+  color: #7f1d1d;
+}
+
+/* Hexo Tabs */
+.markdown-preview .hexo-tabs {
+  margin: 1.2em 0;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  background-color: #ffffff;
+  overflow: hidden;
+}
+
+.markdown-preview .hexo-tabs-nav,
+.markdown-preview .hexo-tabs .nav-tabs,
+.markdown-preview .hexo-tabs [role="tablist"] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
+  padding: 6px 8px 0 8px;
+  list-style: none;
+  background-color: #f8f8f9;
+  border-bottom: 1px solid #e4e4e7;
+}
+
+.markdown-preview .hexo-tabs button[data-tab-index],
+.markdown-preview .hexo-tabs .hexo-tab-btn,
+.markdown-preview .hexo-tabs [role="tab"] {
+  appearance: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  padding: 6px 12px;
+  margin-bottom: -1px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #71717a;
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.markdown-preview .hexo-tabs button[data-tab-index]:hover,
+.markdown-preview .hexo-tabs .hexo-tab-btn:hover,
+.markdown-preview .hexo-tabs [role="tab"]:hover {
+  color: #18181b;
+  background-color: rgba(24, 24, 27, 0.04);
+}
+
+.markdown-preview .hexo-tabs button[data-tab-index].active,
+.markdown-preview .hexo-tabs button[data-tab-index][aria-selected="true"],
+.markdown-preview .hexo-tabs button[data-tab-index][data-active="true"],
+.markdown-preview .hexo-tabs .hexo-tab-btn.active,
+.markdown-preview .hexo-tabs [role="tab"][aria-selected="true"] {
+  color: #18181b;
+  background-color: #ffffff;
+  border-bottom-color: #18181b;
+}
+
+.markdown-preview .hexo-tabs-content,
+.markdown-preview .hexo-tabs .tab-content {
+  padding: 14px 16px;
+  background-color: #ffffff;
+}
+
+.markdown-preview .hexo-tabs [data-tab-panel] {
+  padding: 14px 16px;
+}
+
+.markdown-preview .hexo-tabs .hexo-tabs-content [data-tab-panel],
+.markdown-preview .hexo-tabs .tab-content [data-tab-panel] {
+  padding: 0;
+}
+
+.markdown-preview .hexo-tabs [data-tab-panel][hidden],
+.markdown-preview .hexo-tabs .hexo-tab-panel[hidden] {
+  display: none;
+}
+
+.markdown-preview .hexo-tabs [data-tab-panel] > :first-child {
+  margin-top: 0;
+}
+
+.markdown-preview .hexo-tabs [data-tab-panel] > :last-child {
+  margin-bottom: 0;
+}
+
+/* Hexo Codeblock with Caption/Header */
+.markdown-preview .hexo-codeblock {
+  margin: 1.15em 0;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  background-color: #f8f8f9;
+  overflow: hidden;
+}
+
+.markdown-preview .hexo-codeblock-header,
+.markdown-preview .hexo-codeblock figcaption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 14px;
+  border-bottom: 1px solid #e4e4e7;
+  background-color: #f4f4f5;
+  font-family: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+  font-size: 12px;
+  color: #52525b;
+}
+
+.markdown-preview .hexo-codeblock-title {
+  font-weight: 500;
+  color: #27272a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.markdown-preview .hexo-codeblock-link {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.markdown-preview .hexo-codeblock-link:hover {
+  text-decoration: underline;
+}
+
+.markdown-preview .hexo-codeblock .code-block-wrapper {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background-color: transparent;
+}
+
+.markdown-preview .hexo-codeblock pre {
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  font-family: "JetBrains Mono", "SF Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  line-height: 1.65;
+  background: transparent;
+}
+
+/* Hexo Pullquote & Blockquote Footer */
+.markdown-preview .hexo-pullquote {
+  margin: 1.4em 0;
+  padding: 0.9em 1.25em;
+  border-left: 2px solid #a1a1aa;
+  border-top: 1px solid #f4f4f5;
+  border-bottom: 1px solid #f4f4f5;
+  background-color: #fafafa;
+  color: #3f3f46;
+  font-style: italic;
+  font-size: 1.02em;
+  border-radius: 0 6px 6px 0;
+}
+
+.markdown-preview .hexo-pullquote.left {
+  float: left;
+  width: 44%;
+  margin: 0.4em 1.4em 0.8em 0;
+}
+
+.markdown-preview .hexo-pullquote.right {
+  float: right;
+  width: 44%;
+  margin: 0.4em 0 0.8em 1.4em;
+}
+
+.markdown-preview .hexo-pullquote > p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-preview blockquote footer,
+.markdown-preview .hexo-blockquote footer {
+  margin-top: 0.5em;
+  font-size: 0.85em;
+  font-style: normal;
+  color: #71717a;
+}
+
+.markdown-preview blockquote footer strong {
+  color: #3f3f46;
+  font-weight: 600;
+}
+
+.markdown-preview blockquote footer cite {
+  margin-left: 0.45em;
+  font-style: normal;
+  color: #71717a;
 }

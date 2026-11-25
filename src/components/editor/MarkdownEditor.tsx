@@ -13,7 +13,7 @@ import {
 } from "@codemirror/language";
 import { languages } from "@codemirror/language-data";
 import { highlightSelectionMatches, searchKeymap } from "@codemirror/search";
-import { EditorState } from "@codemirror/state";
+import { Compartment, EditorState } from "@codemirror/state";
 import {
   EditorView,
   drawSelection,
@@ -49,7 +49,7 @@ export interface MarkdownEditorHandle {
   focus: () => void;
 }
 
-interface MarkdownEditorProps {
+export interface MarkdownEditorProps {
   value: string;
   onChange: (next: string) => void;
   onCursorChange?: (line: number, col: number) => void;
@@ -65,6 +65,7 @@ interface MarkdownEditorProps {
   onHtmlConverted?: () => void;
   placeholder?: string;
   focusMode?: boolean;
+  showLineNumbers?: boolean;
 }
 
 const lightHighlightStyle = HighlightStyle.define([
@@ -91,7 +92,7 @@ const lightHighlightStyle = HighlightStyle.define([
 const minimalistLightTheme = EditorView.theme({
   "&": {
     height: "100%",
-    backgroundColor: "#ffffff",
+    backgroundColor: "#F8F8F9",
     color: "#18181b",
     fontSize: "14px",
   },
@@ -99,18 +100,19 @@ const minimalistLightTheme = EditorView.theme({
     overflow: "auto",
     fontFamily:
       "'JetBrains Mono', 'SF Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'PingFang SC', 'Hiragino Sans GB', monospace",
-    lineHeight: "1.75",
-    padding: "20px 0 40vh 0",
+    lineHeight: "1.82",
+    padding: "24px 0 40vh 0",
   },
   ".cm-content": {
-    padding: "0 28px",
+    padding: "0 36px",
     caretColor: "#18181b",
   },
   ".cm-gutters": {
-    backgroundColor: "#ffffff",
-    color: "#d4d4d8",
+    backgroundColor: "#F8F8F9",
+    color: "#c4c4cc",
     border: "none",
-    paddingLeft: "8px",
+    paddingLeft: "10px",
+    paddingRight: "6px",
     userSelect: "none",
   },
   ".cm-activeLineGutter": {
@@ -118,7 +120,7 @@ const minimalistLightTheme = EditorView.theme({
     color: "#71717a",
   },
   ".cm-activeLine": {
-    backgroundColor: "#f8fafc",
+    backgroundColor: "rgba(15, 23, 42, 0.028)",
   },
   ".cm-selectionBackground, ::selection": {
     backgroundColor: "#e4e4e7 !important",
@@ -165,11 +167,14 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
       onHtmlConverted,
       placeholder = "开始写作...",
       focusMode = false,
+      showLineNumbers = false,
     },
     ref
   ) {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const viewRef = useRef<EditorView | null>(null);
+    const lineNumbersCompartmentRef = useRef<Compartment>(new Compartment());
+    const initialShowLineNumbersRef = useRef(showLineNumbers);
     const programmaticScrollUntilRef = useRef<number>(0);
 
     // Latest callbacks stored in refs to avoid re-instantiating CodeMirror
@@ -333,7 +338,9 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
       const state = EditorState.create({
         doc: value,
         extensions: [
-          lineNumbers(),
+          lineNumbersCompartmentRef.current.of(
+            initialShowLineNumbersRef.current ? lineNumbers() : []
+          ),
           history(),
           drawSelection(),
           bracketMatching(),
@@ -397,6 +404,18 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
       // Re-mount only when placeholder changes (tab switch uses React key={tab.id})
     }, [placeholder]);
 
+    // Dynamically toggle line numbers via Compartment without recreating EditorView
+    useEffect(() => {
+      initialShowLineNumbersRef.current = showLineNumbers;
+      const view = viewRef.current;
+      if (!view) return;
+      view.dispatch({
+        effects: lineNumbersCompartmentRef.current.reconfigure(
+          showLineNumbers ? lineNumbers() : []
+        ),
+      });
+    }, [showLineNumbers]);
+
     // Sync external value updates (e.g., Front-Matter bar edits, disk reload, image rename)
     useEffect(() => {
       const view = viewRef.current;
@@ -411,12 +430,11 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     }, [value]);
 
     return (
-      <div
-        className={`h-full w-full overflow-hidden bg-white ${
-          focusMode ? "mx-auto max-w-3xl" : ""
-        }`}
-      >
-        <div ref={containerRef} className="h-full w-full" />
+      <div className="h-full w-full overflow-hidden bg-[#F8F8F9]">
+        <div
+          ref={containerRef}
+          className={`h-full w-full ${focusMode ? "mx-auto max-w-3xl" : ""}`}
+        />
       </div>
     );
   }
