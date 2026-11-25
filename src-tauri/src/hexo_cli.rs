@@ -10,9 +10,9 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use regex::Regex;
 use serde_yaml::Value;
 use tauri::{AppHandle, Emitter};
-use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::io::{AsyncBufReadExt, AsyncRead, BufReader};
 use tokio::process::Command;
-use tokio::sync::{oneshot, Notify};
+use tokio::sync::{oneshot, watch};
 
 use crate::error::{AppError, AppResult};
 use crate::models::{HexoCliOutputEvent, HexoCliStatus, KillPortResult};
@@ -602,11 +602,12 @@ struct ActiveRun {
     pid: u32,
     server_port: Option<u16>,
     stop_tx: Option<oneshot::Sender<()>>,
-    done_notify: Arc<Notify>,
+    done_rx: watch::Receiver<bool>,
 }
 
 struct CliRuntime {
     next_run_id: u64,
+    starting: bool,
     status: HexoCliStatus,
     active: Option<ActiveRun>,
 }
@@ -615,8 +616,63 @@ impl Default for CliRuntime {
     fn default() -> Self {
         Self {
             next_run_id: 1,
+            starting: false,
             status: HexoCliStatus::default(),
             active: None,
+        }
+    }
+}
+
+struct StartingGuard {
+    runtime: Arc<Mutex<CliRuntime>>,
+    armed: bool,
+}
+
+impl StartingGuard {
+    fn disarm(&mut self) {
+        self.armed = false;
+    }
+}
+
+impl Drop for StartingGuard {
+    fn drop(&mut self) {
+        if self.armed {
+            if let Ok(mut rt) = self.runtime.lock() {
+                rt.starting = false;
+            }
+        }
+    }
+}
+
+/// Reads lines from an async byte stream without failing on invalid UTF-8 sequences,
+/// stripping trailing `\r`/`\n` and splitting embedded `\r` progress updates cleanly.
+async fn read_lossy_lines<R, F>(reader: R, mut on_line: F)
+where
+    R: AsyncRead + Unpin,
+    F: FnMut(String),
+{
+    let mut buf_reader = BufReader::new(reader);
+    let mut buf = Vec::new();
+    loop {
+        buf.clear();
+        match buf_reader.read_until(b'\n', &mut buf).await {
+            Ok(0) => break,
+            Ok(_) => {
+                while matches!(buf.last(), Some(b'\n' | b'\r')) {
+                    buf.pop();
+                }
+                let decoded = String::from_utf8_lossy(&buf);
+                if decoded.contains('\r') {
+                    for segment in decoded.split('\r') {
+                        if !segment.is_empty() {
+                            on_line(segment.to_string());
+                        }
+                    }
+                } else {
+                    on_line(decoded.into_owned());
+                }
+            }
+            Err(_) => break,
         }
     }
 }
@@ -660,6 +716,25 @@ impl HexoCliState {
             .unwrap_or_default()
     }
 
+    fn try_acquire_start_slot(&self) -> AppResult<StartingGuard> {
+        let mut rt = self
+            .runtime
+            .lock()
+            .map_err(|_| AppError::Watcher("failed to lock Hexo CLI state".into()))?;
+        if rt.status.running || rt.starting {
+            let running_action = rt.status.action.as_deref().unwrap_or("hexo");
+            return Err(AppError::AlreadyExists(format!(
+                "Hexo command `{}` is already running. Stop it first.",
+                running_action
+            )));
+        }
+        rt.starting = true;
+        Ok(StartingGuard {
+            runtime: Arc::clone(&self.runtime),
+            armed: true,
+        })
+    }
+
     pub async fn run_command(
         &self,
         app: AppHandle,
@@ -675,20 +750,8 @@ impl HexoCliState {
             )));
         }
 
-        // Prevent concurrent overlapping Hexo runs
-        {
-            let rt = self
-                .runtime
-                .lock()
-                .map_err(|_| AppError::Watcher("failed to lock Hexo CLI state".into()))?;
-            if rt.status.running {
-                let running_action = rt.status.action.as_deref().unwrap_or("hexo");
-                return Err(AppError::AlreadyExists(format!(
-                    "Hexo command `{}` is already running. Stop it first.",
-                    running_action
-                )));
-            }
-        }
+        // Atomically reserve the start slot to prevent concurrent TOCTOU spawns
+        let mut start_guard = self.try_acquire_start_slot()?;
 
         let server_cfg = if action == HexoAction::Server {
             let cfg = read_hexo_server_config(&root_path);
@@ -745,7 +808,7 @@ impl HexoCliState {
         let stderr = child.stderr.take();
 
         let (stop_tx, mut stop_rx) = oneshot::channel::<()>();
-        let done_notify = Arc::new(Notify::new());
+        let (done_tx, done_rx) = watch::channel(false);
 
         let (run_id, initial_status) = {
             let mut rt = self
@@ -760,15 +823,17 @@ impl HexoCliState {
                 server_running: false,
                 server_url: None,
                 exit_code: None,
-                message: Some(format!("Running `hexo {}`...", invocation.args.join(" "))),
+                message: Some(format!("Running `hexo {}`...", action.hexo_args().join(" "))),
             };
+            rt.starting = false;
+            start_guard.disarm();
             rt.status = status.clone();
             rt.active = Some(ActiveRun {
                 run_id: id,
                 pid,
                 server_port: server_cfg.as_ref().map(|c| c.port),
                 stop_tx: Some(stop_tx),
-                done_notify: Arc::clone(&done_notify),
+                done_rx,
             });
             (id, status)
         };
@@ -784,13 +849,12 @@ impl HexoCliState {
         );
         emit_status(&app, &initial_status);
 
-        // Stream stdout
+        // Stream stdout (lossy UTF-8 so non-UTF-8 output never aborts reading)
         let runtime_stdout = Arc::clone(&self.runtime);
         let app_stdout = app.clone();
         let stdout_task = tauri::async_runtime::spawn(async move {
             let Some(out) = stdout else { return };
-            let mut lines = BufReader::new(out).lines();
-            while let Ok(Some(line)) = lines.next_line().await {
+            read_lossy_lines(out, |line| {
                 emit_output(&app_stdout, "stdout", &line);
                 if action == HexoAction::Server {
                     if let Some(url) = extract_hexo_server_url(&line) {
@@ -813,17 +877,18 @@ impl HexoCliState {
                         }
                     }
                 }
-            }
+            })
+            .await;
         });
 
-        // Stream stderr
+        // Stream stderr (lossy UTF-8)
         let app_stderr = app.clone();
         let stderr_task = tauri::async_runtime::spawn(async move {
             let Some(err) = stderr else { return };
-            let mut lines = BufReader::new(err).lines();
-            while let Ok(Some(line)) = lines.next_line().await {
+            read_lossy_lines(err, |line| {
                 emit_output(&app_stderr, "stderr", &line);
-            }
+            })
+            .await;
         });
 
         // Supervise child lifecycle & graceful stop
@@ -896,7 +961,7 @@ impl HexoCliState {
             if let Some(status) = final_status {
                 emit_status(&app_wait, &status);
             }
-            done_notify.notify_waiters();
+            let _ = done_tx.send(true);
         });
 
         Ok(initial_status)
@@ -910,22 +975,27 @@ impl HexoCliState {
                 .map_err(|_| AppError::Watcher("failed to lock Hexo CLI state".into()))?;
             if let Some(active) = rt.active.as_mut() {
                 let tx = active.stop_tx.take();
-                let notify = Arc::clone(&active.done_notify);
+                let done_rx = active.done_rx.clone();
                 let pid = active.pid;
-                Some((tx, notify, pid))
+                Some((tx, done_rx, pid))
             } else {
                 None
             }
         };
 
-        if let Some((tx, notify, pid)) = stop_handle {
+        if let Some((tx, mut done_rx, pid)) = stop_handle {
             emit_output(&app, "system", "Stopping Hexo process...");
             if let Some(sender) = tx {
                 let _ = sender.send(());
             } else if pid > 0 {
                 terminate_process_tree_graceful(pid);
             }
-            let _ = tokio::time::timeout(Duration::from_secs(5), notify.notified()).await;
+            // Level-triggered watch signal guarantees we never miss an immediate exit
+            let _ = tokio::time::timeout(
+                Duration::from_secs(5),
+                done_rx.wait_for(|&done| done),
+            )
+            .await;
         }
 
         Ok(self.get_status())
@@ -1214,5 +1284,62 @@ mod tests {
             parse_windows_netstat_pids(netstat_sample, 4000, 7777),
             vec![4321]
         );
+    }
+
+    #[test]
+    fn test_start_slot_guard_prevents_concurrent_reentry_and_resets_on_drop() {
+        let state = HexoCliState::default();
+        let guard = state.try_acquire_start_slot().unwrap();
+
+        // While starting guard is held, a concurrent call must be rejected
+        let err = state.try_acquire_start_slot().err().unwrap();
+        assert!(matches!(err, AppError::AlreadyExists(_)));
+
+        // Dropping the guard (simulating early error/spawn failure) releases the slot
+        drop(guard);
+        let second_guard = state.try_acquire_start_slot().unwrap();
+        drop(second_guard);
+    }
+
+    #[test]
+    fn test_read_lossy_lines_handles_non_utf8_crlf_and_embedded_cr() {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        rt.block_on(async {
+            let raw: &[u8] = b"INFO ok\r\nbad \xff\xfe bytes\nstep 1\rstep 2\r\nlast line";
+            let mut lines = Vec::new();
+            read_lossy_lines(raw, |line| lines.push(line)).await;
+            assert_eq!(
+                lines,
+                vec![
+                    "INFO ok",
+                    "bad \u{fffd}\u{fffd} bytes",
+                    "step 1",
+                    "step 2",
+                    "last line",
+                ]
+            );
+        });
+    }
+
+    #[test]
+    fn test_watch_done_signal_does_not_miss_immediate_exit() {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        rt.block_on(async {
+            let (done_tx, mut done_rx) = watch::channel(false);
+            // Process finishes BEFORE stop_command starts awaiting
+            let _ = done_tx.send(true);
+            let res = tokio::time::timeout(
+                Duration::from_millis(50),
+                done_rx.wait_for(|&done| done),
+            )
+            .await;
+            assert!(res.is_ok());
+        });
     }
 }

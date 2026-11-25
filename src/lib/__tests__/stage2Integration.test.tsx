@@ -429,4 +429,52 @@ describe("Stage 2 workbench integration", () => {
     expect(logs[0].line).toBe("line-20");
     expect(logs[499].line).toBe("line-519");
   });
+
+  it("resolves custom site server port in killHexoPort when serverUrl is absent and avoids duplicate logs in Tauri runtime", async () => {
+    const resolveSpy = vi.spyOn(hexoApi, "resolveQuickOpen").mockResolvedValue({
+      target: "local_url",
+      kind: "url",
+      value: "http://127.0.0.1:4321/blog/",
+      exists: true,
+    });
+    const killSpy = vi.spyOn(hexoApi, "killHexoPort").mockResolvedValue({
+      port: 4321,
+      killedPids: [9876],
+      message: "Released port 4321 (terminated PID: 9876).",
+    });
+
+    useAppStore.setState({
+      activeSiteRoot: "/blog",
+      hexoCliStatus: {
+        running: false,
+        action: null,
+        serverRunning: false,
+        serverUrl: null,
+        exitCode: null,
+        message: null,
+      },
+      hexoLogs: [],
+    });
+
+    // Simulate Tauri runtime: Rust side emits the system log, so frontend must not double-append
+    vi.spyOn(api, "isTauriRuntime").mockReturnValue(true);
+    await act(async () => {
+      await useAppStore.getState().killHexoPort();
+    });
+
+    expect(resolveSpy).toHaveBeenCalledWith({
+      target: "local_preview",
+      siteRoot: "/blog",
+    });
+    expect(killSpy).toHaveBeenCalledWith(4321);
+    expect(useAppStore.getState().hexoLogs).toHaveLength(0);
+
+    // Non-Tauri browser fallback still appends local system log
+    vi.spyOn(api, "isTauriRuntime").mockReturnValue(false);
+    await act(async () => {
+      await useAppStore.getState().killHexoPort();
+    });
+    expect(useAppStore.getState().hexoLogs).toHaveLength(1);
+    expect(useAppStore.getState().hexoLogs[0].line).toContain("4321");
+  });
 });

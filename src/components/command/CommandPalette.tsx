@@ -109,6 +109,9 @@ export function CommandPalette({
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const activeItemRef = useRef<HTMLButtonElement | null>(null);
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+  const wasOpenRef = useRef(false);
 
   const filteredItems = useMemo(() => {
     const trimmed = query.trim();
@@ -138,13 +141,15 @@ export function CommandPalette({
     return ordered;
   }, [filteredItems]);
 
-  // Reset search & selection whenever palette opens
+  // Reset search & selection only when palette transitions from closed -> open
   useEffect(() => {
-    if (!open) return;
-    setQuery("");
-    const firstEnabled = items.findIndex((i) => !i.disabled);
-    setActiveIndex(firstEnabled >= 0 ? firstEnabled : 0);
-  }, [open, items]);
+    if (open && !wasOpenRef.current) {
+      setQuery("");
+      const firstEnabled = itemsRef.current.findIndex((i) => !i.disabled);
+      setActiveIndex(firstEnabled >= 0 ? firstEnabled : 0);
+    }
+    wasOpenRef.current = open;
+  }, [open]);
 
   // Clamp activeIndex when filtered list changes
   useEffect(() => {

@@ -180,7 +180,8 @@ describe("markdown renderer (KaTeX, hljs, Mermaid, local images, DOMPurify)", ()
     expect(html).toContain('<blockquote class="hexo-blockquote">');
     expect(html).toContain("<strong>Lu Xun</strong><cite>Call to Arms</cite>");
     expect(html).toContain('src="https://example.com/widget"');
-    expect(html).toContain('sandbox="allow-scripts allow-same-origin allow-popups allow-presentation"');
+    expect(html).toContain('sandbox="allow-scripts allow-popups allow-presentation"');
+    expect(html).not.toContain("allow-same-origin");
     expect(html).not.toContain("javascript:alert");
     expect(html).not.toContain("srcdoc");
   });

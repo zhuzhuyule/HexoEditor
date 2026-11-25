@@ -150,7 +150,10 @@ function prefixSingleSelector(selector: string, scope: string): string {
 function sanitizeDeclarations(declarations: string): string {
   return declarations
     .replace(/expression\s*\([^)]*\)/gi, "none")
-    .replace(/url\(\s*['"]?\s*javascript:[^)]*\)/gi, "none")
+    .replace(
+      /url\s*\(\s*['"]?\s*(?:(?:javascript|vbscript)\s*:|data\s*:\s*text\/html\b)[^)]*\)/gi,
+      "none"
+    )
     .replace(/behavior\s*:[^;]+;?/gi, "")
     .replace(/-moz-binding\s*:[^;]+;?/gi, "");
 }
@@ -264,8 +267,8 @@ export function scopePreviewThemeCss(
   scope = ".markdown-preview-scoped"
 ): string {
   if (!rawCss || !rawCss.trim()) return "";
-  // Prevent breaking out of `<style>` tags
-  const safeInput = rawCss.replace(/<\/style/gi, "");
+  // Prevent breaking out of `<style>` tags (including whitespace variants like `</ style>`)
+  const safeInput = rawCss.replace(/<\/\s*style/gi, "");
   const withoutComments = stripCssComments(safeInput);
   return scopeCssBlock(withoutComments, scope);
 }

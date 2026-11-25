@@ -176,7 +176,8 @@ describe("preprocessHexoTags", () => {
     expect(out).toContain('<img src="/images/pic.jpg" class="left" width="320" height="200" alt="Alt Text" title="Caption" />');
     expect(out).toContain('<a class="hexo-link" href="https://hexo.io" target="_blank" rel="noopener noreferrer" title="Official">Hexo Docs</a>');
     expect(out).not.toContain('href="javascript:alert(1)"');
-    expect(out).toContain('<iframe src="https://example.com/embed" width="800" height="450" frameborder="0" loading="lazy" sandbox="allow-scripts allow-same-origin allow-popups allow-presentation" allowfullscreen></iframe>');
+    expect(out).toContain('<iframe src="https://example.com/embed" width="800" height="450" frameborder="0" loading="lazy" sandbox="allow-scripts allow-popups allow-presentation" allowfullscreen></iframe>');
+    expect(out).not.toContain("allow-same-origin");
     expect(out).toContain("hexo-iframe-blocked");
     expect(out).toContain('data-youtube-id="dQw4w9WgXcQ"');
     expect(out).toContain('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
@@ -213,14 +214,18 @@ describe("scopePreviewThemeCss", () => {
       }
       @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
       .bad { width: expression(alert(1)); background: url(javascript:alert(2)); }
-      </style><script>alert(3)</script>
+      .bad2 { background: url ( "vbscript:msgbox(1)" ); list-style-image: url(data:text/html,<script>alert(4)</script>); }
+      </ style><script>alert(3)</script>
     `;
 
     const scoped = scopePreviewThemeCss(rawCss);
     expect(scoped).not.toContain("@import");
     expect(scoped).not.toContain("</style");
+    expect(scoped).not.toContain("</ style");
     expect(scoped).not.toContain("expression(");
     expect(scoped).not.toContain("javascript:");
+    expect(scoped).not.toContain("vbscript:");
+    expect(scoped).not.toContain("data:text/html");
     expect(scoped).toContain(".markdown-preview-scoped { font-family: Georgia, serif; color: #222; }");
     expect(scoped).toContain(".markdown-preview-scoped p { color: #eee; }");
     expect(scoped).toContain(".markdown-preview-scoped h1, .markdown-preview-scoped h2 { letter-spacing: 0.02em; }");
@@ -308,6 +313,12 @@ describe("MarkdownPreview interactions and LiveSitePreview", () => {
     expect(normalizeLivePreviewUrl("javascript:alert(1)", "http://localhost:4000")).toBeNull();
     expect(buildPostPreviewUrl("http://localhost:4000", "2026/我的文章")).toBe(
       "http://localhost:4000/2026/%E6%88%91%E7%9A%84%E6%96%87%E7%AB%A0/"
+    );
+    expect(buildPostPreviewUrl("http://localhost:4000/blog/", "2026/我的文章")).toBe(
+      "http://localhost:4000/blog/2026/%E6%88%91%E7%9A%84%E6%96%87%E7%AB%A0/"
+    );
+    expect(buildPostPreviewUrl("http://localhost:4000/blog", "hello-hexo")).toBe(
+      "http://localhost:4000/blog/hello-hexo/"
     );
 
     const onStartServer = vi.fn();

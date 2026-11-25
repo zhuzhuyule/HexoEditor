@@ -298,6 +298,62 @@ describe("Stage 2 minimalist UI & workbench components", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
+  it("preserves user search query in CommandPalette when items array updates while open", async () => {
+    const onOpenChange = vi.fn();
+    const baseItems: CommandPaletteItem[] = [
+      { id: "a", label: "启动预览", group: "Hexo", onSelect: vi.fn() },
+      { id: "b", label: "保存当前文档", group: "文档", onSelect: vi.fn() },
+    ];
+
+    await act(async () => {
+      root.render(
+        <CommandPalette open={true} onOpenChange={onOpenChange} items={baseItems} />
+      );
+    });
+
+    const input = document.body.querySelector<HTMLInputElement>("input[type='text']")!;
+    const setter = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value"
+    )!.set!;
+    await act(async () => {
+      setter.call(input, "预览");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(input.value).toBe("预览");
+
+    // Re-render with a fresh items array reference (e.g. triggered by background log updates)
+    const updatedItems: CommandPaletteItem[] = [
+      ...baseItems,
+      { id: "c", label: "新增命令", group: "Hexo", onSelect: vi.fn() },
+    ];
+    await act(async () => {
+      root.render(
+        <CommandPalette open={true} onOpenChange={onOpenChange} items={updatedItems} />
+      );
+    });
+
+    expect(input.value).toBe("预览");
+    const visibleOptions = document.body.querySelectorAll('[role="option"]');
+    expect(visibleOptions).toHaveLength(1);
+    expect(visibleOptions[0].textContent).toContain("启动预览");
+
+    // Closing and reopening should reset query cleanly
+    await act(async () => {
+      root.render(
+        <CommandPalette open={false} onOpenChange={onOpenChange} items={updatedItems} />
+      );
+    });
+    await act(async () => {
+      root.render(
+        <CommandPalette open={true} onOpenChange={onOpenChange} items={updatedItems} />
+      );
+    });
+    const reopenedInput =
+      document.body.querySelector<HTMLInputElement>("input[type='text']")!;
+    expect(reopenedInput.value).toBe("");
+  });
+
   it("renders HexoTerminalDrawer status, colored log streams, and fires all action callbacks", async () => {
     const onOpenChange = vi.fn();
     const onRunAction = vi.fn();

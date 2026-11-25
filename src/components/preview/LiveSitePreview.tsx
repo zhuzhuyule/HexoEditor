@@ -80,7 +80,18 @@ export function buildPostPreviewUrl(baseServerUrl: string, slug: string): string
     .filter(Boolean)
     .map((seg) => encodeURIComponent(seg))
     .join("/");
-  return normalizeLivePreviewUrl(`/${encodedPath}/`, baseServerUrl);
+  try {
+    const base = new URL(baseServerUrl);
+    if (base.protocol !== "http:" && base.protocol !== "https:") {
+      return null;
+    }
+    const basePath = base.pathname.endsWith("/")
+      ? base.pathname
+      : `${base.pathname}/`;
+    return new URL(`${encodedPath}/`, `${base.origin}${basePath}`).toString();
+  } catch {
+    return null;
+  }
 }
 
 export function LiveSitePreview({

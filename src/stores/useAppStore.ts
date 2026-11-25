@@ -470,15 +470,34 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   killHexoPort: async (port) => {
     const msg = getMessages(get().locale);
-    const resolvedPort = port ?? extractPortFromUrl(get().hexoCliStatus.serverUrl) ?? 4000;
+    let resolvedPort =
+      port ?? extractPortFromUrl(get().hexoCliStatus.serverUrl);
+    if (resolvedPort === null) {
+      const rootPath = get().activeSiteRoot;
+      if (rootPath) {
+        try {
+          const resolved = await hexoApi.resolveQuickOpen({
+            target: "local_preview",
+            siteRoot: rootPath,
+          });
+          resolvedPort = extractPortFromUrl(resolved.value);
+        } catch {
+          // Fall back to Hexo default port 4000
+        }
+      }
+    }
+    const targetPort = resolvedPort ?? 4000;
     set({ terminalOpen: true });
     try {
-      const res = await hexoApi.killHexoPort(resolvedPort);
-      get().appendHexoLog({
-        stream: "system",
-        line: res.message,
-        timestamp: Date.now(),
-      });
+      const res = await hexoApi.killHexoPort(targetPort);
+      // In Tauri runtime, Rust `kill_port` already emits the system log via HEXO_CLI_OUTPUT_EVENT
+      if (!api.isTauriRuntime()) {
+        get().appendHexoLog({
+          stream: "system",
+          line: res.message,
+          timestamp: Date.now(),
+        });
+      }
       if (res.killedPids.length > 0) {
         get().pushToast(
           formatMessage(msg.toast.portKilled, {

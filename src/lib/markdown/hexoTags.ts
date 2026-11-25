@@ -1022,7 +1022,7 @@ function processInlineHexoTags(doc: TrackedDoc): TrackedDoc {
       width
     )}" height="${escapeHtml(
       height
-    )}" frameborder="0" loading="lazy" sandbox="allow-scripts allow-same-origin allow-popups allow-presentation" allowfullscreen></iframe></div>`;
+    )}" frameborder="0" loading="lazy" sandbox="allow-scripts allow-popups allow-presentation" allowfullscreen></iframe></div>`;
   });
 
   // {% youtube video_id [type] [cookie] %}

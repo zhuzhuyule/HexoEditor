@@ -130,7 +130,7 @@ pub fn sanitize_css_content(raw: &str) -> String {
 
     // Strip dangerous protocol URLs (javascript:, vbscript:, data:text/html)
     let re_danger_url =
-        Regex::new(r"(?i)url\s*\(\s*['\x22]?\s*(?:javascript|vbscript|data\s*:\s*text/html)\s*:[^)]*\)")
+        Regex::new(r"(?i)url\s*\(\s*['\x22]?\s*(?:(?:javascript|vbscript)\s*:|data\s*:\s*text/html\b)[^)]*\)")
             .expect("valid regex");
     let cleaned = re_danger_url.replace_all(&cleaned, "none");
 
@@ -467,11 +467,13 @@ pub fn resolve_quick_open_target(
                 AppError::InvalidInput("Site root path is required for local_url".into())
             })?;
             let cfg = read_site_config_subset(&root);
-            let ip = cfg.server_ip.as_deref().unwrap_or("localhost");
-            let host = if ip == "0.0.0.0" || ip == "::" {
-                "localhost"
+            let ip = cfg.server_ip.as_deref().unwrap_or("localhost").trim();
+            let host = if ip.is_empty() || ip == "0.0.0.0" || ip == "::" || ip == "[::]" {
+                "localhost".to_string()
+            } else if ip.contains(':') && !(ip.starts_with('[') && ip.ends_with(']')) {
+                format!("[{}]", ip)
             } else {
-                ip
+                ip.to_string()
             };
             let port = cfg.server_port.unwrap_or(4000);
             let base = format!("http://{}:{}", host, port);
@@ -710,5 +712,54 @@ mod tests {
         write_file(&dir.path().join("_config.yml"), "title: Empty\n");
         let err = load_site_theme_css(dir.path().to_str().unwrap()).unwrap_err();
         assert!(err.to_string().contains("Theme CSS directory not found"));
+    }
+
+    #[test]
+    fn test_sanitize_css_blocks_data_html_and_vbscript_urls() {
+        let malicious = r#"
+            .a { background: url(data:text/html,<script>alert(1)</script>); }
+            .b { background: url("data:text/html;base64,PHNjcmlwdD4="); }
+            .c { background: url( vbscript:msgbox(1) ); }
+            .d { background: url(data:image/png;base64,iVBORw0KGgo=); }
+        "#;
+        let cleaned = sanitize_css_content(malicious);
+        let lower = cleaned.to_ascii_lowercase();
+        assert!(!lower.contains("data:text/html"));
+        assert!(!lower.contains("vbscript:"));
+        assert!(cleaned.contains("data:image/png;base64,iVBORw0KGgo="));
+    }
+
+    #[test]
+    fn test_resolve_quick_open_local_url_brackets_ipv6() {
+        let dir = TempDir::new().unwrap();
+        let root = dir.path();
+        write_file(
+            &root.join("_config.yml"),
+            "title: IPv6 Blog\nroot: /blog/\nserver:\n  port: 4321\n  ip: '::1'\n",
+        );
+        let r_local = resolve_quick_open_target(
+            "local_preview",
+            Some(root.to_str().unwrap()),
+            None,
+            false,
+            None,
+        )
+        .unwrap();
+        assert_eq!(r_local.kind, "url");
+        assert_eq!(r_local.value, "http://[::1]:4321/blog/");
+
+        write_file(
+            &root.join("_config.yml"),
+            "title: IPv6 Wildcard\nserver:\n  port: 4321\n  ip: '::'\n",
+        );
+        let r_wildcard = resolve_quick_open_target(
+            "local_preview",
+            Some(root.to_str().unwrap()),
+            None,
+            false,
+            None,
+        )
+        .unwrap();
+        assert_eq!(r_wildcard.value, "http://localhost:4321/");
     }
 }

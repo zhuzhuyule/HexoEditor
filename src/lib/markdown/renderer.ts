@@ -26,8 +26,7 @@ export interface RenderOptions {
   enableHexoTags?: boolean;
 }
 
-const IFRAME_SANDBOX_ATTR =
-  "allow-scripts allow-same-origin allow-popups allow-presentation";
+const IFRAME_SANDBOX_ATTR = "allow-scripts allow-popups allow-presentation";
 
 let iframeHookRegistered = false;
 function ensureIframeSanitizeHook() {
