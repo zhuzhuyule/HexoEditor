@@ -1,8 +1,8 @@
 {
   "name": "hexo-editor",
   "private": true,
-  "version": "2.0.0-alpha.1",
-  "description": "HexoEditor V2 - Native lightweight Hexo Markdown desktop workbench powered by Tauri v2",
+  "version": "2.0.0-beta.1",
+  "description": "HexoEditor V2 - Native lightweight Hexo & Hugo Markdown desktop workbench powered by Tauri v2",
   "type": "module",
   "scripts": {
     "dev": "vite",
