@@ -2,6 +2,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
   CheckCircle2,
   Cloud,
+  Cpu,
   Eye,
   EyeOff,
   FileCode2,
@@ -9,8 +10,10 @@ import {
   Info,
   Loader2,
   Palette,
+  RefreshCw,
   RotateCcw,
   SlidersHorizontal,
+  Sparkles,
   Trash2,
   Type,
   X,
@@ -23,8 +26,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import * as aiApi from "@/lib/tauri/aiApi";
 import { cn } from "@/lib/utils";
 import type { Locale } from "@/types";
+import {
+  DEFAULT_AI_SETTINGS,
+  type AcpProbeResult,
+  type AiApiPreset,
+  type AiConnectionResult,
+  type AiSettings,
+  type DiscoveredAgent,
+} from "@/types/ai";
 import {
   DEFAULT_EDITOR_PREFS,
   EDITOR_FONT_SIZE_MAX,
@@ -83,6 +95,12 @@ export interface SettingsDialogProps {
   onTestImageBedConnection?: (
     settings: ImageBedSettings
   ) => Promise<ImageBedTestResult>;
+
+  // AI & ACP
+  aiSettings?: AiSettings;
+  onAiSettingsChange?: (patch: Partial<AiSettings>) => void;
+  discoveredAgents?: DiscoveredAgent[];
+  onRefreshAgents?: () => Promise<DiscoveredAgent[] | void>;
 }
 
 const CODE_THEME_PRESETS: ReadonlyArray<{
@@ -274,6 +292,10 @@ export function SettingsDialog({
   imageBed,
   onImageBedChange,
   onTestImageBedConnection,
+  aiSettings = DEFAULT_AI_SETTINGS,
+  onAiSettingsChange,
+  discoveredAgents = [],
+  onRefreshAgents,
 }: SettingsDialogProps) {
   const isEn = locale === "en-US";
   const [activeSection, setActiveSection] =
@@ -285,6 +307,12 @@ export function SettingsDialog({
   const [cssBusyAction, setCssBusyAction] = useState<"site" | "custom" | null>(
     null
   );
+  const [showAiApiKey, setShowAiApiKey] = useState(false);
+  const [refreshingAgents, setRefreshingAgents] = useState(false);
+  const [probingAgentId, setProbingAgentId] = useState<string | null>(null);
+  const [probeResults, setProbeResults] = useState<Record<string, AcpProbeResult>>({});
+  const [testingAiConn, setTestingAiConn] = useState(false);
+  const [aiConnResult, setAiConnResult] = useState<AiConnectionResult | null>(null);
 
   const wasOpenRef = useRef(false);
   const testSeqRef = useRef(0);
@@ -293,11 +321,17 @@ export function SettingsDialog({
     if (open && !wasOpenRef.current) {
       setActiveSection(initialSection);
       setShowSecret(false);
+      setShowAiApiKey(false);
       setTestResult(null);
+      setAiConnResult(null);
       setRecentClearedNotice(false);
     }
     wasOpenRef.current = open;
   }, [open, initialSection]);
+
+  useEffect(() => {
+    setAiConnResult(null);
+  }, [aiSettings.apiPreset]);
 
   useEffect(() => {
     testSeqRef.current += 1;
@@ -329,6 +363,11 @@ export function SettingsDialog({
       id: "imagebed",
       label: isEn ? "Image Bed" : "图床配置",
       icon: <Cloud className="h-3.5 w-3.5" />,
+    },
+    {
+      id: "ai",
+      label: isEn ? "AI Assistant" : "AI 助手",
+      icon: <Sparkles className="h-3.5 w-3.5" />,
     },
     {
       id: "about",
@@ -398,6 +437,89 @@ export function SettingsDialog({
       if (seq === testSeqRef.current) {
         setIsTestingConnection(false);
       }
+    }
+  };
+
+  const handleRefreshAiAgents = async () => {
+    if (!onRefreshAgents || refreshingAgents) return;
+    setRefreshingAgents(true);
+    try {
+      await onRefreshAgents();
+    } finally {
+      setRefreshingAgents(false);
+    }
+  };
+
+  const handleProbeAcpAgent = async (agent: DiscoveredAgent) => {
+    setProbingAgentId(agent.id);
+    try {
+      const res = await aiApi.probeAcpAgent(agent.executable, agent.args);
+      setProbeResults((prev) => ({ ...prev, [agent.id]: res }));
+    } catch (err) {
+      setProbeResults((prev) => ({
+        ...prev,
+        [agent.id]: {
+          ok: false,
+          protocolVersion: null,
+          agentInfo: null,
+          agentCapabilities: {},
+          authMethods: [],
+          message: err instanceof Error ? err.message : String(err),
+          latencyMs: 0,
+        },
+      }));
+    } finally {
+      setProbingAgentId(null);
+    }
+  };
+
+  const handleSelectAiPreset = (preset: AiApiPreset) => {
+    const defaultUrls: Record<AiApiPreset, string> = {
+      openai_compatible: "https://api.openai.com/v1",
+      anthropic: "https://api.anthropic.com",
+      ollama: "http://127.0.0.1:11434/v1",
+    };
+    const defaultModels: Record<AiApiPreset, string> = {
+      openai_compatible: "gpt-4o-mini",
+      anthropic: "claude-3-5-sonnet-latest",
+      ollama: "llama3.1",
+    };
+    const isKnownDefaultUrl =
+      !aiSettings.baseUrl.trim() ||
+      Object.values(defaultUrls).includes(aiSettings.baseUrl.trim());
+    const isKnownDefaultModel =
+      !aiSettings.model.trim() ||
+      Object.values(defaultModels).includes(aiSettings.model.trim());
+
+    onAiSettingsChange?.({
+      apiPreset: preset,
+      ...(isKnownDefaultUrl ? { baseUrl: defaultUrls[preset] } : {}),
+      ...(isKnownDefaultModel ? { model: defaultModels[preset] } : {}),
+    });
+  };
+
+  const handleTestAiApi = async () => {
+    setTestingAiConn(true);
+    setAiConnResult(null);
+    try {
+      const res = await aiApi.testAiConnection({
+        mode: aiSettings.apiPreset,
+        executable: null,
+        args: [],
+        baseUrl: aiSettings.baseUrl.trim() || null,
+        apiKey: aiSettings.apiKey.trim() || null,
+        model: aiSettings.model.trim() || null,
+      });
+      setAiConnResult(res);
+    } catch (err) {
+      setAiConnResult({
+        ok: false,
+        provider: aiSettings.apiPreset,
+        message: err instanceof Error ? err.message : String(err),
+        latencyMs: 0,
+      });
+    } finally {
+      setTestingAiConn(false);
     }
   };
 
@@ -1297,7 +1419,357 @@ export function SettingsDialog({
                 </div>
               )}
 
-              {/* 5. About & Shortcuts */}
+              {/* 5. AI Assistant */}
+              {activeSection === "ai" && (
+                <div className="space-y-5">
+                  {/* Local Agent Auto Discovery */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-semibold text-zinc-800">
+                          {isEn
+                            ? "Local Agent Auto-Discovery"
+                            : "本地 Agent 自动发现"}
+                        </div>
+                        <div className="mt-0.5 text-[11px] text-zinc-400">
+                          {isEn
+                            ? "Detect local ACP agents (Antigravity, OpenCode, Gemini, Goose) & CLI bridges"
+                            : "自动扫描本机已安装的 ACP Agent（如 Antigravity、OpenCode）与 CLI 工具"}
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!onRefreshAgents || refreshingAgents}
+                        onClick={() => void handleRefreshAiAgents()}
+                      >
+                        <RefreshCw
+                          className={cn(
+                            "h-3.5 w-3.5",
+                            refreshingAgents && "animate-spin"
+                          )}
+                        />
+                        {isEn ? "Refresh" : "刷新探测"}
+                      </Button>
+                    </div>
+
+                    {discoveredAgents.length === 0 ? (
+                      <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50/70 px-3.5 py-3 text-xs leading-relaxed text-zinc-500">
+                        {isEn
+                          ? "No local ACP/CLI agents detected in PATH (~/.opencode/bin, ~/.local/bin, ~/.cargo/bin). Supported: agy, opencode, gemini, goose, claude, codex, cursor-agent."
+                          : "暂未在常见路径（~/.opencode/bin、~/.local/bin、~/.cargo/bin）检测到本地 Agent。支持：agy、opencode、gemini、goose、claude、codex、cursor-agent。"}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {discoveredAgents.map((agent) => {
+                          const isSelected =
+                            aiSettings.selectedProviderKey ===
+                            `agent:${agent.id}`;
+                          const probe = probeResults[agent.id];
+                          const capEntries = probe
+                            ? Object.entries(probe.agentCapabilities ?? {}).filter(
+                                ([, v]) => Boolean(v)
+                              )
+                            : [];
+                          return (
+                            <div
+                              key={agent.id}
+                              data-discovered-agent={agent.id}
+                              className={cn(
+                                "rounded-lg border p-3 transition-colors",
+                                isSelected
+                                  ? "border-zinc-900 bg-zinc-50/70"
+                                  : "border-zinc-200 bg-white"
+                              )}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    <Cpu className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                                    <span className="text-xs font-semibold text-zinc-900">
+                                      {agent.label}
+                                    </span>
+                                    <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase text-zinc-600">
+                                      {agent.protocol}
+                                    </span>
+                                    {agent.version && (
+                                      <span className="rounded bg-emerald-50 px-1.5 py-0.5 font-mono text-[10px] text-emerald-700">
+                                        {agent.version}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="mt-1 truncate font-mono text-[10.5px] text-zinc-400">
+                                    {agent.executable}
+                                    {agent.args.length > 0
+                                      ? ` ${agent.args.join(" ")}`
+                                      : ""}
+                                  </div>
+                                </div>
+
+                                <div className="flex shrink-0 items-center gap-1.5">
+                                  {agent.protocol === "acp" && (
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="xs"
+                                      disabled={probingAgentId === agent.id}
+                                      onClick={() =>
+                                        void handleProbeAcpAgent(agent)
+                                      }
+                                    >
+                                      {probingAgentId === agent.id && (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      )}
+                                      {isEn ? "Test ACP" : "ACP 握手测试"}
+                                    </Button>
+                                  )}
+                                  <Button
+                                    type="button"
+                                    variant={isSelected ? "default" : "outline"}
+                                    size="xs"
+                                    onClick={() =>
+                                      onAiSettingsChange?.({
+                                        selectedProviderKey: `agent:${agent.id}`,
+                                      })
+                                    }
+                                  >
+                                    {isSelected
+                                      ? isEn
+                                        ? "Active"
+                                        : "当前使用"
+                                      : isEn
+                                        ? "Use"
+                                        : "启用"}
+                                  </Button>
+                                </div>
+                              </div>
+
+                              {probe && (
+                                <div
+                                  data-testid={`acp-probe-result-${agent.id}`}
+                                  className={cn(
+                                    "mt-2 rounded border px-2.5 py-1.5 text-[11px]",
+                                    probe.ok
+                                      ? "border-emerald-200 bg-emerald-50/60 text-emerald-800"
+                                      : "border-red-200 bg-red-50/60 text-red-700"
+                                  )}
+                                >
+                                  <div className="flex items-center gap-1.5 font-medium">
+                                    {probe.ok ? (
+                                      <CheckCircle2 className="h-3 w-3 shrink-0" />
+                                    ) : (
+                                      <XCircle className="h-3 w-3 shrink-0" />
+                                    )}
+                                    <span>
+                                      {probe.message} ({probe.latencyMs}ms)
+                                    </span>
+                                  </div>
+                                  {probe.ok && capEntries.length > 0 && (
+                                    <div className="mt-1 flex flex-wrap gap-1">
+                                      {capEntries.map(([capKey]) => (
+                                        <span
+                                          key={capKey}
+                                          className="rounded bg-white/80 px-1.5 py-0.5 font-mono text-[10px] text-emerald-800 border border-emerald-200/70"
+                                        >
+                                          {capKey}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  {/* Standard Model API Configuration */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <div className="text-xs font-semibold text-zinc-800">
+                          {isEn ? "Standard Model API" : "标准模型 API 配置"}
+                        </div>
+                        <div className="mt-0.5 text-[11px] text-zinc-400">
+                          {isEn
+                            ? "Direct streaming via OpenAI-compatible, Anthropic, or local Ollama"
+                            : "直连 OpenAI 兼容接口（DeepSeek/OpenRouter/SiliconFlow）、Anthropic 或本地 Ollama"}
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant={
+                          aiSettings.selectedProviderKey === "api"
+                            ? "default"
+                            : "outline"
+                        }
+                        size="xs"
+                        onClick={() =>
+                          onAiSettingsChange?.({ selectedProviderKey: "api" })
+                        }
+                      >
+                        {aiSettings.selectedProviderKey === "api"
+                          ? isEn
+                            ? "Active"
+                            : "当前使用"
+                          : isEn
+                            ? "Use API"
+                            : "切换为 API"}
+                      </Button>
+                    </div>
+
+                    <SegmentedControl<AiApiPreset>
+                      ariaLabel={isEn ? "API Provider Preset" : "API 协议预设"}
+                      value={aiSettings.apiPreset}
+                      onChange={handleSelectAiPreset}
+                      options={[
+                        {
+                          value: "openai_compatible",
+                          label: "OpenAI Compatible",
+                        },
+                        { value: "anthropic", label: "Anthropic" },
+                        { value: "ollama", label: "Ollama" },
+                      ]}
+                    />
+
+                    <div className="space-y-3 pt-1">
+                      <FormField id="settings-ai-base-url" label="Base URL">
+                        <Input
+                          id="settings-ai-base-url"
+                          value={aiSettings.baseUrl}
+                          onChange={(e) =>
+                            onAiSettingsChange?.({ baseUrl: e.target.value })
+                          }
+                          placeholder={
+                            aiSettings.apiPreset === "anthropic"
+                              ? "https://api.anthropic.com"
+                              : aiSettings.apiPreset === "ollama"
+                                ? "http://127.0.0.1:11434/v1"
+                                : "https://api.openai.com/v1"
+                          }
+                          className="font-mono"
+                        />
+                      </FormField>
+
+                      <FormField
+                        id="settings-ai-api-key"
+                        label="API Key"
+                        required={aiSettings.apiPreset !== "ollama"}
+                      >
+                        <div className="relative">
+                          <Input
+                            id="settings-ai-api-key"
+                            type={showAiApiKey ? "text" : "password"}
+                            value={aiSettings.apiKey}
+                            onChange={(e) =>
+                              onAiSettingsChange?.({ apiKey: e.target.value })
+                            }
+                            placeholder={
+                              aiSettings.apiPreset === "ollama"
+                                ? isEn
+                                  ? "Optional for local Ollama"
+                                  : "本地 Ollama 可留空"
+                                : "sk-••••••••••••"
+                            }
+                            className="pr-9 font-mono"
+                          />
+                          <button
+                            type="button"
+                            data-testid="toggle-ai-apikey-visibility"
+                            aria-label={
+                              showAiApiKey
+                                ? isEn
+                                  ? "Hide API key"
+                                  : "隐藏 API Key"
+                                : isEn
+                                  ? "Show API key"
+                                  : "显示 API Key"
+                            }
+                            onClick={() => setShowAiApiKey((prev) => !prev)}
+                            className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 cursor-pointer"
+                          >
+                            {showAiApiKey ? (
+                              <EyeOff className="h-3.5 w-3.5" />
+                            ) : (
+                              <Eye className="h-3.5 w-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      </FormField>
+
+                      <FormField id="settings-ai-model" label="Model">
+                        <Input
+                          id="settings-ai-model"
+                          value={aiSettings.model}
+                          onChange={(e) =>
+                            onAiSettingsChange?.({ model: e.target.value })
+                          }
+                          placeholder={
+                            aiSettings.apiPreset === "anthropic"
+                              ? "claude-3-5-sonnet-latest"
+                              : aiSettings.apiPreset === "ollama"
+                                ? "llama3.1"
+                                : "gpt-4o-mini"
+                          }
+                          className="font-mono"
+                        />
+                      </FormField>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                      <div className="min-w-0 flex-1">
+                        {aiConnResult && (
+                          <div
+                            role="status"
+                            data-testid="ai-test-result"
+                            className={cn(
+                              "inline-flex items-center gap-1.5 text-xs",
+                              aiConnResult.ok
+                                ? "text-emerald-700"
+                                : "text-red-600"
+                            )}
+                          >
+                            {aiConnResult.ok ? (
+                              <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                            ) : (
+                              <XCircle className="h-3.5 w-3.5 shrink-0" />
+                            )}
+                            <span className="truncate">
+                              {aiConnResult.message}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={testingAiConn}
+                        onClick={() => void handleTestAiApi()}
+                      >
+                        {testingAiConn && (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        )}
+                        {testingAiConn
+                          ? isEn
+                            ? "Testing..."
+                            : "测试中..."
+                          : isEn
+                            ? "Test Connection"
+                            : "测试连接"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 6. About & Shortcuts */}
               {activeSection === "about" && (
                 <div className="space-y-5">
                   <div className="rounded-lg border border-zinc-200/80 bg-zinc-50/70 p-4">

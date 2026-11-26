@@ -49,6 +49,8 @@ interface TabBarProps {
   onOpenImageManager: () => void;
   onExportHtml: () => void;
   onExportPdf: () => void;
+  aiDrawerOpen?: boolean;
+  onToggleAiDrawer?: () => void;
 }
 
 export function TabBar({
@@ -58,6 +60,8 @@ export function TabBar({
   onOpenImageManager,
   onExportHtml,
   onExportPdf,
+  aiDrawerOpen = false,
+  onToggleAiDrawer,
 }: TabBarProps) {
   const {
     locale,
@@ -357,6 +361,21 @@ export function TabBar({
             </Button>
           }
         />
+
+        {/* AI Writing Assistant Drawer Toggle */}
+        {onToggleAiDrawer && (
+          <Button
+            variant="ghost"
+            size="icon"
+            title={msg.ai.openDrawer}
+            aria-label={msg.ai.openDrawer}
+            aria-pressed={aiDrawerOpen}
+            onClick={onToggleAiDrawer}
+            className={cn(aiDrawerOpen && "bg-zinc-200/70 text-zinc-900")}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+          </Button>
+        )}
 
         {/* Command Palette Trigger (Cmd+K) */}
         <Button
