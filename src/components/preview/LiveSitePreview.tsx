@@ -17,6 +17,7 @@ export interface LiveSitePreviewProps {
   serverUrl: string | null;
   serverRunning: boolean;
   currentPostSlug?: string | null;
+  currentPostUrl?: string | null;
   onStartServer?: () => void;
   onOpenExternal?: (url: string) => void;
   locale: Locale;
@@ -98,6 +99,7 @@ export function LiveSitePreview({
   serverUrl,
   serverRunning,
   currentPostSlug,
+  currentPostUrl,
   onStartServer,
   onOpenExternal,
   locale,
@@ -109,24 +111,38 @@ export function LiveSitePreview({
     return normalizeLivePreviewUrl(serverUrl, serverUrl);
   }, [serverUrl]);
 
-  const [activeUrl, setActiveUrl] = useState<string>(normalizedBaseUrl ?? "");
-  const [addressInput, setAddressInput] = useState<string>(normalizedBaseUrl ?? "");
+  const normalizedPostUrl = useMemo(() => {
+    if (!currentPostUrl) return null;
+    return normalizeLivePreviewUrl(
+      currentPostUrl,
+      normalizedBaseUrl || currentPostUrl
+    );
+  }, [currentPostUrl, normalizedBaseUrl]);
+
+  const [activeUrl, setActiveUrl] = useState<string>(
+    normalizedPostUrl ?? normalizedBaseUrl ?? ""
+  );
+  const [addressInput, setAddressInput] = useState<string>(
+    normalizedPostUrl ?? normalizedBaseUrl ?? ""
+  );
   const [reloadNonce, setReloadNonce] = useState<number>(0);
 
   useEffect(() => {
     if (normalizedBaseUrl) {
-      setActiveUrl(normalizedBaseUrl);
-      setAddressInput(normalizedBaseUrl);
+      const target = normalizedPostUrl || normalizedBaseUrl;
+      setActiveUrl(target);
+      setAddressInput(target);
     } else {
       setActiveUrl("");
       setAddressInput("");
     }
-  }, [normalizedBaseUrl]);
+  }, [normalizedBaseUrl, normalizedPostUrl]);
 
   const postShortcutUrl = useMemo(() => {
+    if (normalizedPostUrl) return normalizedPostUrl;
     if (!normalizedBaseUrl || !currentPostSlug) return null;
     return buildPostPreviewUrl(normalizedBaseUrl, currentPostSlug);
-  }, [normalizedBaseUrl, currentPostSlug]);
+  }, [normalizedPostUrl, normalizedBaseUrl, currentPostSlug]);
 
   if (!serverRunning || !normalizedBaseUrl) {
     return (

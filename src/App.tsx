@@ -85,7 +85,10 @@ import { SettingsDialog } from "@/components/settings/SettingsDialog";
 import { NewPostDialog } from "@/components/sidebar/NewPostDialog";
 import { Sidebar } from "@/components/sidebar/Sidebar";
 import { TabBar } from "@/components/tabs/TabBar";
-import { HexoTerminalDrawer } from "@/components/terminal/HexoTerminalDrawer";
+import {
+  HexoTerminalDrawer,
+  type HexoCliAction,
+} from "@/components/terminal/HexoTerminalDrawer";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -99,6 +102,7 @@ import { buildStandaloneHtmlDocument } from "@/lib/export/htmlExport";
 import { triggerDocumentPrint } from "@/lib/export/printPdf";
 import { parseMarkdownDocument } from "@/lib/frontmatter";
 import { formatMessage, getMessages } from "@/lib/i18n";
+import { buildHexoPostUrl } from "@/lib/markdown/permalink";
 import {
   extractLocalImageSrcs,
   renderMarkdownToHtml,
@@ -233,6 +237,8 @@ export function App() {
 
   const editorRef = useRef<MarkdownEditorHandle | null>(null);
   const previewRef = useRef<MarkdownPreviewHandle | null>(null);
+  const pendingAutoOpenServerRef = useRef(false);
+  const prevServerRunningRef = useRef(false);
   const autoSaveTimerRef = useRef<number | null>(null);
   const lastCloseShortcutRef = useRef<{
     source: "menu" | "keydown";
@@ -1059,6 +1065,88 @@ export function App() {
     return name.replace(/\.(md|markdown|mdx)$/i, "") || null;
   }, [activeTab?.filePath, posts]);
 
+  const activeLivePostUrl = useMemo(() => {
+    if (!activeTab) return null;
+    return buildHexoPostUrl({
+      serverUrl: hexoCliStatus.serverUrl,
+      siteRoot: activeTab.siteRoot ?? activeSiteRoot,
+      sourceDir: activeTab.sourceDir,
+      filePath: activeTab.filePath,
+      content: activeTab.content,
+      isDraft: activeTab.isDraft,
+      isStandalone: activeTab.isStandalone,
+      permalink: siteConfig?.permalink,
+      root: siteConfig?.root,
+      modifiedMs: activeTab.modifiedMs,
+    });
+  }, [
+    activeTab?.filePath,
+    activeTab?.siteRoot,
+    activeTab?.sourceDir,
+    activeTab?.content,
+    activeTab?.isDraft,
+    activeTab?.isStandalone,
+    activeTab?.modifiedMs,
+    activeSiteRoot,
+    hexoCliStatus.serverUrl,
+    siteConfig?.permalink,
+    siteConfig?.root,
+  ]);
+
+  const handleOpenExternalUrl = useCallback(
+    async (url: string) => {
+      try {
+        await api.openExternalUrl(url);
+      } catch (err) {
+        pushToast(String(err), "error");
+      }
+    },
+    [pushToast]
+  );
+
+  const handleRunHexoAction = useCallback(
+    async (action: HexoCliAction) => {
+      if (action === "server") {
+        pendingAutoOpenServerRef.current = true;
+      }
+      await runHexoAction(action);
+      if (action === "server") {
+        const latest = useAppStore.getState().hexoCliStatus;
+        if (!latest.running && !latest.serverRunning) {
+          pendingAutoOpenServerRef.current = false;
+        }
+      }
+    },
+    [runHexoAction]
+  );
+
+  useEffect(() => {
+    const wasRunning = prevServerRunningRef.current;
+    prevServerRunningRef.current = hexoCliStatus.serverRunning;
+
+    if (!hexoCliStatus.running && !hexoCliStatus.serverRunning) {
+      pendingAutoOpenServerRef.current = false;
+      return;
+    }
+
+    if (
+      !wasRunning &&
+      hexoCliStatus.serverRunning &&
+      hexoCliStatus.serverUrl &&
+      pendingAutoOpenServerRef.current
+    ) {
+      pendingAutoOpenServerRef.current = false;
+      const targetUrl = activeLivePostUrl || hexoCliStatus.serverUrl;
+      void handleOpenExternalUrl(targetUrl);
+    }
+  }, [
+    hexoCliStatus.running,
+    hexoCliStatus.serverRunning,
+    hexoCliStatus.serverUrl,
+    activeLivePostUrl,
+    handleOpenExternalUrl,
+  ]);
+
   const activeUploadBatchInfo = useMemo<LastUploadBatchInfo | null>(() => {
     if (!activeTab) return null;
     const stored = lastUploadBatches[activeTab.id];
@@ -1511,7 +1599,7 @@ export function App() {
         disabled: !activeSiteRoot || hexoCliStatus.running,
         keywords: ["hexo", "server", "s", "preview"],
         icon: <Play className="h-3.5 w-3.5" />,
-        onSelect: () => void runHexoAction("server"),
+        onSelect: () => void handleRunHexoAction("server"),
       },
       {
         id: "hexo:stop",
@@ -1529,7 +1617,7 @@ export function App() {
         disabled: !activeSiteRoot || hexoCliStatus.running,
         keywords: ["hexo", "generate", "g", "build"],
         icon: <Hammer className="h-3.5 w-3.5" />,
-        onSelect: () => void runHexoAction("generate"),
+        onSelect: () => void handleRunHexoAction("generate"),
       },
       {
         id: "hexo:generate-deploy",
@@ -1538,7 +1626,7 @@ export function App() {
         disabled: !activeSiteRoot || hexoCliStatus.running,
         keywords: ["hexo", "g", "d", "deploy", "hgd"],
         icon: <Rocket className="h-3.5 w-3.5" />,
-        onSelect: () => void runHexoAction("generate_deploy"),
+        onSelect: () => void handleRunHexoAction("generate_deploy"),
       },
       {
         id: "hexo:deploy",
@@ -1547,7 +1635,7 @@ export function App() {
         disabled: !activeSiteRoot || hexoCliStatus.running,
         keywords: ["hexo", "deploy", "d"],
         icon: <Send className="h-3.5 w-3.5" />,
-        onSelect: () => void runHexoAction("deploy"),
+        onSelect: () => void handleRunHexoAction("deploy"),
       },
       {
         id: "hexo:clean",
@@ -1556,7 +1644,7 @@ export function App() {
         disabled: !activeSiteRoot || hexoCliStatus.running,
         keywords: ["hexo", "clean"],
         icon: <Eraser className="h-3.5 w-3.5" />,
-        onSelect: () => void runHexoAction("clean"),
+        onSelect: () => void handleRunHexoAction("clean"),
       },
       {
         id: "hexo:kill-port",
@@ -1642,6 +1730,7 @@ export function App() {
     handleExportPdf,
     handleRequestCloseTab,
     handleRequestNewPost,
+    handleRunHexoAction,
     hexoCliStatus.running,
     hexoCliStatus.serverRunning,
     hexoCliStatus.serverUrl,
@@ -1656,7 +1745,6 @@ export function App() {
     openStandaloneFile,
     posts,
     refreshActiveSite,
-    runHexoAction,
     saveAllTabs,
     saveTab,
     saveTabAs,
@@ -1694,10 +1782,11 @@ export function App() {
             serverUrl={hexoCliStatus.serverUrl}
             serverRunning={hexoCliStatus.serverRunning}
             currentPostSlug={activePostSlug}
+            currentPostUrl={activeLivePostUrl}
             onStartServer={
-              activeSiteRoot ? () => void runHexoAction("server") : undefined
+              activeSiteRoot ? () => void handleRunHexoAction("server") : undefined
             }
-            onOpenExternal={(url) => void api.openExternalUrl(url)}
+            onOpenExternal={(url) => void handleOpenExternalUrl(url)}
             locale={locale}
           />
         </div>
@@ -1966,11 +2055,12 @@ export function App() {
                   logs={hexoLogs}
                   open={terminalOpen}
                   onOpenChange={setTerminalOpen}
-                  onRunAction={(action) => void runHexoAction(action)}
+                  onRunAction={(action) => void handleRunHexoAction(action)}
                   onStop={() => void stopHexoAction()}
                   onKillPort={() => void killHexoPort()}
                   onClearLogs={clearHexoLogs}
-                  onOpenServerUrl={(url) => void api.openExternalUrl(url)}
+                  targetUrl={activeLivePostUrl}
+                  onOpenServerUrl={(url) => void handleOpenExternalUrl(url)}
                   disabled={!activeSiteRoot}
                   locale={locale}
                   className="no-print"

@@ -9,6 +9,8 @@ pub struct HexoSiteConfig {
     pub author: Option<String>,
     pub language: Option<String>,
     pub url: Option<String>,
+    pub root: String,
+    pub permalink: String,
     pub source_dir: String,
     pub post_asset_folder: bool,
     pub default_layout: String,

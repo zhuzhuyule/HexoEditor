@@ -201,6 +201,8 @@ pub fn inspect_hexo_site(root_path: &str) -> AppResult<HexoSiteConfig> {
     let mut author = None;
     let mut language = None;
     let mut url = None;
+    let mut root_url = "/".to_string();
+    let mut permalink = ":year/:month/:day/:title/".to_string();
     let mut source_dir = "source".to_string();
     let mut post_asset_folder = false;
     let mut default_layout = "post".to_string();
@@ -224,6 +226,18 @@ pub fn inspect_hexo_site(root_path: &str) -> AppResult<HexoSiteConfig> {
             url = map
                 .get(Value::String("url".into()))
                 .and_then(yaml_value_to_string);
+            if let Some(v) = map
+                .get(Value::String("root".into()))
+                .and_then(yaml_value_to_string)
+            {
+                root_url = v;
+            }
+            if let Some(v) = map
+                .get(Value::String("permalink".into()))
+                .and_then(yaml_value_to_string)
+            {
+                permalink = v;
+            }
             if let Some(v) = map
                 .get(Value::String("source_dir".into()))
                 .and_then(yaml_value_to_string)
@@ -262,6 +276,8 @@ pub fn inspect_hexo_site(root_path: &str) -> AppResult<HexoSiteConfig> {
         author,
         language,
         url,
+        root: root_url,
+        permalink,
         source_dir,
         post_asset_folder,
         default_layout,

@@ -484,4 +484,85 @@ describe("Stage 2 workbench integration", () => {
     expect(useAppStore.getState().hexoLogs).toHaveLength(1);
     expect(useAppStore.getState().hexoLogs[0].line).toContain("4321");
   });
+
+  it("auto-opens exact active post permalink in browser when user starts hexo server and allows manual re-open from drawer", async () => {
+    const tab = makeTab({
+      filePath: "/blog/source/_posts/测试文章.md",
+      content: "---\ntitle: 测试文章\ndate: 2026-11-26 10:30:00\n---\n\n正文",
+      siteRoot: "/blog",
+    });
+    useAppStore.setState({
+      activeSiteRoot: "/blog",
+      siteConfig: {
+        rootPath: "/blog",
+        title: "Demo",
+        sourceDir: "source",
+        postAssetFolder: true,
+        defaultLayout: "post",
+        hasPostsDir: true,
+        hasDraftsDir: true,
+        hasScaffoldPost: true,
+        permalink: ":year/:month/:day/:title/",
+        root: "/",
+      },
+      tabs: [tab],
+      activeTabId: tab.id,
+    });
+
+    const openUrlSpy = vi.spyOn(api, "openExternalUrl").mockResolvedValue();
+    vi.spyOn(hexoApi, "runHexoCommand").mockResolvedValue({
+      running: true,
+      action: "server",
+      serverRunning: false,
+      serverUrl: null,
+      exitCode: null,
+      message: "Starting hexo server...",
+    });
+
+    await act(async () => {
+      root.render(
+        <TooltipProvider>
+          <App />
+        </TooltipProvider>
+      );
+    });
+
+    // Click "启动预览 (hexo s)" in bottom drawer
+    const startBtn = container.querySelector<HTMLButtonElement>(
+      'button[title="启动预览 (hexo s)"]'
+    );
+    expect(startBtn).not.toBeNull();
+    await act(async () => {
+      startBtn!.click();
+    });
+    expect(openUrlSpy).not.toHaveBeenCalled();
+
+    // Server finishes booting and reports serverUrl
+    await act(async () => {
+      useAppStore.getState().setHexoCliStatus({
+        running: true,
+        action: "server",
+        serverRunning: true,
+        serverUrl: "http://localhost:4000/",
+        exitCode: null,
+        message: null,
+      });
+    });
+
+    const expectedPostUrl =
+      "http://localhost:4000/2026/11/26/%E6%B5%8B%E8%AF%95%E6%96%87%E7%AB%A0/";
+    expect(openUrlSpy).toHaveBeenCalledTimes(1);
+    expect(openUrlSpy).toHaveBeenCalledWith(expectedPostUrl);
+
+    // Clicking the drawer link button opens the exact active post URL again
+    const openPageBtn = container.querySelector<HTMLButtonElement>(
+      'button[title="http://localhost:4000/2026/11/26/测试文章/"]'
+    );
+    expect(openPageBtn).not.toBeNull();
+    await act(async () => {
+      openPageBtn!.click();
+    });
+    expect(openUrlSpy).toHaveBeenCalledTimes(2);
+    expect(openUrlSpy).toHaveBeenLastCalledWith(expectedPostUrl);
+  });
 });

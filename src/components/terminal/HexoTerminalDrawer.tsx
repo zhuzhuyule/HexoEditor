@@ -51,6 +51,7 @@ export interface HexoTerminalDrawerProps {
   onKillPort: () => void;
   onClearLogs: () => void;
   onOpenServerUrl?: (url: string) => void;
+  targetUrl?: string | null;
   disabled?: boolean;
   locale?: Locale;
   className?: string;
@@ -103,6 +104,7 @@ export function HexoTerminalDrawer({
   onKillPort,
   onClearLogs,
   onOpenServerUrl,
+  targetUrl,
   disabled = false,
   locale = "zh-CN",
   className,
@@ -194,17 +196,33 @@ export function HexoTerminalDrawer({
             )}
           </button>
 
-          {status.serverRunning && status.serverUrl && onOpenServerUrl && (
-            <button
-              type="button"
-              onClick={() => onOpenServerUrl(status.serverUrl!)}
-              className="inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 font-mono text-[11px] text-blue-600 transition-colors hover:bg-blue-50 cursor-pointer"
-              title={status.serverUrl}
-            >
-              <ExternalLink className="h-3 w-3" />
-              <span className="hidden sm:inline">{status.serverUrl}</span>
-            </button>
-          )}
+          {status.serverRunning && (targetUrl || status.serverUrl) && onOpenServerUrl && (() => {
+            const openUrlTarget = (targetUrl || status.serverUrl)!;
+            const hasDedicatedPostUrl = Boolean(targetUrl && targetUrl !== status.serverUrl);
+            let readableUrl = openUrlTarget;
+            try {
+              readableUrl = decodeURI(openUrlTarget);
+            } catch {
+              // ignore malformed URI
+            }
+            return (
+              <button
+                type="button"
+                onClick={() => onOpenServerUrl(openUrlTarget)}
+                className="inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 font-mono text-[11px] text-blue-600 transition-colors hover:bg-blue-50 cursor-pointer"
+                title={readableUrl}
+              >
+                <ExternalLink className="h-3 w-3" />
+                <span className="hidden sm:inline">
+                  {hasDedicatedPostUrl
+                    ? isEn
+                      ? "Open Post"
+                      : "打开当前页"
+                    : status.serverUrl}
+                </span>
+              </button>
+            );
+          })()}
         </div>
 
         {/* Right: Concise Hexo CLI Actions */}

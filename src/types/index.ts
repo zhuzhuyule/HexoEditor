@@ -29,6 +29,8 @@ export interface HexoSiteConfig {
   author?: string | null;
   language?: string | null;
   url?: string | null;
+  root?: string;
+  permalink?: string;
   sourceDir: string;
   postAssetFolder: boolean;
   defaultLayout: string;

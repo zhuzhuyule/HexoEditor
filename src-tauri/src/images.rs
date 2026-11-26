@@ -83,7 +83,7 @@ fn compute_target_dir_and_prefix(
     if let Some(root_str) = site_root.filter(|s| !s.trim().is_empty()) {
         if post_asset_folder {
             let dir = doc_parent.join(doc_stem);
-            Ok((dir, format!("{}/", doc_stem)))
+            Ok((dir, String::new()))
         } else {
             let src_dir = source_dir
                 .filter(|s| !s.trim().is_empty())
@@ -456,7 +456,7 @@ mod tests {
         .unwrap();
         assert!(!first.deduplicated);
         assert!(Path::new(&first.absolute_path).is_file());
-        assert!(first.markdown_path.starts_with("my-article/img-"));
+        assert!(first.markdown_path.starts_with("img-"));
 
         let second = save_image_bytes(
             post_path.to_str().unwrap(),
