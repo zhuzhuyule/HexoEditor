@@ -15,6 +15,7 @@ use tokio::process::Command;
 use tokio::sync::{oneshot, watch};
 
 use crate::error::{AppError, AppResult};
+use crate::hexo::{detect_site_engine, SiteEngine};
 use crate::models::{HexoCliOutputEvent, HexoCliStatus, KillPortResult};
 
 pub const HEXO_CLI_OUTPUT_EVENT: &str = "hexo-cli-output";
@@ -94,6 +95,16 @@ fn now_ms() -> u64 {
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_millis() as u64)
         .unwrap_or(0)
+}
+
+pub fn read_server_config(site_root: &Path) -> HexoServerConfig {
+    if detect_site_engine(site_root) == Some(SiteEngine::Hugo) {
+        return HexoServerConfig {
+            port: 1313,
+            ip: "localhost".to_string(),
+        };
+    }
+    read_hexo_server_config(site_root)
 }
 
 pub fn read_hexo_server_config(site_root: &Path) -> HexoServerConfig {
@@ -437,11 +448,63 @@ pub fn resolve_hexo_invocation_in_dirs(
     ))
 }
 
+fn hugo_executable_names() -> &'static [&'static str] {
+    #[cfg(target_os = "windows")]
+    {
+        &["hugo.exe", "hugo"]
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        &["hugo"]
+    }
+}
+
+pub fn resolve_hugo_invocation_in_dirs(
+    candidate_dirs: &[PathBuf],
+    args: Vec<String>,
+) -> AppResult<HexoInvocation> {
+    let path_env = std::env::join_paths(candidate_dirs).unwrap_or_else(|_| OsString::new());
+    if let Some(hugo_bin) = find_executable_in_dirs(candidate_dirs, hugo_executable_names()) {
+        return Ok(HexoInvocation {
+            program: hugo_bin,
+            args,
+            path_env,
+        });
+    }
+
+    Err(AppError::NotFound(
+        "Hugo CLI not found. Please install Hugo (e.g., `brew install hugo`).".into(),
+    ))
+}
+
+pub fn resolve_hugo_invocation(site_root: &Path, args: Vec<String>) -> AppResult<HexoInvocation> {
+    let home = user_home_dir();
+    let existing = std::env::var_os("PATH");
+    let dirs = build_candidate_path_dirs(Some(site_root), home.as_deref(), existing.as_deref());
+    resolve_hugo_invocation_in_dirs(&dirs, args)
+}
+
 pub fn resolve_hexo_invocation(site_root: &Path, action: HexoAction) -> AppResult<HexoInvocation> {
     let home = user_home_dir();
     let existing = std::env::var_os("PATH");
     let dirs = build_candidate_path_dirs(Some(site_root), home.as_deref(), existing.as_deref());
     resolve_hexo_invocation_in_dirs(site_root, &dirs, action)
+}
+
+pub fn clean_hugo_output_dirs(site_root: &Path) -> AppResult<Vec<String>> {
+    let canon_root = fs::canonicalize(site_root).unwrap_or_else(|_| site_root.to_path_buf());
+    let mut removed = Vec::new();
+    for rel in ["public", "resources/_gen"] {
+        let target = site_root.join(rel);
+        if target.is_dir() {
+            let canon_target = fs::canonicalize(&target).unwrap_or_else(|_| target.clone());
+            if canon_target.starts_with(&canon_root) {
+                fs::remove_dir_all(&canon_target)?;
+                removed.push(rel.to_string());
+            }
+        }
+    }
+    Ok(removed)
 }
 
 /// Strips ANSI CSI escape sequences so regex matching works even with colored terminal output.
@@ -450,11 +513,14 @@ pub fn strip_ansi_codes(input: &str) -> String {
     re.replace_all(input, "").into_owned()
 }
 
-/// Extracts the server URL from Hexo's stdout line, e.g. `Hexo is running at http://localhost:4000/`.
+/// Extracts the server URL from Hexo's or Hugo's stdout line,
+/// e.g. `Hexo is running at http://localhost:4000/` or `Web Server is available at http://localhost:1313/`.
 pub fn extract_hexo_server_url(line: &str) -> Option<String> {
     let clean = strip_ansi_codes(line);
-    let re =
-        Regex::new(r"(?i)Hexo is running at\s+(https?://[^\s,;'`\x22)>\]]+)").expect("valid regex");
+    let re = Regex::new(
+        r"(?i)(?:Hexo is running at|Web Server is available at)\s+(https?://[^\s,;'`\x22)>\]]+)",
+    )
+    .expect("valid regex");
     let caps = re.captures(&clean)?;
     let raw = caps.get(1)?.as_str();
     let trimmed = raw.trim_end_matches('.');
@@ -708,6 +774,129 @@ fn emit_status(app: &AppHandle, status: &HexoCliStatus) {
     let _ = app.emit(HEXO_CLI_STATUS_EVENT, status.clone());
 }
 
+fn spawn_cli_child(root_path: &Path, invocation: &HexoInvocation) -> AppResult<tokio::process::Child> {
+    let mut cmd = Command::new(&invocation.program);
+    cmd.args(&invocation.args)
+        .current_dir(root_path)
+        .env("PATH", &invocation.path_env)
+        .env("NO_COLOR", "1")
+        .env("FORCE_COLOR", "0")
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .kill_on_drop(true);
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        cmd.process_group(0);
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+
+    cmd.spawn().map_err(|e| {
+        AppError::Io(std::io::Error::new(
+            e.kind(),
+            format!(
+                "Failed to launch `{}`: {}",
+                invocation.program.display(),
+                e
+            ),
+        ))
+    })
+}
+
+fn spawn_stream_readers(
+    app: &AppHandle,
+    runtime: &Arc<Mutex<CliRuntime>>,
+    run_id: u64,
+    action: HexoAction,
+    engine: SiteEngine,
+    stdout: Option<tokio::process::ChildStdout>,
+    stderr: Option<tokio::process::ChildStderr>,
+) -> (
+    tauri::async_runtime::JoinHandle<()>,
+    tauri::async_runtime::JoinHandle<()>,
+) {
+    let runtime_stdout = Arc::clone(runtime);
+    let app_stdout = app.clone();
+    let engine_label = match engine {
+        SiteEngine::Hugo => "Hugo",
+        SiteEngine::Hexo => "Hexo",
+    };
+    let stdout_task = tauri::async_runtime::spawn(async move {
+        let Some(out) = stdout else { return };
+        read_lossy_lines(out, |line| {
+            emit_output(&app_stdout, "stdout", &line);
+            if action == HexoAction::Server {
+                if let Some(url) = extract_hexo_server_url(&line) {
+                    let updated = {
+                        if let Ok(mut rt) = runtime_stdout.lock() {
+                            if rt.active.as_ref().map(|a| a.run_id) == Some(run_id) {
+                                rt.status.server_running = true;
+                                rt.status.server_url = Some(url.clone());
+                                rt.status.message =
+                                    Some(format!("{} is running at {}", engine_label, url));
+                                Some(rt.status.clone())
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        }
+                    };
+                    if let Some(status) = updated {
+                        emit_status(&app_stdout, &status);
+                    }
+                }
+            }
+        })
+        .await;
+    });
+
+    let app_stderr = app.clone();
+    let stderr_task = tauri::async_runtime::spawn(async move {
+        let Some(err) = stderr else { return };
+        read_lossy_lines(err, |line| {
+            emit_output(&app_stderr, "stderr", &line);
+        })
+        .await;
+    });
+
+    (stdout_task, stderr_task)
+}
+
+async fn wait_or_stop_child(
+    child: &mut tokio::process::Child,
+    pid: u32,
+    stop_rx: &mut oneshot::Receiver<()>,
+) -> (Option<std::process::ExitStatus>, bool) {
+    let mut stopped_by_user = false;
+    let exit_status = tokio::select! {
+        res = child.wait() => res.ok(),
+        _ = &mut *stop_rx => {
+            stopped_by_user = true;
+            if pid > 0 {
+                terminate_process_tree_graceful(pid);
+            }
+            match tokio::time::timeout(Duration::from_secs(3), child.wait()).await {
+                Ok(res) => res.ok(),
+                Err(_) => {
+                    if pid > 0 {
+                        terminate_process_tree_force(pid);
+                    }
+                    let _ = child.kill().await;
+                    child.wait().await.ok()
+                }
+            }
+        }
+    };
+    (exit_status, stopped_by_user)
+}
+
 impl HexoCliState {
     pub fn get_status(&self) -> HexoCliStatus {
         self.runtime
@@ -724,7 +913,7 @@ impl HexoCliState {
         if rt.status.running || rt.starting {
             let running_action = rt.status.action.as_deref().unwrap_or("hexo");
             return Err(AppError::AlreadyExists(format!(
-                "Hexo command `{}` is already running. Stop it first.",
+                "CLI command `{}` is already running. Stop it first.",
                 running_action
             )));
         }
@@ -750,11 +939,49 @@ impl HexoCliState {
             )));
         }
 
+        let engine = detect_site_engine(&root_path).unwrap_or(SiteEngine::Hexo);
+        let engine_cmd = engine.as_str();
+
         // Atomically reserve the start slot to prevent concurrent TOCTOU spawns
         let mut start_guard = self.try_acquire_start_slot()?;
 
+        if engine == SiteEngine::Hugo && action == HexoAction::Clean {
+            emit_output(&app, "system", "$ hugo clean (removing public/ and resources/_gen/)");
+            let removed = clean_hugo_output_dirs(&root_path)?;
+            if removed.is_empty() {
+                emit_output(
+                    &app,
+                    "stdout",
+                    "Nothing to clean (public/ and resources/_gen/ do not exist).",
+                );
+            } else {
+                emit_output(&app, "stdout", format!("Cleaned: {}", removed.join(", ")));
+            }
+            let final_msg = "Completed `hugo clean`.".to_string();
+            emit_output(&app, "system", &final_msg);
+            let final_status = HexoCliStatus {
+                running: false,
+                action: Some(action.as_str().to_string()),
+                server_running: false,
+                server_url: None,
+                exit_code: Some(0),
+                message: Some(final_msg),
+            };
+            {
+                let mut rt = self
+                    .runtime
+                    .lock()
+                    .map_err(|_| AppError::Watcher("failed to lock Hexo CLI state".into()))?;
+                rt.starting = false;
+                start_guard.disarm();
+                rt.status = final_status.clone();
+            }
+            emit_status(&app, &final_status);
+            return Ok(final_status);
+        }
+
         let server_cfg = if action == HexoAction::Server {
-            let cfg = read_hexo_server_config(&root_path);
+            let cfg = read_server_config(&root_path);
             if is_port_in_use(&cfg.ip, cfg.port) {
                 let msg = format!(
                     "Port {} is already in use on {}. Stop the process or kill port {}.",
@@ -768,47 +995,38 @@ impl HexoCliState {
             None
         };
 
-        let invocation = resolve_hexo_invocation(&root_path, action)?;
-
-        let mut cmd = Command::new(&invocation.program);
-        cmd.args(&invocation.args)
-            .current_dir(&root_path)
-            .env("PATH", &invocation.path_env)
-            .env("NO_COLOR", "1")
-            .env("FORCE_COLOR", "0")
-            .stdin(Stdio::null())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .kill_on_drop(true);
-
-        #[cfg(not(target_os = "windows"))]
-        {
-            cmd.process_group(0);
-        }
-
-        #[cfg(target_os = "windows")]
-        {
-            const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-            cmd.creation_flags(CREATE_NO_WINDOW);
-        }
-
-        let mut child = cmd.spawn().map_err(|e| {
-            AppError::Io(std::io::Error::new(
-                e.kind(),
-                format!(
-                    "Failed to launch `{}`: {}",
-                    invocation.program.display(),
-                    e
+        let (invocation, follow_up_invocation) = match engine {
+            SiteEngine::Hexo => (resolve_hexo_invocation(&root_path, action)?, None),
+            SiteEngine::Hugo => match action {
+                HexoAction::Server => (
+                    resolve_hugo_invocation(&root_path, vec!["server".into(), "-D".into()])?,
+                    None,
                 ),
-            ))
-        })?;
+                HexoAction::Generate => (resolve_hugo_invocation(&root_path, Vec::new())?, None),
+                HexoAction::Deploy => {
+                    (resolve_hugo_invocation(&root_path, vec!["deploy".into()])?, None)
+                }
+                HexoAction::GenerateDeploy => (
+                    resolve_hugo_invocation(&root_path, Vec::new())?,
+                    Some(resolve_hugo_invocation(&root_path, vec!["deploy".into()])?),
+                ),
+                HexoAction::Clean => unreachable!("handled above"),
+            },
+        };
 
+        let mut child = spawn_cli_child(&root_path, &invocation)?;
         let pid = child.id().unwrap_or(0);
         let stdout = child.stdout.take();
         let stderr = child.stderr.take();
 
         let (stop_tx, mut stop_rx) = oneshot::channel::<()>();
         let (done_tx, done_rx) = watch::channel(false);
+
+        let running_desc = if invocation.args.is_empty() {
+            engine_cmd.to_string()
+        } else {
+            format!("{} {}", engine_cmd, invocation.args.join(" "))
+        };
 
         let (run_id, initial_status) = {
             let mut rt = self
@@ -823,7 +1041,7 @@ impl HexoCliState {
                 server_running: false,
                 server_url: None,
                 exit_code: None,
-                message: Some(format!("Running `hexo {}`...", action.hexo_args().join(" "))),
+                message: Some(format!("Running `{}`...", running_desc)),
             };
             rt.starting = false;
             start_guard.disarm();
@@ -838,96 +1056,88 @@ impl HexoCliState {
             (id, status)
         };
 
-        emit_output(
-            &app,
-            "system",
-            format!(
-                "$ {} {}",
-                invocation.program.display(),
-                invocation.args.join(" ")
-            ),
-        );
+        let cmd_line = if invocation.args.is_empty() {
+            format!("$ {}", invocation.program.display())
+        } else {
+            format!("$ {} {}", invocation.program.display(), invocation.args.join(" "))
+        };
+        emit_output(&app, "system", cmd_line);
         emit_status(&app, &initial_status);
 
-        // Stream stdout (lossy UTF-8 so non-UTF-8 output never aborts reading)
-        let runtime_stdout = Arc::clone(&self.runtime);
-        let app_stdout = app.clone();
-        let stdout_task = tauri::async_runtime::spawn(async move {
-            let Some(out) = stdout else { return };
-            read_lossy_lines(out, |line| {
-                emit_output(&app_stdout, "stdout", &line);
-                if action == HexoAction::Server {
-                    if let Some(url) = extract_hexo_server_url(&line) {
-                        let updated = {
-                            if let Ok(mut rt) = runtime_stdout.lock() {
-                                if rt.active.as_ref().map(|a| a.run_id) == Some(run_id) {
-                                    rt.status.server_running = true;
-                                    rt.status.server_url = Some(url.clone());
-                                    rt.status.message = Some(format!("Hexo is running at {}", url));
-                                    Some(rt.status.clone())
-                                } else {
-                                    None
-                                }
-                            } else {
-                                None
-                            }
-                        };
-                        if let Some(status) = updated {
-                            emit_status(&app_stdout, &status);
-                        }
-                    }
-                }
-            })
-            .await;
-        });
+        let (stdout_task, stderr_task) = spawn_stream_readers(
+            &app,
+            &self.runtime,
+            run_id,
+            action,
+            engine,
+            stdout,
+            stderr,
+        );
 
-        // Stream stderr (lossy UTF-8)
-        let app_stderr = app.clone();
-        let stderr_task = tauri::async_runtime::spawn(async move {
-            let Some(err) = stderr else { return };
-            read_lossy_lines(err, |line| {
-                emit_output(&app_stderr, "stderr", &line);
-            })
-            .await;
-        });
-
-        // Supervise child lifecycle & graceful stop
+        // Supervise child lifecycle & graceful stop (and optional sequential follow-up step)
         let runtime_wait = Arc::clone(&self.runtime);
         let app_wait = app.clone();
+        let root_for_followup = root_path.clone();
         tauri::async_runtime::spawn(async move {
-            let mut stopped_by_user = false;
-            let exit_status = tokio::select! {
-                res = child.wait() => res.ok(),
-                _ = &mut stop_rx => {
-                    stopped_by_user = true;
-                    if pid > 0 {
-                        terminate_process_tree_graceful(pid);
-                    }
-                    match tokio::time::timeout(Duration::from_secs(3), child.wait()).await {
-                        Ok(res) => res.ok(),
-                        Err(_) => {
-                            if pid > 0 {
-                                terminate_process_tree_force(pid);
-                            }
-                            let _ = child.kill().await;
-                            child.wait().await.ok()
-                        }
-                    }
-                }
-            };
+            let (mut exit_status, mut stopped_by_user) =
+                wait_or_stop_child(&mut child, pid, &mut stop_rx).await;
 
             // Give stream readers a brief moment to flush remaining buffered lines
             let _ = tokio::time::timeout(Duration::from_millis(500), stdout_task).await;
             let _ = tokio::time::timeout(Duration::from_millis(500), stderr_task).await;
 
+            if !stopped_by_user && exit_status.and_then(|s| s.code()) == Some(0) {
+                if let Some(next_inv) = follow_up_invocation {
+                    emit_output(
+                        &app_wait,
+                        "system",
+                        format!("$ {} {}", next_inv.program.display(), next_inv.args.join(" ")),
+                    );
+                    match spawn_cli_child(&root_for_followup, &next_inv) {
+                        Ok(mut next_child) => {
+                            let next_pid = next_child.id().unwrap_or(0);
+                            if let Ok(mut rt) = runtime_wait.lock() {
+                                if let Some(active) = rt.active.as_mut() {
+                                    if active.run_id == run_id {
+                                        active.pid = next_pid;
+                                    }
+                                }
+                            }
+                            let next_stdout = next_child.stdout.take();
+                            let next_stderr = next_child.stderr.take();
+                            let (next_out_task, next_err_task) = spawn_stream_readers(
+                                &app_wait,
+                                &runtime_wait,
+                                run_id,
+                                action,
+                                engine,
+                                next_stdout,
+                                next_stderr,
+                            );
+                            let (next_status, next_stopped) =
+                                wait_or_stop_child(&mut next_child, next_pid, &mut stop_rx).await;
+                            let _ = tokio::time::timeout(Duration::from_millis(500), next_out_task).await;
+                            let _ = tokio::time::timeout(Duration::from_millis(500), next_err_task).await;
+                            exit_status = next_status;
+                            stopped_by_user = next_stopped;
+                        }
+                        Err(err) => {
+                            emit_output(&app_wait, "stderr", err.to_string());
+                            exit_status = None;
+                        }
+                    }
+                }
+            }
+
             let exit_code = exit_status.and_then(|s| s.code());
             let final_msg = if stopped_by_user {
-                format!("Stopped `hexo {}`.", action.as_str())
+                format!("Stopped `{} {}`.", engine_cmd, action.as_str())
             } else if exit_code == Some(0) {
-                format!("Completed `hexo {}`.", action.as_str())
+                format!("Completed `{} {}`.", engine_cmd, action.as_str())
             } else {
                 format!(
-                    "`hexo {}` exited with code {}.",
+                    "`{} {}` exited with code {}.",
+                    engine_cmd,
                     action.as_str(),
                     exit_code
                         .map(|c| c.to_string())
@@ -1341,5 +1551,53 @@ mod tests {
             .await;
             assert!(res.is_ok());
         });
+    }
+
+    #[test]
+    fn test_hugo_cli_url_regex_server_config_and_clean() {
+        assert_eq!(
+            extract_hexo_server_url(
+                "Web Server is available at http://localhost:1313/ (bind address 127.0.0.1)"
+            ),
+            Some("http://localhost:1313/".to_string())
+        );
+        assert_eq!(
+            extract_hexo_server_url(
+                "\x1b[32mWeb Server is available at\x1b[0m http://127.0.0.1:1313/blog/"
+            ),
+            Some("http://127.0.0.1:1313/blog/".to_string())
+        );
+
+        let dir = TempDir::new().unwrap();
+        let site = dir.path().join("hugo-site");
+        let bin_dir = dir.path().join("bin");
+        fs::create_dir_all(&site).unwrap();
+        fs::create_dir_all(&bin_dir).unwrap();
+        fs::write(site.join("hugo.toml"), "title = \"Hugo\"\n").unwrap();
+
+        let srv = read_server_config(&site);
+        assert_eq!(srv.port, 1313);
+        assert_eq!(srv.ip, "localhost");
+
+        let hugo_name = hugo_executable_names()[0];
+        touch_file(&bin_dir.join(hugo_name));
+        let inv = resolve_hugo_invocation_in_dirs(
+            std::slice::from_ref(&bin_dir),
+            vec!["server".into(), "-D".into()],
+        )
+        .unwrap();
+        assert_eq!(inv.program, bin_dir.join(hugo_name));
+        assert_eq!(inv.args, vec!["server", "-D"]);
+
+        fs::create_dir_all(site.join("public/posts")).unwrap();
+        fs::create_dir_all(site.join("resources/_gen/images")).unwrap();
+        fs::write(site.join("public/index.html"), "<html/>").unwrap();
+        fs::write(site.join("hugo.toml"), "title = \"Keep\"\n").unwrap();
+
+        let removed = clean_hugo_output_dirs(&site).unwrap();
+        assert_eq!(removed, vec!["public", "resources/_gen"]);
+        assert!(!site.join("public").exists());
+        assert!(!site.join("resources/_gen").exists());
+        assert!(site.join("hugo.toml").is_file());
     }
 }

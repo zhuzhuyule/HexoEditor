@@ -1078,6 +1078,7 @@ export function App() {
       permalink: siteConfig?.permalink,
       root: siteConfig?.root,
       modifiedMs: activeTab.modifiedMs,
+      engine: siteConfig?.engine,
     });
   }, [
     activeTab?.filePath,
@@ -1091,6 +1092,7 @@ export function App() {
     hexoCliStatus.serverUrl,
     siteConfig?.permalink,
     siteConfig?.root,
+    siteConfig?.engine,
   ]);
 
   const handleOpenExternalUrl = useCallback(
@@ -1590,67 +1592,71 @@ export function App() {
       }
     );
 
-    // 6. Hexo CLI Commands
+    // 6. Hexo / Hugo CLI Commands
+    const isHugo = siteConfig?.engine === "hugo";
+    const cliGroup = isHugo ? msg.command.groupHugo : msg.command.groupHexo;
     items.push(
       {
         id: "hexo:server",
-        label: msg.command.hexoServer,
-        group: msg.command.groupHexo,
+        label: isHugo ? msg.command.hugoServer : msg.command.hexoServer,
+        group: cliGroup,
         disabled: !activeSiteRoot || hexoCliStatus.running,
-        keywords: ["hexo", "server", "s", "preview"],
+        keywords: [isHugo ? "hugo" : "hexo", "server", "s", "preview"],
         icon: <Play className="h-3.5 w-3.5" />,
         onSelect: () => void handleRunHexoAction("server"),
       },
       {
         id: "hexo:stop",
-        label: msg.command.hexoStop,
-        group: msg.command.groupHexo,
+        label: isHugo ? msg.command.hugoStop : msg.command.hexoStop,
+        group: cliGroup,
         disabled: !hexoCliStatus.running,
-        keywords: ["hexo", "stop", "kill"],
+        keywords: [isHugo ? "hugo" : "hexo", "stop", "kill"],
         icon: <Square className="h-3.5 w-3.5" />,
         onSelect: () => void stopHexoAction(),
       },
       {
         id: "hexo:generate",
-        label: msg.command.hexoGenerate,
-        group: msg.command.groupHexo,
+        label: isHugo ? msg.command.hugoGenerate : msg.command.hexoGenerate,
+        group: cliGroup,
         disabled: !activeSiteRoot || hexoCliStatus.running,
-        keywords: ["hexo", "generate", "g", "build"],
+        keywords: [isHugo ? "hugo" : "hexo", "generate", "g", "build"],
         icon: <Hammer className="h-3.5 w-3.5" />,
         onSelect: () => void handleRunHexoAction("generate"),
       },
       {
         id: "hexo:generate-deploy",
-        label: msg.command.hexoGenerateDeploy,
-        group: msg.command.groupHexo,
+        label: isHugo
+          ? msg.command.hugoGenerateDeploy
+          : msg.command.hexoGenerateDeploy,
+        group: cliGroup,
         disabled: !activeSiteRoot || hexoCliStatus.running,
-        keywords: ["hexo", "g", "d", "deploy", "hgd"],
+        keywords: [isHugo ? "hugo" : "hexo", "g", "d", "deploy", "hgd"],
         icon: <Rocket className="h-3.5 w-3.5" />,
         onSelect: () => void handleRunHexoAction("generate_deploy"),
       },
       {
         id: "hexo:deploy",
-        label: msg.command.hexoDeploy,
-        group: msg.command.groupHexo,
+        label: isHugo ? msg.command.hugoDeploy : msg.command.hexoDeploy,
+        group: cliGroup,
         disabled: !activeSiteRoot || hexoCliStatus.running,
-        keywords: ["hexo", "deploy", "d"],
+        keywords: [isHugo ? "hugo" : "hexo", "deploy", "d"],
         icon: <Send className="h-3.5 w-3.5" />,
         onSelect: () => void handleRunHexoAction("deploy"),
       },
       {
         id: "hexo:clean",
-        label: msg.command.hexoClean,
-        group: msg.command.groupHexo,
+        label: isHugo ? msg.command.hugoClean : msg.command.hexoClean,
+        group: cliGroup,
         disabled: !activeSiteRoot || hexoCliStatus.running,
-        keywords: ["hexo", "clean"],
+        keywords: [isHugo ? "hugo" : "hexo", "clean"],
         icon: <Eraser className="h-3.5 w-3.5" />,
         onSelect: () => void handleRunHexoAction("clean"),
       },
       {
         id: "hexo:kill-port",
-        label: msg.command.hexoKillPort,
-        group: msg.command.groupHexo,
-        keywords: ["hexo", "port", "4000", "kill", "free"],
+        label: isHugo ? msg.command.hugoKillPort : msg.command.hexoKillPort,
+        group: cliGroup,
+        keywords: [isHugo ? "hugo" : "hexo", "port", isHugo ? "1313" : "4000", "kill", "free"],
         icon: <PlugZap className="h-3.5 w-3.5" />,
         onSelect: () => void killHexoPort(),
       }
@@ -2063,6 +2069,7 @@ export function App() {
                   onOpenServerUrl={(url) => void handleOpenExternalUrl(url)}
                   disabled={!activeSiteRoot}
                   locale={locale}
+                  engine={siteConfig?.engine}
                   className="no-print"
                 />
               )}

@@ -1,5 +1,7 @@
 export type Locale = "zh-CN" | "en-US";
 
+export type SiteEngine = "hexo" | "hugo";
+
 export type ViewMode = "write" | "split" | "read" | "focus";
 
 export type PostFilterTab = "all" | "posts" | "drafts";
@@ -23,6 +25,7 @@ export interface HexoTerminalLogItem {
 }
 
 export interface HexoSiteConfig {
+  engine?: SiteEngine;
   rootPath: string;
   title: string;
   subtitle?: string | null;
@@ -113,7 +116,10 @@ export interface SavedSiteEntry {
   rootPath: string;
   title: string;
   addedAt: number;
+  engine?: SiteEngine;
 }
+
+export type SiteRecord = SavedSiteEntry;
 
 export interface EditorTab {
   id: string;

@@ -634,4 +634,66 @@ describe("Stage 2 minimalist UI & workbench components", () => {
     expect(dateSpan!.className).toContain("whitespace-nowrap");
     expect(dateSpan!.className).toContain("shrink-0");
   });
+
+  it("renders Hugo labels in HexoTerminalDrawer and Hugo engine badge in Sidebar", async () => {
+    const idleStatus: HexoTerminalStatus = {
+      running: false,
+      action: null,
+      serverRunning: false,
+      serverUrl: null,
+    };
+
+    await act(async () => {
+      root.render(
+        <HexoTerminalDrawer
+          status={idleStatus}
+          logs={[]}
+          open={true}
+          onOpenChange={vi.fn()}
+          onRunAction={vi.fn()}
+          onStop={vi.fn()}
+          onKillPort={vi.fn()}
+          onClearLogs={vi.fn()}
+          engine="hugo"
+        />
+      );
+    });
+
+    expect(container.textContent).toContain("Hugo 终端");
+    expect(container.querySelector('button[title="启动预览 (hugo server -D)"]')).not.toBeNull();
+    expect(container.querySelector('button[title="构建 (hugo)"]')).not.toBeNull();
+    expect(container.querySelector('button[title="部署 (hugo deploy)"]')).not.toBeNull();
+    expect(container.querySelector('button[title="清理 (clean)"]')).not.toBeNull();
+    expect(container.textContent).toContain("暂无 Hugo 命令输出日志");
+
+    useAppStore.setState({
+      activeSiteRoot: "/hugo-site",
+      sites: [{ rootPath: "/hugo-site", title: "Zac Hugo", addedAt: 1, engine: "hugo" }],
+      siteConfig: {
+        engine: "hugo",
+        rootPath: "/hugo-site",
+        title: "Zac Hugo",
+        sourceDir: "content",
+        postAssetFolder: true,
+        defaultLayout: "post",
+        hasPostsDir: true,
+        hasDraftsDir: false,
+        hasScaffoldPost: false,
+      },
+      posts: [],
+      allTags: [],
+      allCategories: [],
+      tabs: [],
+      activeTabId: null,
+    });
+
+    await act(async () => {
+      root.render(<Sidebar onRequestNewPost={vi.fn()} />);
+    });
+
+    const engineBadge = Array.from(container.querySelectorAll("span")).find(
+      (el) => el.textContent?.trim() === "Hugo"
+    );
+    expect(engineBadge).toBeDefined();
+  });
 });

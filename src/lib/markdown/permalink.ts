@@ -1,4 +1,5 @@
 import { parseMarkdownDocument } from "@/lib/frontmatter";
+import type { SiteEngine } from "@/types";
 
 export interface BuildHexoPostUrlParams {
   serverUrl: string | null | undefined;
@@ -11,6 +12,7 @@ export interface BuildHexoPostUrlParams {
   permalink?: string | null;
   root?: string | null;
   modifiedMs?: number;
+  engine?: SiteEngine;
 }
 
 interface ParsedDateParts {
@@ -90,17 +92,67 @@ function encodeUrlPathPreservingSlashes(rawPath: string): string {
   return `${encodedSegments.join("/")}${trailingSlash ? "/" : ""}`;
 }
 
+function buildHugoPostRelativePath(
+  filePath: string,
+  siteRoot: string,
+  sourceDir: string
+): string | null {
+  const normFile = filePath.replace(/\\/g, "/");
+  const normRoot = normalizePathSlashes(siteRoot);
+  const cleanSource = sourceDir.trim().replace(/^\/+|\/+$/g, "") || "content";
+  const contentPrefix = `${normRoot}/${cleanSource}/`;
+
+  if (!normFile.startsWith(contentPrefix)) {
+    return null;
+  }
+
+  const rel = normFile.slice(contentPrefix.length);
+  const segments = rel.split("/").filter(Boolean);
+  if (segments.length < 2) {
+    return null;
+  }
+
+  const fileName = segments[segments.length - 1] ?? "";
+  if (/^_index\.(md|markdown|mdx)$/i.test(fileName)) {
+    return null;
+  }
+
+  const rawSection = segments[0];
+  const section =
+    rawSection.toLowerCase() === "posts" || rawSection.toLowerCase() === "post"
+      ? rawSection.toLowerCase()
+      : rawSection;
+
+  const restParts = segments.slice(1);
+  if (
+    restParts.length >= 2 &&
+    /^index\.(md|markdown|mdx)$/i.test(restParts[restParts.length - 1] ?? "")
+  ) {
+    restParts.pop();
+  } else {
+    const last = restParts[restParts.length - 1] ?? "";
+    const stripped = last.replace(/\.(md|markdown|mdx)$/i, "");
+    if (!stripped) return null;
+    restParts[restParts.length - 1] = stripped;
+  }
+
+  const slugPath = restParts.join("/");
+  if (!slugPath) return null;
+  return `${section}/${slugPath}/`;
+}
+
 /**
- * Builds the exact local preview URL for the active Hexo post using site
- * `_config.yml` `permalink` & `root` plus the post's front-matter `date`/`abbrlink`.
- * Safely falls back to `null` (so callers use site home `serverUrl`) for drafts,
- * standalone files, or invalid server URLs.
+ * Builds the exact local preview URL for the active Hexo or Hugo post using site
+ * config & post front-matter/slug.
+ * Safely falls back to `null` (so callers use site home `serverUrl`) for Hexo drafts,
+ * standalone files, or invalid server URLs. For Hugo, drafts are included because
+ * `hugo server -D` serves drafts.
  */
 export function buildHexoPostUrl(params: BuildHexoPostUrlParams): string | null {
   const {
     serverUrl,
     siteRoot,
-    sourceDir = "source",
+    sourceDir,
     filePath,
     content,
     isDraft = false,
@@ -108,9 +160,11 @@ export function buildHexoPostUrl(params: BuildHexoPostUrlParams): string | null 
     permalink,
     root,
     modifiedMs,
+    engine = "hexo",
   } = params;
 
-  if (!serverUrl || !siteRoot || !filePath || isStandalone || isDraft) {
+  const isHugo = engine === "hugo";
+  if (!serverUrl || !siteRoot || !filePath || isStandalone || (!isHugo && isDraft)) {
     return null;
   }
 
@@ -122,6 +176,23 @@ export function buildHexoPostUrl(params: BuildHexoPostUrlParams): string | null 
     }
   } catch {
     return null;
+  }
+
+  if (isHugo) {
+    const hugoRel = buildHugoPostRelativePath(
+      filePath,
+      siteRoot,
+      sourceDir || "content"
+    );
+    if (!hugoRel) {
+      return null;
+    }
+    const encodedRelative = encodeUrlPathPreservingSlashes(hugoRel);
+    if (!encodedRelative) return base.toString();
+    const basePath = base.pathname.endsWith("/")
+      ? base.pathname
+      : `${base.pathname}/`;
+    return new URL(encodedRelative, `${base.origin}${basePath}`).toString();
   }
 
   const relSlug = extractPostRelativeSlug(

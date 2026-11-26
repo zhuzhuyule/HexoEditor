@@ -166,10 +166,18 @@ fn create_hexo_post(
     if let Ok(cfg) = hexo::inspect_hexo_site(&root_path) {
         let stem = hexo::sanitize_filename_stem(&title);
         if !stem.is_empty() {
-            let predicted = Path::new(&cfg.root_path)
-                .join(&cfg.source_dir)
-                .join(if is_draft { "_drafts" } else { "_posts" })
-                .join(format!("{}.md", stem));
+            let predicted = if cfg.engine == "hugo" {
+                Path::new(&cfg.root_path)
+                    .join(&cfg.source_dir)
+                    .join("posts")
+                    .join(&stem)
+                    .join("index.md")
+            } else {
+                Path::new(&cfg.root_path)
+                    .join(&cfg.source_dir)
+                    .join(if is_draft { "_drafts" } else { "_posts" })
+                    .join(format!("{}.md", stem))
+            };
             watcher.mark_self_write(&predicted);
         }
     }
@@ -189,9 +197,11 @@ fn toggle_post_draft(
         hexo::inspect_hexo_site(&root_path),
         Path::new(&file_path).file_name(),
     ) {
-        let source = Path::new(&cfg.root_path).join(&cfg.source_dir);
-        watcher.mark_self_write(&source.join("_posts").join(file_name));
-        watcher.mark_self_write(&source.join("_drafts").join(file_name));
+        if cfg.engine != "hugo" {
+            let source = Path::new(&cfg.root_path).join(&cfg.source_dir);
+            watcher.mark_self_write(&source.join("_posts").join(file_name));
+            watcher.mark_self_write(&source.join("_drafts").join(file_name));
+        }
     }
     let summary = hexo::toggle_post_draft(&root_path, &file_path)?;
     watcher.mark_self_write(Path::new(&summary.file_path));
@@ -221,8 +231,17 @@ fn rename_post_with_assets(
     if let Some(parent) = old_path.parent() {
         let new_slug = hexo::sanitize_filename_stem(&new_title_or_slug);
         if !new_slug.is_empty() {
-            let ext = old_path.extension().and_then(|e| e.to_str()).unwrap_or("md");
-            watcher.mark_self_write(&parent.join(format!("{}.{}", new_slug, ext)));
+            let file_name = old_path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+            if file_name.eq_ignore_ascii_case("index.md")
+                || file_name.eq_ignore_ascii_case("index.markdown")
+            {
+                if let Some(posts_parent) = parent.parent() {
+                    watcher.mark_self_write(&posts_parent.join(&new_slug).join(file_name));
+                }
+            } else {
+                let ext = old_path.extension().and_then(|e| e.to_str()).unwrap_or("md");
+                watcher.mark_self_write(&parent.join(format!("{}.{}", new_slug, ext)));
+            }
         }
     }
     let res = hexo::rename_post_with_assets(

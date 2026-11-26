@@ -6,6 +6,7 @@ use serde_yaml::Value;
 use walkdir::WalkDir;
 
 use crate::error::{AppError, AppResult};
+use crate::hexo::{detect_site_engine, is_page_bundle_doc, read_hugo_config_values, SiteEngine};
 use crate::models::{QuickOpenResult, ThemeCssResult};
 use crate::watcher::normalize_path;
 
@@ -47,6 +48,19 @@ fn yaml_scalar_to_u16(val: &Value) -> Option<u16> {
 }
 
 fn read_site_config_subset(site_root: &Path) -> SiteConfigSubset {
+    if detect_site_engine(site_root) == Some(SiteEngine::Hugo) {
+        let hugo = read_hugo_config_values(site_root);
+        return SiteConfigSubset {
+            public_dir: hugo.publish_dir,
+            source_dir: Some("content".to_string()),
+            theme: hugo.theme,
+            url: hugo.base_url,
+            root: Some("/".to_string()),
+            server_port: Some(1313),
+            server_ip: Some("localhost".to_string()),
+        };
+    }
+
     let config_path = site_root.join("_config.yml");
     let Ok(raw) = fs::read_to_string(&config_path) else {
         return SiteConfigSubset::default();
@@ -399,7 +413,9 @@ pub fn resolve_quick_open_target(
                 .unwrap_or("assets");
 
             let dir = if let Some(root) = clean_site_root.as_deref() {
-                if post_asset_folder {
+                if is_page_bundle_doc(&doc) {
+                    normalize_path(doc_parent)
+                } else if post_asset_folder {
                     normalize_path(&doc_parent.join(doc_stem))
                 } else {
                     let src_name = effective_source_dir(root);
@@ -761,5 +777,56 @@ mod tests {
         )
         .unwrap();
         assert_eq!(r_wildcard.value, "http://localhost:4321/");
+    }
+
+    #[test]
+    fn test_resolve_quick_open_hugo_local_preview_and_bundle_asset_dir() {
+        let dir = TempDir::new().unwrap();
+        let root = dir.path();
+        write_file(
+            &root.join("hugo.toml"),
+            "baseURL = \"https://example.org/\"\ntitle = \"Root\"\n",
+        );
+        write_file(
+            &root.join("config/_default/hugo.toml"),
+            "baseURL = 'https://blog.ause.cc/'\ntitle = 'Zac'\n",
+        );
+        let bundle_post = root.join("content/posts/my-bundle/index.md");
+        write_file(&bundle_post, "---\ntitle: My Bundle\n---\n");
+
+        let r_local = resolve_quick_open_target(
+            "local_preview",
+            Some(root.to_str().unwrap()),
+            None,
+            true,
+            Some("content"),
+        )
+        .unwrap();
+        assert_eq!(r_local.kind, "url");
+        assert_eq!(r_local.value, "http://localhost:1313/");
+
+        let r_site_url = resolve_quick_open_target(
+            "site_url",
+            Some(root.to_str().unwrap()),
+            None,
+            true,
+            Some("content"),
+        )
+        .unwrap();
+        assert_eq!(r_site_url.value, "https://blog.ause.cc/");
+
+        let r_bundle_assets = resolve_quick_open_target(
+            "post_asset_dir",
+            Some(root.to_str().unwrap()),
+            Some(bundle_post.to_str().unwrap()),
+            true,
+            Some("content"),
+        )
+        .unwrap();
+        assert!(r_bundle_assets.exists);
+        assert_eq!(
+            PathBuf::from(r_bundle_assets.value),
+            fs::canonicalize(root.join("content/posts/my-bundle")).unwrap()
+        );
     }
 }

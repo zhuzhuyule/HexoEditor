@@ -5,7 +5,7 @@ use md5::{Digest, Md5};
 use regex::Regex;
 
 use crate::error::{AppError, AppResult};
-use crate::hexo::{percent_encode_path_segment, sanitize_filename_stem};
+use crate::hexo::{is_page_bundle_doc, percent_encode_path_segment, sanitize_filename_stem};
 use crate::models::{RenameImageResult, ResolvedImageResult, SavedImageResult};
 
 fn compute_md5_hex(bytes: &[u8]) -> String {
@@ -81,6 +81,9 @@ fn compute_target_dir_and_prefix(
         .unwrap_or("assets");
 
     if let Some(root_str) = site_root.filter(|s| !s.trim().is_empty()) {
+        if is_page_bundle_doc(doc_path) {
+            return Ok((doc_parent.to_path_buf(), String::new()));
+        }
         if post_asset_folder {
             let dir = doc_parent.join(doc_stem);
             Ok((dir, String::new()))
@@ -257,6 +260,9 @@ pub fn resolve_local_images(
                     candidates.push(site_src.join("images").join(stem).join(rel_trimmed));
                 }
                 candidates.push(site_src.join("images").join(rel_trimmed));
+                if let Some(root_str) = site_root.filter(|s| !s.trim().is_empty()) {
+                    candidates.push(PathBuf::from(root_str).join("static").join(no_leading));
+                }
             }
 
             for candidate in candidates {
@@ -578,5 +584,54 @@ mod tests {
         assert_eq!(renamed_cjk.replacements, 2);
         assert!(renamed_cjk.updated_content.contains("![a](./assets/diagram.png)"));
         assert!(renamed_cjk.updated_content.contains("<img src=\"diagram.png?v=1\" />"));
+    }
+
+    #[test]
+    fn test_hugo_page_bundle_image_save_resolve_and_rename() {
+        let dir = TempDir::new().unwrap();
+        let root = dir.path();
+        fs::write(root.join("hugo.toml"), "title = \"Hugo\"\n").unwrap();
+        let bundle_dir = root.join("content/posts/my-bundle");
+        fs::create_dir_all(&bundle_dir).unwrap();
+        let doc_path = bundle_dir.join("index.md");
+        fs::write(&doc_path, "---\ntitle: Bundle\n---\n").unwrap();
+
+        let saved = save_image_bytes(
+            doc_path.to_str().unwrap(),
+            Some(root.to_str().unwrap()),
+            true,
+            Some("content"),
+            b"hugo-bundle-png-payload",
+            Some("png"),
+            Some("hero"),
+        )
+        .unwrap();
+        assert_eq!(saved.file_name, "hero.png");
+        assert_eq!(saved.markdown_path, "hero.png");
+        assert_eq!(
+            fs::canonicalize(&saved.absolute_path).unwrap(),
+            fs::canonicalize(bundle_dir.join("hero.png")).unwrap()
+        );
+
+        let resolved = resolve_local_images(
+            Some(doc_path.to_str().unwrap()),
+            Some(root.to_str().unwrap()),
+            Some("content"),
+            vec!["hero.png".into(), "missing.png".into()],
+        );
+        assert!(resolved[0].exists);
+        assert_eq!(
+            resolved[0].absolute_path.as_deref(),
+            Some(fs::canonicalize(bundle_dir.join("hero.png")).unwrap().to_str().unwrap())
+        );
+        assert!(!resolved[1].exists);
+
+        let md = "![hero](hero.png)\n";
+        let renamed = rename_local_image(&saved.absolute_path, "cover-new", md).unwrap();
+        assert_eq!(renamed.new_file_name, "cover-new.png");
+        assert_eq!(renamed.replacements, 1);
+        assert!(bundle_dir.join("cover-new.png").is_file());
+        assert!(!bundle_dir.join("hero.png").exists());
+        assert!(renamed.updated_content.contains("![hero](cover-new.png)"));
     }
 }

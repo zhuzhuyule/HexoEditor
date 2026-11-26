@@ -86,4 +86,51 @@ describe("buildHexoPostUrl", () => {
     });
     expect(url).toBe("http://localhost:4000/2026/01/09/no-date/");
   });
+
+  it("builds Hugo Page Bundle and standalone post URLs including drafts", () => {
+    expect(
+      buildHexoPostUrl({
+        engine: "hugo",
+        serverUrl: "http://localhost:1313/",
+        siteRoot: "/Users/zac/my-blog",
+        sourceDir: "content",
+        filePath: "/Users/zac/my-blog/content/posts/blog-setup/index.md",
+        content: "---\ntitle: Blog Setup\ndraft: true\n---\n",
+        isDraft: true,
+      })
+    ).toBe("http://localhost:1313/posts/blog-setup/");
+
+    expect(
+      buildHexoPostUrl({
+        engine: "hugo",
+        serverUrl: "http://localhost:1313/",
+        siteRoot: "/Users/zac/my-blog",
+        sourceDir: "content",
+        filePath: "/Users/zac/my-blog/content/Posts/我的文章.md",
+        content: "+++\ntitle = \"我的文章\"\ndraft = false\n+++\n",
+      })
+    ).toBe("http://localhost:1313/posts/%E6%88%91%E7%9A%84%E6%96%87%E7%AB%A0/");
+
+    expect(
+      buildHexoPostUrl({
+        engine: "hugo",
+        serverUrl: "http://localhost:1313/",
+        siteRoot: "/Users/zac/my-blog",
+        sourceDir: "content",
+        filePath: "/Users/zac/my-blog/content/post/hello/index.md",
+        content: "---\ntitle: Hello\n---\n",
+      })
+    ).toBe("http://localhost:1313/post/hello/");
+
+    expect(
+      buildHexoPostUrl({
+        engine: "hugo",
+        serverUrl: "http://localhost:1313/",
+        siteRoot: "/Users/zac/my-blog",
+        sourceDir: "content",
+        filePath: "/Users/zac/my-blog/content/posts/_index.md",
+        content: "---\ntitle: Posts\n---\n",
+      })
+    ).toBeNull();
+  });
 });
