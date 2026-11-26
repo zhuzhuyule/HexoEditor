@@ -121,9 +121,15 @@ export function HexoTerminalDrawer({
 
   const isBusy = status.running && !status.serverRunning;
   const actionDisabled = disabled || status.running;
+  const hasDedicatedPostUrl = Boolean(
+    targetUrl && targetUrl !== status.serverUrl
+  );
 
   const statusText = (() => {
     if (status.serverRunning) {
+      if (hasDedicatedPostUrl) {
+        return isEn ? "Server running" : "本地服务运行中";
+      }
       return status.serverUrl
         ? isEn
           ? `Server running ${status.serverUrl}`
@@ -170,11 +176,11 @@ export function HexoTerminalDrawer({
       {/* Compact Command Bar / Collapsed Trigger */}
       <div className="flex h-8 items-center justify-between gap-2 px-2.5 bg-zinc-50/75">
         {/* Left: Status trigger & running indicator */}
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           <button
             type="button"
             onClick={() => onOpenChange(!open)}
-            className="inline-flex min-w-0 items-center gap-1.5 rounded px-1.5 py-0.5 text-[11px] text-zinc-600 transition-colors hover:bg-zinc-200/60 hover:text-zinc-900 cursor-pointer"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded px-1.5 py-0.5 text-[11px] text-zinc-600 transition-colors hover:bg-zinc-200/60 hover:text-zinc-900 cursor-pointer"
             title={open ? labels.collapse : labels.expand}
           >
             <Terminal className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
@@ -198,27 +204,25 @@ export function HexoTerminalDrawer({
 
           {status.serverRunning && (targetUrl || status.serverUrl) && onOpenServerUrl && (() => {
             const openUrlTarget = (targetUrl || status.serverUrl)!;
-            const hasDedicatedPostUrl = Boolean(targetUrl && targetUrl !== status.serverUrl);
             let readableUrl = openUrlTarget;
             try {
               readableUrl = decodeURI(openUrlTarget);
             } catch {
               // ignore malformed URI
             }
+            const displayLabel = hasDedicatedPostUrl
+              ? readableUrl.replace(/^https?:\/\//i, "")
+              : status.serverUrl;
             return (
               <button
                 type="button"
                 onClick={() => onOpenServerUrl(openUrlTarget)}
-                className="inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 font-mono text-[11px] text-blue-600 transition-colors hover:bg-blue-50 cursor-pointer"
+                className="inline-flex min-w-0 max-w-[360px] items-center gap-1 rounded px-1.5 py-0.5 font-mono text-[11px] text-blue-600 transition-colors hover:bg-blue-50 cursor-pointer"
                 title={readableUrl}
               >
-                <ExternalLink className="h-3 w-3" />
-                <span className="hidden sm:inline">
-                  {hasDedicatedPostUrl
-                    ? isEn
-                      ? "Open Post"
-                      : "打开当前页"
-                    : status.serverUrl}
+                <ExternalLink className="h-3 w-3 shrink-0" />
+                <span className="hidden truncate sm:inline">
+                  {displayLabel}
                 </span>
               </button>
             );

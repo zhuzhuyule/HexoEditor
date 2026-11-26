@@ -559,6 +559,7 @@ describe("Stage 2 workbench integration", () => {
       'button[title="http://localhost:4000/2026/11/26/测试文章/"]'
     );
     expect(openPageBtn).not.toBeNull();
+    expect(openPageBtn?.textContent).toContain("localhost:4000/2026/11/26/测试文章/");
     await act(async () => {
       openPageBtn!.click();
     });
