@@ -533,74 +533,80 @@ export function Sidebar({ onRequestNewPost, onSelectOutline }: SidebarProps) {
                         : "text-zinc-700 hover:bg-zinc-200/50"
                     )}
                   >
-                    <div className="flex items-start justify-between gap-1.5">
-                      <div className="flex min-w-0 items-center gap-1.5">
-                        <FileText className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
-                        <span className="truncate text-xs font-medium leading-snug">
-                          {post.title}
-                        </span>
-                      </div>
-
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button
-                            type="button"
-                            onClick={(e) => e.stopPropagation()}
-                            className="shrink-0 rounded p-0.5 text-zinc-400 opacity-0 group-hover:opacity-100 hover:bg-zinc-200/80 hover:text-zinc-700 transition-opacity cursor-pointer"
-                          >
-                            <MoreHorizontal className="h-3.5 w-3.5" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                          <DropdownMenuItem
-                            onSelect={() => void toggleDraftStatus(post)}
-                          >
-                            {post.isDraft ? (
-                              <>
-                                <Send className="h-3.5 w-3.5 text-zinc-500" />
-                                {msg.sidebar.publishAction}
-                              </>
-                            ) : (
-                              <>
-                                <Archive className="h-3.5 w-3.5 text-zinc-500" />
-                                {msg.sidebar.moveToDraftAction}
-                              </>
-                            )}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onSelect={() => void api.revealInFileManager(post.filePath)}
-                          >
-                            <FolderOpen className="h-3.5 w-3.5 text-zinc-500" />
-                            {msg.sidebar.revealAction}
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-red-600 focus:text-red-600"
-                            onSelect={() => {
-                              setDeleteAssets(post.hasAssetFolder);
-                              setDeleteTarget(post);
-                            }}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            {msg.sidebar.deleteAction}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                    <div className="flex min-w-0 items-center gap-1.5" title={post.title}>
+                      <FileText className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
+                      <span className="min-w-0 flex-1 truncate text-xs font-medium leading-snug">
+                        {post.title}
+                      </span>
                     </div>
 
-                    <div className="flex items-center justify-between gap-2 pl-5 text-[11px] text-zinc-400">
-                      <div className="flex min-w-0 items-center gap-1.5">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={(e) => e.stopPropagation()}
+                          className={cn(
+                            "absolute right-1.5 top-1.5 rounded p-0.5 text-zinc-400 opacity-0 group-hover:opacity-100 focus:opacity-100 data-[state=open]:opacity-100 hover:text-zinc-700 transition-opacity cursor-pointer",
+                            isActive
+                              ? "bg-white/95 hover:bg-zinc-100"
+                              : "bg-zinc-100/95 hover:bg-zinc-200/90"
+                          )}
+                        >
+                          <MoreHorizontal className="h-3.5 w-3.5" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenuItem
+                          onSelect={() => void toggleDraftStatus(post)}
+                        >
+                          {post.isDraft ? (
+                            <>
+                              <Send className="h-3.5 w-3.5 text-zinc-500" />
+                              {msg.sidebar.publishAction}
+                            </>
+                          ) : (
+                            <>
+                              <Archive className="h-3.5 w-3.5 text-zinc-500" />
+                              {msg.sidebar.moveToDraftAction}
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() => void api.revealInFileManager(post.filePath)}
+                        >
+                          <FolderOpen className="h-3.5 w-3.5 text-zinc-500" />
+                          {msg.sidebar.revealAction}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-red-600 focus:text-red-600"
+                          onSelect={() => {
+                            setDeleteAssets(post.hasAssetFolder);
+                            setDeleteTarget(post);
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          {msg.sidebar.deleteAction}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    <div className="flex min-w-0 items-center justify-between gap-2 pl-5 text-[11px] text-zinc-400">
+                      <div className="flex shrink-0 items-center gap-1.5">
                         {post.isDraft && (
-                          <Badge variant="amber" className="px-1 py-0 text-[10px]">
+                          <Badge variant="amber" className="px-1.5 py-0.5 text-[10px]">
                             {msg.sidebar.draftBadge}
                           </Badge>
                         )}
-                        <span className="truncate font-mono text-[10px]">
+                        <span className="shrink-0 whitespace-nowrap font-mono text-[10px] tabular-nums">
                           {formatShortDate(post.date)}
                         </span>
                       </div>
                       {post.tags.length > 0 && (
-                        <span className="truncate text-[10px] text-zinc-400">
+                        <span
+                          className="min-w-0 truncate text-right text-[10px] text-zinc-400"
+                          title={post.tags.map((t) => `#${t}`).join(" ")}
+                        >
                           #{post.tags[0]}
                           {post.tags.length > 1 ? ` +${post.tags.length - 1}` : ""}
                         </span>

@@ -21,6 +21,7 @@ import {
   OutlinePanel,
   type OutlineItem,
 } from "@/components/sidebar/OutlinePanel";
+import { Sidebar } from "@/components/sidebar/Sidebar";
 import {
   HexoTerminalDrawer,
   type HexoTerminalLogEntry,
@@ -566,5 +567,71 @@ describe("Stage 2 minimalist UI & workbench components", () => {
       localPreviewItem!.click();
     });
     expect(onSelectTarget).toHaveBeenCalledWith("local_preview");
+  });
+
+  it("renders draft badge and date with nowrap and shrink-0 in narrow sidebar post items", async () => {
+    useAppStore.setState({
+      locale: "zh-CN",
+      activeSiteRoot: "/demo-site",
+      sidebarTab: "posts",
+      filterTab: "all",
+      searchQuery: "",
+      selectedCategory: null,
+      selectedTag: null,
+      siteConfig: {
+        rootPath: "/demo-site",
+        title: "Demo",
+        sourceDir: "source",
+        postAssetFolder: true,
+        defaultLayout: "post",
+        hasPostsDir: true,
+        hasDraftsDir: true,
+        hasScaffoldPost: true,
+      },
+      posts: [
+        {
+          title: "V2 发版说明草稿",
+          fileName: "V2-发版草稿.md",
+          filePath: "/demo-site/source/_drafts/V2-发版草稿.md",
+          relativePath: "_drafts/V2-发版草稿.md",
+          slug: "V2-发版草稿",
+          date: "2026-11-26 10:30:00",
+          updated: "",
+          tags: ["HexoEditor", "V2"],
+          categories: ["发布"],
+          isDraft: true,
+          hasAssetFolder: false,
+          excerpt: "",
+          modifiedMs: Date.now(),
+        },
+      ],
+      allTags: [],
+      allCategories: [],
+      tabs: [],
+      activeTabId: null,
+    });
+
+    await act(async () => {
+      root.render(<Sidebar onRequestNewPost={vi.fn()} />);
+    });
+
+    const titleRow = container.querySelector<HTMLElement>(
+      '[title="V2 发版说明草稿"]'
+    );
+    expect(titleRow).not.toBeNull();
+
+    const draftBadge = Array.from(container.querySelectorAll("span")).find(
+      (el) => el.textContent?.trim() === "草稿"
+    );
+    expect(draftBadge).toBeDefined();
+    expect(draftBadge!.className).toContain("whitespace-nowrap");
+    expect(draftBadge!.className).toContain("shrink-0");
+
+    const dateSpan = Array.from(container.querySelectorAll("span")).find(
+      (el) => el.textContent?.trim() === "2026-11-26"
+    );
+    expect(dateSpan).toBeDefined();
+    expect(dateSpan!.className).toContain("whitespace-nowrap");
+    expect(dateSpan!.className).toContain("shrink-0");
   });
 });
