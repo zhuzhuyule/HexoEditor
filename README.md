@@ -6,6 +6,28 @@
 
 ---
 
+## 界面预览
+
+### 双栏写作与实时预览工作台
+
+> 支持固定像素宽可拖拽侧边栏、YAML/TOML Front-Matter 双向编辑、CodeMirror 6 单实例秒切，以及 KaTeX 公式、Mermaid 流程图与 Hexo 主题标签同步渲染。
+
+![HexoEditor V2 双栏写作工作台](docs/images/workbench-split.png)
+
+### 站点上下文感知 AI 写作助手
+
+> 自动注入当前博客引擎、主题标签与全站分类词表，支持本地 ACP Agent / 站点 `.hexoeditor/prompts/*.md` 模板一键润色并确认回写。
+
+![HexoEditor V2 站点感知 AI 写作助手](docs/images/ai-workbench.png)
+
+### 本地 Agent 自动发现与多账号 ACP 配置
+
+> 自动扫描本机 `Antigravity`、`OpenCode`、`Claude Code` 与 `Gemini CLI`，并支持通过独立环境变量配置多账号自定义 ACP Profile。
+
+![HexoEditor V2 ACP 与多账号配置](docs/images/settings-acp.png)
+
+---
+
 ## 核心特性
 
 ### 1. Hexo & Hugo 双引擎原生支持

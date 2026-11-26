@@ -199,7 +199,11 @@ pub fn scan_agents_in_dirs(dirs: &[PathBuf]) -> Vec<DiscoveredAgent> {
     found
 }
 
-async fn query_agent_version(executable: &str, path_env: &OsStr) -> Option<String> {
+async fn query_agent_version(
+    executable: &str,
+    path_env: &OsStr,
+    timeout: Duration,
+) -> Option<String> {
     let mut cmd = Command::new(executable);
     cmd.arg("--version")
         .env("PATH", path_env)
@@ -215,7 +219,7 @@ async fn query_agent_version(executable: &str, path_env: &OsStr) -> Option<Strin
         cmd.creation_flags(CREATE_NO_WINDOW);
     }
 
-    let output = tokio::time::timeout(Duration::from_millis(5000), cmd.output())
+    let output = tokio::time::timeout(timeout, cmd.output())
         .await
         .ok()?
         .ok()?;
@@ -236,7 +240,10 @@ async fn query_agent_version(executable: &str, path_env: &OsStr) -> Option<Strin
     }
 }
 
-pub async fn discover_local_agents_in_dirs(dirs: &[PathBuf]) -> Vec<DiscoveredAgent> {
+pub async fn discover_local_agents_in_dirs_with_timeout(
+    dirs: &[PathBuf],
+    version_timeout: Duration,
+) -> Vec<DiscoveredAgent> {
     let mut agents = scan_agents_in_dirs(dirs);
     if agents.is_empty() {
         return agents;
@@ -248,7 +255,7 @@ pub async fn discover_local_agents_in_dirs(dirs: &[PathBuf]) -> Vec<DiscoveredAg
         let exe = agent.executable.clone();
         let env_copy = path_env.clone();
         handles.push(tokio::spawn(async move {
-            let ver = query_agent_version(&exe, &env_copy).await;
+            let ver = query_agent_version(&exe, &env_copy, version_timeout).await;
             (idx, ver)
         }));
     }
@@ -262,6 +269,10 @@ pub async fn discover_local_agents_in_dirs(dirs: &[PathBuf]) -> Vec<DiscoveredAg
     }
 
     agents
+}
+
+pub async fn discover_local_agents_in_dirs(dirs: &[PathBuf]) -> Vec<DiscoveredAgent> {
+    discover_local_agents_in_dirs_with_timeout(dirs, Duration::from_secs(8)).await
 }
 
 pub async fn discover_local_agents() -> AppResult<Vec<DiscoveredAgent>> {
@@ -327,7 +338,11 @@ mod tests {
         fs::write(&codex_path, "#!/bin/sh\necho 'should not match'\n").unwrap();
         fs::set_permissions(&codex_path, fs::Permissions::from_mode(0o644)).unwrap();
 
-        let agents = discover_local_agents_in_dirs(&[bin_dir]).await;
+        let agents = discover_local_agents_in_dirs_with_timeout(
+            &[bin_dir],
+            Duration::from_secs(15),
+        )
+        .await;
         assert_eq!(agents.len(), 3);
         assert_eq!(agents[0].id, "antigravity");
         assert_eq!(agents[0].protocol, "acp");

@@ -685,6 +685,10 @@ describe("Stage 3 workbench integration", () => {
     expect(sidebarContainer).not.toBeNull();
     expect(resizeHandle).not.toBeNull();
     expect(sidebarContainer!.style.width).toBe("260px");
+    // Ensure resize handle takes 0px net flex layout width so no white seam gap appears
+    expect(resizeHandle!.className).toContain("-ml-[3px]");
+    expect(resizeHandle!.className).toContain("-mr-[2px]");
+    expect(resizeHandle!.className).toContain("w-[5px]");
 
     // Drag right by +60px -> 320px
     await act(async () => {

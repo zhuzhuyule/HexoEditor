@@ -304,7 +304,7 @@ export function HexoTerminalDrawer({
           : "Hexo 命令终端"
       }
       className={cn(
-        "flex shrink-0 flex-col border-t border-zinc-200/80 bg-white select-none",
+        "flex shrink-0 flex-col border-t border-zinc-200 bg-white select-none",
         className
       )}
     >
@@ -314,7 +314,7 @@ export function HexoTerminalDrawer({
           ref={logListRef}
           role="log"
           aria-live="polite"
-          className="h-44 overflow-y-auto border-b border-zinc-200/80 bg-[#F8F8F9] px-3 py-2 font-mono text-[12px] leading-relaxed select-text"
+          className="h-44 overflow-y-auto border-b border-zinc-200/80 bg-[#FAFAFB] px-3 py-2 font-mono text-[11px] leading-[1.6] shadow-[inset_0_1px_2px_rgba(15,23,42,0.03)] select-text"
         >
           {logs.length === 0 ? (
             <div className="flex h-full items-center justify-center text-xs font-sans text-zinc-400 select-none">
@@ -331,13 +331,13 @@ export function HexoTerminalDrawer({
                     data-stream={entry.stream}
                     className={cn(
                       "flex items-baseline gap-2.5 whitespace-pre-wrap break-all",
-                      entry.stream === "stderr" && "text-red-600",
-                      entry.stream === "system" && "text-sky-700",
-                      entry.stream === "stdout" && "text-zinc-700"
+                      entry.stream === "stderr" && "text-rose-600/85",
+                      entry.stream === "system" && "text-slate-500",
+                      entry.stream === "stdout" && "text-zinc-500"
                     )}
                   >
                     {timeStr && (
-                      <span className="shrink-0 text-[10.5px] tabular-nums text-zinc-400 select-none">
+                      <span className="shrink-0 text-[10.5px] tabular-nums text-zinc-400/75 select-none">
                         {timeStr}
                       </span>
                     )}
@@ -365,7 +365,7 @@ export function HexoTerminalDrawer({
               className={cn(
                 "h-1.5 w-1.5 shrink-0 rounded-full",
                 status.serverRunning
-                  ? "bg-emerald-500"
+                  ? "bg-emerald-500/80"
                   : status.running
                   ? "bg-amber-500 animate-pulse"
                   : "bg-zinc-300"
@@ -397,7 +397,7 @@ export function HexoTerminalDrawer({
                 <button
                   type="button"
                   onClick={() => onOpenServerUrl(openUrlTarget)}
-                  className="inline-flex min-w-0 max-w-[320px] items-center gap-1 rounded px-1.5 py-0.5 font-mono text-[11px] text-blue-600 transition-colors hover:bg-blue-50 cursor-pointer"
+                  className="inline-flex min-w-0 max-w-[320px] items-center gap-1 rounded px-1.5 py-0.5 font-mono text-[11px] text-zinc-500 transition-colors hover:bg-zinc-200/60 hover:text-zinc-800 cursor-pointer"
                   title={readableUrl}
                 >
                   <ExternalLink className="h-3 w-3 shrink-0" />
@@ -470,7 +470,7 @@ export function HexoTerminalDrawer({
               disabled={disabled}
               onClick={onStop}
               title={labels.stopServer}
-              className="text-red-600 hover:bg-red-50 hover:text-red-700"
+              className="text-rose-600/80 hover:bg-rose-50 hover:text-rose-700"
             >
               <Square className="h-3 w-3 fill-current" />
               <span>{labels.compactStop}</span>
@@ -495,7 +495,7 @@ export function HexoTerminalDrawer({
               disabled={disabled}
               onClick={onStop}
               title={labels.stopTask}
-              className="text-red-600 hover:bg-red-50 hover:text-red-700"
+              className="text-rose-600/80 hover:bg-rose-50 hover:text-rose-700"
             >
               <Square className="h-3 w-3 fill-current" />
               <span>{labels.stopTask}</span>

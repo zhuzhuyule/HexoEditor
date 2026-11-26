@@ -2247,7 +2247,7 @@ export function App() {
               onMouseDown={handleSidebarResizeMouseDown}
               onDoubleClick={() => setSidebarWidth(DEFAULT_SIDEBAR_WIDTH)}
               className={cn(
-                "no-print relative z-20 -ml-[2px] w-[5px] shrink-0 cursor-col-resize select-none",
+                "no-print relative z-20 -ml-[3px] -mr-[2px] w-[5px] shrink-0 cursor-col-resize select-none",
                 "after:pointer-events-none after:absolute after:inset-y-0 after:left-[2px] after:w-[1px] after:transition-colors",
                 draggingSidebarWidth !== null
                   ? "after:bg-zinc-400"
