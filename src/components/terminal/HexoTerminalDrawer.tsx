@@ -16,7 +16,7 @@ import { useEffect, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { Locale } from "@/types";
+import type { Locale, SiteEngine } from "@/types";
 
 export type HexoCliAction =
   | "server"
@@ -54,10 +54,30 @@ export interface HexoTerminalDrawerProps {
   targetUrl?: string | null;
   disabled?: boolean;
   locale?: Locale;
+  engine?: SiteEngine;
   className?: string;
 }
 
-function formatActionCommand(action: string | null): string {
+function formatActionCommand(
+  action: string | null,
+  engine: SiteEngine = "hexo"
+): string {
+  if (engine === "hugo") {
+    switch (action) {
+      case "server":
+        return "hugo server -D";
+      case "generate":
+        return "hugo";
+      case "deploy":
+        return "hugo deploy";
+      case "generate_deploy":
+        return "hugo && hugo deploy";
+      case "clean":
+        return "hugo clean";
+      default:
+        return action ? `hugo ${action}` : "hugo";
+    }
+  }
   switch (action) {
     case "server":
       return "hexo s";
@@ -107,10 +127,12 @@ export function HexoTerminalDrawer({
   targetUrl,
   disabled = false,
   locale = "zh-CN",
+  engine = "hexo",
   className,
 }: HexoTerminalDrawerProps) {
   const logListRef = useRef<HTMLDivElement | null>(null);
   const isEn = locale === "en-US";
+  const isHugo = engine === "hugo";
 
   useEffect(() => {
     if (!open) return;
@@ -135,39 +157,80 @@ export function HexoTerminalDrawer({
           ? `Server running ${status.serverUrl}`
           : `本地服务运行中 ${status.serverUrl}`
         : isEn
-        ? "Hexo server running..."
+        ? isHugo
+          ? "Hugo server running..."
+          : "Hexo server running..."
         : "本地服务运行中...";
     }
     if (status.running) {
-      const cmd = formatActionCommand(status.action);
+      const cmd = formatActionCommand(status.action, engine);
       return isEn ? `Running ${cmd}...` : `正在运行 ${cmd}...`;
     }
     if (status.message) {
       return localizeIdleStatusMessage(status.message, isEn);
     }
+    if (isHugo) {
+      return isEn ? "Hugo Console" : "Hugo 终端";
+    }
     return isEn ? "Hexo Console" : "Hexo 终端";
   })();
 
   const labels = {
-    startServer: isEn ? "Preview (hexo s)" : "启动预览 (hexo s)",
+    startServer: isHugo
+      ? isEn
+        ? "Preview (hugo server -D)"
+        : "启动预览 (hugo server -D)"
+      : isEn
+      ? "Preview (hexo s)"
+      : "启动预览 (hexo s)",
     stopServer: isEn ? "Stop Preview" : "停止预览",
     stopTask: isEn ? "Stop" : "停止",
-    generate: isEn ? "Generate (g)" : "生成 (g)",
-    generateDeploy: isEn ? "Deploy All (g -d)" : "一键部署 (g -d)",
-    deploy: isEn ? "Deploy (d)" : "部署 (d)",
+    generate: isHugo
+      ? isEn
+        ? "Build (hugo)"
+        : "构建 (hugo)"
+      : isEn
+      ? "Generate (g)"
+      : "生成 (g)",
+    generateDeploy: isHugo
+      ? isEn
+        ? "Build & Deploy"
+        : "构建并部署"
+      : isEn
+      ? "Deploy All (g -d)"
+      : "一键部署 (g -d)",
+    deploy: isHugo
+      ? isEn
+        ? "Deploy (hugo deploy)"
+        : "部署 (hugo deploy)"
+      : isEn
+      ? "Deploy (d)"
+      : "部署 (d)",
     clean: isEn ? "Clean" : "清理 (clean)",
     killPort: isEn ? "Free Port" : "释放端口",
     clearLogs: isEn ? "Clear Logs" : "清空日志",
     expand: isEn ? "Expand Console" : "展开日志",
     collapse: isEn ? "Collapse Console" : "收起日志",
-    emptyLogs: isEn
+    emptyLogs: isHugo
+      ? isEn
+        ? "No Hugo command output yet."
+        : "暂无 Hugo 命令输出日志"
+      : isEn
       ? "No Hexo command output yet."
       : "暂无 Hexo 命令输出日志",
   };
 
   return (
     <section
-      aria-label={isEn ? "Hexo Command Console" : "Hexo 命令终端"}
+      aria-label={
+        isHugo
+          ? isEn
+            ? "Hugo Command Console"
+            : "Hugo 命令终端"
+          : isEn
+          ? "Hexo Command Console"
+          : "Hexo 命令终端"
+      }
       className={cn(
         "flex shrink-0 flex-col border-t border-zinc-200/80 bg-white select-none",
         className

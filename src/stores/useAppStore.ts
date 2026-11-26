@@ -321,9 +321,13 @@ function buildAllowedAssetDirsForTab(tab: EditorTab): string[] {
     const parentDir = lastSlash > 0 ? normalized.slice(0, lastSlash) : "";
     const fileName = lastSlash >= 0 ? normalized.slice(lastSlash + 1) : normalized;
     const stem = fileName.replace(/\.(md|markdown|mdx)$/i, "");
+    const isPageBundle = /^index\.(md|markdown|mdx)$/i.test(fileName);
 
-    // Never whitelist the entire `_posts` / parent directory to prevent cross-post deletion
-    if (parentDir && stem) {
+    // Never whitelist the entire `_posts` / parent directory for regular files to prevent cross-post deletion.
+    // For Hugo Page Bundles (`<slug>/index.md`), `parentDir` IS the single post's bundle directory.
+    if (parentDir && isPageBundle && tab.siteRoot) {
+      dirs.add(parentDir);
+    } else if (parentDir && stem) {
       dirs.add(`${parentDir}/${stem}`);
     }
     if (tab.siteRoot) {
@@ -861,7 +865,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
       }
     }
-    const targetPort = resolvedPort ?? 4000;
+    const targetPort =
+      resolvedPort ?? (get().siteConfig?.engine === "hugo" ? 1313 : 4000);
     set({ terminalOpen: true });
     try {
       const res = await hexoApi.killHexoPort(targetPort);
@@ -955,7 +960,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       const config = await api.inspectHexoSite(rootPath);
       const existing = get().sites.filter((s) => s.rootPath !== config.rootPath);
       const updatedSites: SavedSiteEntry[] = [
-        { rootPath: config.rootPath, title: config.title, addedAt: Date.now() },
+        {
+          rootPath: config.rootPath,
+          title: config.title,
+          addedAt: Date.now(),
+          engine: config.engine ?? "hexo",
+        },
         ...existing,
       ];
       set({ sites: updatedSites });
@@ -1025,7 +1035,13 @@ export const useAppStore = create<AppState>((set, get) => ({
         return;
       }
       const updatedSites = get().sites.map((s) =>
-        s.rootPath === res.config.rootPath ? { ...s, title: res.config.title } : s
+        s.rootPath === res.config.rootPath
+          ? {
+              ...s,
+              title: res.config.title,
+              engine: res.config.engine ?? s.engine ?? "hexo",
+            }
+          : s
       );
       const updatedRecents = get().recentEntries.map((r) =>
         r.kind === "site" && r.path === res.config.rootPath
@@ -1053,12 +1069,18 @@ export const useAppStore = create<AppState>((set, get) => ({
       void api.saveSetting("sites", updatedSites);
       void api.saveSetting("recentEntries", updatedRecents);
 
-      const srcBase = `${res.config.rootPath}/${res.config.sourceDir}`;
-      const postsDir = `${srcBase}/_posts`;
-      const draftsDir = `${srcBase}/_drafts`;
-      watchedSiteDirs = [postsDir, draftsDir];
-      void api.watchPath(postsDir, true);
-      void api.watchPath(draftsDir, true);
+      if (res.config.engine === "hugo") {
+        const contentDir = `${res.config.rootPath}/${res.config.sourceDir || "content"}`;
+        watchedSiteDirs = [contentDir];
+        void api.watchPath(contentDir, true);
+      } else {
+        const srcBase = `${res.config.rootPath}/${res.config.sourceDir}`;
+        const postsDir = `${srcBase}/_posts`;
+        const draftsDir = `${srcBase}/_drafts`;
+        watchedSiteDirs = [postsDir, draftsDir];
+        void api.watchPath(postsDir, true);
+        void api.watchPath(draftsDir, true);
+      }
     } catch (err) {
       if (seq !== activeScanSeq) return;
       set({ isScanning: false });
@@ -1511,6 +1533,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (openTab) {
         void api.watchPath(updated.filePath, false);
       }
+      // For Hugo, toggling draft updates front-matter in-place at the same filePath.
+      const refreshedContent =
+        openTab && updated.filePath === post.filePath
+          ? await api.readDocument(updated.filePath).then((d) => d.content).catch(() => null)
+          : null;
       set((state) => ({
         tabs: state.tabs.map((t) =>
           t.filePath === post.filePath
@@ -1519,6 +1546,9 @@ export const useAppStore = create<AppState>((set, get) => ({
                 filePath: updated.filePath,
                 isDraft: updated.isDraft,
                 modifiedMs: updated.modifiedMs,
+                ...(refreshedContent !== null
+                  ? { content: refreshedContent, savedContent: refreshedContent, isDirty: false }
+                  : {}),
                 externalChange: null,
               }
             : t

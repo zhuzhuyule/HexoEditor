@@ -14,7 +14,7 @@ use serde::Deserialize;
 use walkdir::WalkDir;
 
 use crate::error::{AppError, AppResult};
-use crate::hexo::{percent_encode_path_segment, sanitize_filename_stem};
+use crate::hexo::{is_page_bundle_doc, percent_encode_path_segment, sanitize_filename_stem};
 use crate::models::{
     DeleteLocalImagesResult, DeleteRemoteImagesResult, ImageBedConfig, ImageBedConnectionResult,
     ImageBedUploadBatchResult, RemoteDeleteFailure, ScanUnusedImagesResult, UnusedLocalImage,
@@ -1123,14 +1123,18 @@ pub fn scan_unused_local_images(
     };
 
     let mut candidate_dirs: Vec<PathBuf> = Vec::new();
-    let post_asset_dir = doc_parent.join(doc_stem);
-    if post_asset_folder || post_asset_dir.is_dir() {
-        candidate_dirs.push(post_asset_dir);
-    }
-    if let Some(site_src) = &site_source {
-        candidate_dirs.push(site_src.join("images").join(doc_stem));
+    if site_source.is_some() && is_page_bundle_doc(&doc) {
+        candidate_dirs.push(doc_parent.to_path_buf());
     } else {
-        candidate_dirs.push(doc_parent.join("assets"));
+        let post_asset_dir = doc_parent.join(doc_stem);
+        if post_asset_folder || post_asset_dir.is_dir() {
+            candidate_dirs.push(post_asset_dir);
+        }
+        if let Some(site_src) = &site_source {
+            candidate_dirs.push(site_src.join("images").join(doc_stem));
+        } else {
+            candidate_dirs.push(doc_parent.join("assets"));
+        }
     }
 
     let mut scanned_canonical_dirs: Vec<PathBuf> = Vec::new();
@@ -1841,5 +1845,31 @@ mod tests {
             validate_http_url("javascript:alert(1)", "PicGo returned URL"),
             Err(AppError::InvalidInput(_))
         ));
+    }
+
+    #[test]
+    fn test_scan_unused_local_images_hugo_page_bundle() {
+        let dir = TempDir::new().unwrap();
+        let root = dir.path();
+        fs::write(root.join("hugo.toml"), "title = \"Hugo\"\n").unwrap();
+        let bundle_dir = root.join("content/posts/my-bundle");
+        fs::create_dir_all(&bundle_dir).unwrap();
+        let doc_path = bundle_dir.join("index.md");
+        let md = "---\ntitle: Bundle\n---\n\n![cover](cover.png)\n";
+        fs::write(&doc_path, md).unwrap();
+        fs::write(bundle_dir.join("cover.png"), b"used").unwrap();
+        fs::write(bundle_dir.join("unused.png"), b"unused-bytes").unwrap();
+
+        let scan = scan_unused_local_images(
+            doc_path.to_str().unwrap(),
+            Some(root.to_str().unwrap()),
+            true,
+            Some("content"),
+            md,
+        )
+        .unwrap();
+        assert_eq!(scan.total_local_images, 2);
+        assert_eq!(scan.unused_images.len(), 1);
+        assert_eq!(scan.unused_images[0].file_name, "unused.png");
     }
 }

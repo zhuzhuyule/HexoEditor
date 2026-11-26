@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
@@ -13,6 +13,108 @@ use crate::models::{
     DocumentContent, HexoSiteConfig, PostSummary, RenamePostResult, SiteScanResult, TaxonomyCount,
 };
 use crate::watcher::normalize_path;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SiteEngine {
+    Hexo,
+    Hugo,
+}
+
+impl SiteEngine {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Hexo => "hexo",
+            Self::Hugo => "hugo",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FrontMatterFormat {
+    Yaml,
+    Toml,
+}
+
+#[derive(Debug, Default)]
+pub(crate) struct HugoRawConfig {
+    pub title: Option<String>,
+    pub base_url: Option<String>,
+    pub language_code: Option<String>,
+    pub theme: Option<String>,
+    pub publish_dir: Option<String>,
+}
+
+const HUGO_CONFIG_LAYERS: &[&str] = &[
+    "config.yml",
+    "config.yaml",
+    "config.toml",
+    "hugo.yml",
+    "hugo.yaml",
+    "hugo.toml",
+    "config/_default/config.yml",
+    "config/_default/config.yaml",
+    "config/_default/config.toml",
+    "config/_default/hugo.yml",
+    "config/_default/hugo.yaml",
+    "config/_default/hugo.toml",
+];
+
+pub fn detect_site_engine(root: &Path) -> Option<SiteEngine> {
+    if root.join("_config.yml").is_file() {
+        return Some(SiteEngine::Hexo);
+    }
+    if HUGO_CONFIG_LAYERS.iter().any(|rel| root.join(rel).is_file()) {
+        return Some(SiteEngine::Hugo);
+    }
+    None
+}
+
+pub(crate) fn is_page_bundle_doc(path: &Path) -> bool {
+    path.file_name()
+        .and_then(|n| n.to_str())
+        .map(|n| n.eq_ignore_ascii_case("index.md") || n.eq_ignore_ascii_case("index.markdown"))
+        .unwrap_or(false)
+}
+
+pub(crate) fn is_hugo_page_bundle(path: &Path) -> bool {
+    if !is_page_bundle_doc(path) {
+        return false;
+    }
+    let Some(bundle_dir) = path.parent() else {
+        return false;
+    };
+    // Check ancestors for a Hugo site config
+    let mut current = bundle_dir.parent();
+    for _ in 0..8 {
+        let Some(dir) = current else {
+            break;
+        };
+        if detect_site_engine(dir) == Some(SiteEngine::Hugo) {
+            return true;
+        }
+        current = dir.parent();
+    }
+    // Fallback heuristic if site config is absent in synthetic paths: .../content/posts/<slug>/index.md
+    if let Some(section_dir) = bundle_dir.parent() {
+        let section_name = section_dir
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or_default();
+        if section_name.eq_ignore_ascii_case("posts") || section_name.eq_ignore_ascii_case("post") {
+            if let Some(content_dir) = section_dir.parent() {
+                if content_dir
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .map(|n| n.eq_ignore_ascii_case("content"))
+                    .unwrap_or(false)
+                {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
 
 pub fn sanitize_filename_stem(raw: &str) -> String {
     let trimmed = raw.trim();
@@ -123,34 +225,228 @@ fn quote_yaml_scalar(value: &str) -> String {
     }
 }
 
-pub fn split_front_matter(content: &str) -> (Option<String>, String) {
-    let normalized = content.strip_prefix('\u{feff}').unwrap_or(content);
-    let normalized = normalized.replace("\r\n", "\n");
+fn split_delimited_block(normalized: &str, delimiter: &str) -> Option<(String, String)> {
+    let open = format!("{}\n", delimiter);
+    let rest = normalized.strip_prefix(&open)?;
 
-    let Some(rest) = normalized.strip_prefix("---\n") else {
-        return (None, normalized);
-    };
-
-    // Handle empty front-matter: ---\n---\n or ---\n---
-    if let Some(after_empty) = rest.strip_prefix("---\n") {
-        return (Some(String::new()), after_empty.to_string());
+    if let Some(after_empty) = rest.strip_prefix(&open) {
+        return Some((String::new(), after_empty.to_string()));
     }
-    if rest.trim_end_matches([' ', '\t']) == "---" {
-        return (Some(String::new()), String::new());
+    if rest.trim_end_matches([' ', '\t']) == delimiter {
+        return Some((String::new(), String::new()));
     }
 
     let mut offset = 0usize;
     for line in rest.split_inclusive('\n') {
         let trimmed = line.trim_end_matches('\n').trim_end_matches([' ', '\t']);
-        if trimmed == "---" {
+        if trimmed == delimiter {
             let fm = rest[..offset].trim_end_matches('\n').to_string();
             let body = rest[offset + line.len()..].to_string();
-            return (Some(fm), body);
+            return Some((fm, body));
         }
         offset += line.len();
     }
 
-    (None, normalized)
+    None
+}
+
+pub fn split_front_matter(content: &str) -> (Option<String>, String) {
+    let normalized = content.strip_prefix('\u{feff}').unwrap_or(content);
+    let normalized = normalized.replace("\r\n", "\n");
+
+    match split_delimited_block(&normalized, "---") {
+        Some((fm, body)) => (Some(fm), body),
+        None => (None, normalized),
+    }
+}
+
+pub fn split_front_matter_with_format(
+    content: &str,
+) -> (Option<FrontMatterFormat>, Option<String>, String) {
+    let normalized = content.strip_prefix('\u{feff}').unwrap_or(content);
+    let normalized = normalized.replace("\r\n", "\n");
+
+    if let Some((fm, body)) = split_delimited_block(&normalized, "---") {
+        return (Some(FrontMatterFormat::Yaml), Some(fm), body);
+    }
+    if let Some((fm, body)) = split_delimited_block(&normalized, "+++") {
+        return (Some(FrontMatterFormat::Toml), Some(fm), body);
+    }
+    (None, None, normalized)
+}
+
+fn toml_value_to_string(val: &toml::Value) -> Option<String> {
+    match val {
+        toml::Value::String(s) => {
+            let trimmed = s.trim();
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(trimmed.to_string())
+            }
+        }
+        toml::Value::Datetime(dt) => Some(dt.to_string()),
+        toml::Value::Integer(n) => Some(n.to_string()),
+        toml::Value::Float(f) => Some(f.to_string()),
+        toml::Value::Boolean(b) => Some(b.to_string()),
+        toml::Value::Array(arr) => arr.first().and_then(toml_value_to_string),
+        _ => None,
+    }
+}
+
+fn toml_value_to_string_list(val: &toml::Value) -> Vec<String> {
+    let mut out = Vec::new();
+    match val {
+        toml::Value::String(s) => {
+            let trimmed = s.trim();
+            if !trimmed.is_empty() {
+                out.push(trimmed.to_string());
+            }
+        }
+        toml::Value::Integer(n) => out.push(n.to_string()),
+        toml::Value::Array(arr) => {
+            for item in arr {
+                out.extend(toml_value_to_string_list(item));
+            }
+        }
+        _ => {}
+    }
+    out
+}
+
+pub(crate) fn read_hugo_config_values(root: &Path) -> HugoRawConfig {
+    let mut cfg = HugoRawConfig::default();
+
+    for rel in HUGO_CONFIG_LAYERS {
+        let path = root.join(rel);
+        if !path.is_file() {
+            continue;
+        }
+        let Ok(raw) = fs::read_to_string(&path) else {
+            continue;
+        };
+        let is_toml = path
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|e| e.eq_ignore_ascii_case("toml"))
+            .unwrap_or(false);
+
+        if is_toml {
+            let Ok(parsed) = toml::from_str::<toml::Value>(&raw) else {
+                continue;
+            };
+            let Some(table) = parsed.as_table() else {
+                continue;
+            };
+            if let Some(v) = table.get("title").and_then(toml_value_to_string) {
+                cfg.title = Some(v);
+            }
+            if let Some(v) = table
+                .get("baseURL")
+                .or_else(|| table.get("baseurl"))
+                .and_then(toml_value_to_string)
+            {
+                cfg.base_url = Some(v);
+            }
+            if let Some(v) = table
+                .get("languageCode")
+                .or_else(|| table.get("languagecode"))
+                .or_else(|| table.get("defaultContentLanguage"))
+                .and_then(toml_value_to_string)
+            {
+                cfg.language_code = Some(v);
+            }
+            if let Some(v) = table.get("theme").and_then(toml_value_to_string) {
+                cfg.theme = Some(v);
+            }
+            if let Some(v) = table
+                .get("publishDir")
+                .or_else(|| table.get("publishdir"))
+                .and_then(toml_value_to_string)
+            {
+                cfg.publish_dir = Some(v);
+            }
+        } else {
+            let Ok(parsed) = serde_yaml::from_str::<Value>(&raw) else {
+                continue;
+            };
+            let Some(map) = parsed.as_mapping() else {
+                continue;
+            };
+            let get_ci = |keys: &[&str]| -> Option<String> {
+                for key in keys {
+                    if let Some(v) = map
+                        .get(Value::String((*key).into()))
+                        .and_then(yaml_value_to_string)
+                    {
+                        return Some(v);
+                    }
+                }
+                None
+            };
+            if let Some(v) = get_ci(&["title"]) {
+                cfg.title = Some(v);
+            }
+            if let Some(v) = get_ci(&["baseURL", "baseurl"]) {
+                cfg.base_url = Some(v);
+            }
+            if let Some(v) = get_ci(&["languageCode", "languagecode", "defaultContentLanguage"]) {
+                cfg.language_code = Some(v);
+            }
+            if let Some(v) = get_ci(&["theme"]) {
+                cfg.theme = Some(v);
+            }
+            if let Some(v) = get_ci(&["publishDir", "publishdir"]) {
+                cfg.publish_dir = Some(v);
+            }
+        }
+    }
+
+    cfg
+}
+
+fn resolve_hugo_posts_dir(root: &Path) -> Option<PathBuf> {
+    let posts = root.join("content").join("posts");
+    if posts.is_dir() {
+        return Some(posts);
+    }
+    let post = root.join("content").join("post");
+    if post.is_dir() {
+        return Some(post);
+    }
+    None
+}
+
+fn inspect_hugo_site(root: &Path) -> AppResult<HexoSiteConfig> {
+    let raw_cfg = read_hugo_config_values(root);
+    let fallback_title = root
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("Hugo Site")
+        .to_string();
+    let title = raw_cfg.title.unwrap_or(fallback_title);
+    let has_posts_dir = resolve_hugo_posts_dir(root).is_some();
+    let has_scaffold_post = root.join("archetypes").join("posts.md").is_file()
+        || root.join("archetypes").join("post.md").is_file()
+        || root.join("archetypes").join("default.md").is_file();
+
+    Ok(HexoSiteConfig {
+        engine: SiteEngine::Hugo.as_str().to_string(),
+        root_path: root.to_string_lossy().to_string(),
+        title,
+        subtitle: None,
+        author: None,
+        language: raw_cfg.language_code,
+        url: raw_cfg.base_url,
+        root: "/".to_string(),
+        permalink: "/posts/:title/".to_string(),
+        source_dir: "content".to_string(),
+        post_asset_folder: true,
+        default_layout: "post".to_string(),
+        has_posts_dir,
+        has_drafts_dir: false,
+        has_scaffold_post,
+    })
 }
 
 fn extract_excerpt(body: &str) -> String {
@@ -189,6 +485,19 @@ pub fn inspect_hexo_site(root_path: &str) -> AppResult<HexoSiteConfig> {
             "Site directory does not exist: {}",
             root_path
         )));
+    }
+
+    match detect_site_engine(&root) {
+        Some(SiteEngine::Hugo) => return inspect_hugo_site(&root),
+        Some(SiteEngine::Hexo) => {}
+        None => {
+            if !root.join("source").join("_posts").is_dir() {
+                return Err(AppError::InvalidPath(format!(
+                    "Not a valid Hexo or Hugo site (missing _config.yml or hugo.toml/config.toml): {}",
+                    root_path
+                )));
+            }
+        }
     }
 
     let config_path = root.join("_config.yml");
@@ -257,11 +566,6 @@ pub fn inspect_hexo_site(root_path: &str) -> AppResult<HexoSiteConfig> {
                 default_layout = v;
             }
         }
-    } else if !root.join("source").join("_posts").is_dir() {
-        return Err(AppError::InvalidPath(format!(
-            "Not a valid Hexo site (missing _config.yml and source/_posts): {}",
-            root_path
-        )));
     }
 
     let source_path = root.join(&source_dir);
@@ -270,6 +574,7 @@ pub fn inspect_hexo_site(root_path: &str) -> AppResult<HexoSiteConfig> {
     let has_scaffold_post = root.join("scaffolds").join("post.md").is_file();
 
     Ok(HexoSiteConfig {
+        engine: SiteEngine::Hexo.as_str().to_string(),
         root_path: root.to_string_lossy().to_string(),
         title,
         subtitle,
@@ -284,6 +589,147 @@ pub fn inspect_hexo_site(root_path: &str) -> AppResult<HexoSiteConfig> {
         has_posts_dir,
         has_drafts_dir,
         has_scaffold_post,
+    })
+}
+
+struct ParsedFrontMatterFields {
+    title: Option<String>,
+    date: Option<String>,
+    updated: Option<String>,
+    tags: Vec<String>,
+    categories: Vec<String>,
+    is_draft: bool,
+}
+
+fn parse_front_matter_fields(
+    format: Option<FrontMatterFormat>,
+    fm_raw: Option<&str>,
+) -> ParsedFrontMatterFields {
+    let mut out = ParsedFrontMatterFields {
+        title: None,
+        date: None,
+        updated: None,
+        tags: Vec::new(),
+        categories: Vec::new(),
+        is_draft: false,
+    };
+    let Some(fm) = fm_raw else {
+        return out;
+    };
+
+    match format {
+        Some(FrontMatterFormat::Yaml) => {
+            if let Ok(Value::Mapping(map)) = serde_yaml::from_str::<Value>(fm) {
+                out.title = map
+                    .get(Value::String("title".into()))
+                    .and_then(yaml_value_to_string);
+                out.date = map
+                    .get(Value::String("date".into()))
+                    .and_then(yaml_value_to_string);
+                out.updated = map
+                    .get(Value::String("updated".into()))
+                    .or_else(|| map.get(Value::String("lastmod".into())))
+                    .and_then(yaml_value_to_string);
+                if let Some(v) = map.get(Value::String("tags".into())) {
+                    out.tags = yaml_value_to_string_list(v);
+                }
+                if let Some(v) = map.get(Value::String("categories".into())) {
+                    out.categories = yaml_value_to_string_list(v);
+                }
+                if let Some(v) = map.get(Value::String("draft".into())) {
+                    out.is_draft = v
+                        .as_bool()
+                        .or_else(|| yaml_value_to_string(v).map(|s| s.eq_ignore_ascii_case("true")))
+                        .unwrap_or(false);
+                }
+            }
+        }
+        Some(FrontMatterFormat::Toml) => {
+            if let Ok(toml::Value::Table(table)) = toml::from_str::<toml::Value>(fm) {
+                out.title = table.get("title").and_then(toml_value_to_string);
+                out.date = table.get("date").and_then(toml_value_to_string);
+                out.updated = table
+                    .get("updated")
+                    .or_else(|| table.get("lastmod"))
+                    .and_then(toml_value_to_string);
+                if let Some(v) = table.get("tags") {
+                    out.tags = toml_value_to_string_list(v);
+                }
+                if let Some(v) = table.get("categories") {
+                    out.categories = toml_value_to_string_list(v);
+                }
+                if let Some(v) = table.get("draft") {
+                    out.is_draft = v
+                        .as_bool()
+                        .or_else(|| v.as_str().map(|s| s.trim().eq_ignore_ascii_case("true")))
+                        .unwrap_or(false);
+                }
+            }
+        }
+        None => {}
+    }
+
+    out
+}
+
+fn parse_hugo_post_file(
+    site_root: &Path,
+    file_path: &Path,
+    is_bundle: bool,
+) -> AppResult<PostSummary> {
+    let raw = fs::read_to_string(file_path)?;
+    let (format, fm_raw, body) = split_front_matter_with_format(&raw);
+
+    let file_name = file_path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or_default()
+        .to_string();
+    let slug = if is_bundle {
+        file_path
+            .parent()
+            .and_then(|p| p.file_name())
+            .and_then(|s| s.to_str())
+            .unwrap_or_default()
+            .to_string()
+    } else {
+        file_path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or_default()
+            .to_string()
+    };
+    let relative_path = file_path
+        .strip_prefix(site_root)
+        .unwrap_or(file_path)
+        .to_string_lossy()
+        .replace('\\', "/");
+
+    let fields = parse_front_matter_fields(format, fm_raw.as_deref());
+    let title = fields.title.unwrap_or_else(|| slug.clone());
+    let has_asset_folder = if is_bundle {
+        true
+    } else {
+        file_path
+            .parent()
+            .map(|p| p.join(&slug).is_dir())
+            .unwrap_or(false)
+    };
+
+    Ok(PostSummary {
+        file_path: file_path.to_string_lossy().to_string(),
+        file_name,
+        slug,
+        relative_path,
+        title,
+        date: fields.date,
+        updated: fields.updated,
+        tags: fields.tags,
+        categories: fields.categories,
+        is_draft: fields.is_draft,
+        has_asset_folder,
+        excerpt: extract_excerpt(&body),
+        modified_ms: file_modified_ms(file_path),
     })
 }
 
@@ -362,6 +808,61 @@ fn parse_post_file(
     })
 }
 
+fn scan_hugo_posts(root: &Path) -> Vec<PostSummary> {
+    let Some(posts_dir) = resolve_hugo_posts_dir(root) else {
+        return Vec::new();
+    };
+
+    let md_files: Vec<PathBuf> = WalkDir::new(&posts_dir)
+        .into_iter()
+        .filter_map(Result::ok)
+        .filter(|e| e.file_type().is_file())
+        .map(|e| e.into_path())
+        .filter(|p| {
+            p.extension()
+                .and_then(|e| e.to_str())
+                .map(|e| e.eq_ignore_ascii_case("md") || e.eq_ignore_ascii_case("markdown"))
+                .unwrap_or(false)
+        })
+        .collect();
+
+    let mut bundle_dirs: HashSet<PathBuf> = HashSet::new();
+    for path in &md_files {
+        if is_page_bundle_doc(path) {
+            if let Some(parent) = path.parent() {
+                if parent != posts_dir {
+                    bundle_dirs.insert(parent.to_path_buf());
+                }
+            }
+        }
+    }
+
+    let mut posts = Vec::new();
+    for path in &md_files {
+        let file_name = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or_default();
+        if file_name.eq_ignore_ascii_case("_index.md")
+            || file_name.eq_ignore_ascii_case("_index.markdown")
+        {
+            continue;
+        }
+        let is_bundle = is_page_bundle_doc(path) && path.parent() != Some(posts_dir.as_path());
+        if !is_bundle {
+            if let Some(parent) = path.parent() {
+                if bundle_dirs.contains(parent) {
+                    continue;
+                }
+            }
+        }
+        if let Ok(summary) = parse_hugo_post_file(root, path, is_bundle) {
+            posts.push(summary);
+        }
+    }
+    posts
+}
+
 pub fn scan_hexo_site(root_path: &str) -> AppResult<SiteScanResult> {
     let config = inspect_hexo_site(root_path)?;
     let root = PathBuf::from(&config.root_path);
@@ -371,36 +872,48 @@ pub fn scan_hexo_site(root_path: &str) -> AppResult<SiteScanResult> {
     let mut tag_counts: HashMap<String, usize> = HashMap::new();
     let mut category_counts: HashMap<String, usize> = HashMap::new();
 
-    let dirs = [
-        (source_path.join("_posts"), false),
-        (source_path.join("_drafts"), true),
-    ];
-
-    for (dir, is_draft) in dirs {
-        if !dir.is_dir() {
-            continue;
+    if config.engine == SiteEngine::Hugo.as_str() {
+        posts = scan_hugo_posts(&root);
+        for summary in &posts {
+            for t in &summary.tags {
+                *tag_counts.entry(t.clone()).or_insert(0) += 1;
+            }
+            for c in &summary.categories {
+                *category_counts.entry(c.clone()).or_insert(0) += 1;
+            }
         }
-        for entry in WalkDir::new(&dir).into_iter().filter_map(Result::ok) {
-            if !entry.file_type().is_file() {
+    } else {
+        let dirs = [
+            (source_path.join("_posts"), false),
+            (source_path.join("_drafts"), true),
+        ];
+
+        for (dir, is_draft) in dirs {
+            if !dir.is_dir() {
                 continue;
             }
-            let path = entry.path();
-            let is_md = path
-                .extension()
-                .and_then(|e| e.to_str())
-                .map(|e| e.eq_ignore_ascii_case("md") || e.eq_ignore_ascii_case("markdown"))
-                .unwrap_or(false);
-            if !is_md {
-                continue;
-            }
-            if let Ok(summary) = parse_post_file(&root, path, is_draft) {
-                for t in &summary.tags {
-                    *tag_counts.entry(t.clone()).or_insert(0) += 1;
+            for entry in WalkDir::new(&dir).into_iter().filter_map(Result::ok) {
+                if !entry.file_type().is_file() {
+                    continue;
                 }
-                for c in &summary.categories {
-                    *category_counts.entry(c.clone()).or_insert(0) += 1;
+                let path = entry.path();
+                let is_md = path
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .map(|e| e.eq_ignore_ascii_case("md") || e.eq_ignore_ascii_case("markdown"))
+                    .unwrap_or(false);
+                if !is_md {
+                    continue;
                 }
-                posts.push(summary);
+                if let Ok(summary) = parse_post_file(&root, path, is_draft) {
+                    for t in &summary.tags {
+                        *tag_counts.entry(t.clone()).or_insert(0) += 1;
+                    }
+                    for c in &summary.categories {
+                        *category_counts.entry(c.clone()).or_insert(0) += 1;
+                    }
+                    posts.push(summary);
+                }
             }
         }
     }
@@ -567,6 +1080,59 @@ fn render_scaffold(
     final_doc
 }
 
+fn render_hugo_post_doc(
+    title: &str,
+    is_draft: bool,
+    tags: &[String],
+    categories: &[String],
+) -> String {
+    let now = Local::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+    let escaped_title = quote_yaml_scalar(title);
+    let base_fm = format!(
+        "title: {}\ndate: {}\ndraft: {}",
+        escaped_title, now, is_draft
+    );
+    let fm = inject_yaml_list_field(&base_fm, "categories", categories);
+    let fm = inject_yaml_list_field(&fm, "tags", tags);
+    format!("---\n{}\n---\n\n", fm)
+}
+
+fn create_hugo_post(
+    root: &Path,
+    title: &str,
+    is_draft: bool,
+    tags: Vec<String>,
+    categories: Vec<String>,
+) -> AppResult<PostSummary> {
+    let posts_base = resolve_hugo_posts_dir(root)
+        .unwrap_or_else(|| root.join("content").join("posts"));
+    fs::create_dir_all(&posts_base)?;
+
+    let base_stem = {
+        let s = sanitize_filename_stem(title);
+        if s.is_empty() {
+            format!("untitled-{}", Local::now().format("%Y%m%d-%H%M%S"))
+        } else {
+            s
+        }
+    };
+
+    let mut slug = base_stem.clone();
+    let mut counter = 2usize;
+    while posts_base.join(&slug).exists() || posts_base.join(format!("{}.md", slug)).exists() {
+        slug = format!("{}-{}", base_stem, counter);
+        counter += 1;
+    }
+
+    let bundle_dir = posts_base.join(&slug);
+    fs::create_dir_all(&bundle_dir)?;
+    let file_path = bundle_dir.join("index.md");
+    let content = render_hugo_post_doc(title.trim(), is_draft, &tags, &categories);
+    fs::write(&file_path, content)?;
+
+    parse_hugo_post_file(root, &file_path, true)
+}
+
 pub fn create_hexo_post(
     root_path: &str,
     title: &str,
@@ -576,6 +1142,10 @@ pub fn create_hexo_post(
 ) -> AppResult<PostSummary> {
     let config = inspect_hexo_site(root_path)?;
     let root = PathBuf::from(&config.root_path);
+    if config.engine == SiteEngine::Hugo.as_str() {
+        return create_hugo_post(&root, title, is_draft, tags, categories);
+    }
+
     let target_dir = root
         .join(&config.source_dir)
         .join(if is_draft { "_drafts" } else { "_posts" });
@@ -609,12 +1179,60 @@ pub fn create_hexo_post(
     parse_post_file(&root, &file_path, is_draft)
 }
 
+fn update_draft_in_front_matter(content: &str, next_draft: bool) -> String {
+    let (format, fm_opt, body) = split_front_matter_with_format(content);
+    match (format, fm_opt) {
+        (Some(FrontMatterFormat::Yaml), Some(fm)) => {
+            let re = Regex::new(r"(?m)^([ \t]*draft\s*:[ \t]*).*$").expect("valid yaml draft regex");
+            let updated_fm = if re.is_match(&fm) {
+                re.replace(&fm, format!("${{1}}{}", next_draft)).into_owned()
+            } else if fm.trim().is_empty() {
+                format!("draft: {}", next_draft)
+            } else {
+                format!("{}\ndraft: {}", fm.trim_end_matches('\n'), next_draft)
+            };
+            format!("---\n{}\n---\n{}", updated_fm, body)
+        }
+        (Some(FrontMatterFormat::Toml), Some(fm)) => {
+            let re = Regex::new(r"(?m)^([ \t]*draft\s*=[ \t]*).*$").expect("valid toml draft regex");
+            let updated_fm = if re.is_match(&fm) {
+                re.replace(&fm, format!("${{1}}{}", next_draft)).into_owned()
+            } else if fm.trim().is_empty() {
+                format!("draft = {}", next_draft)
+            } else {
+                format!("{}\ndraft = {}", fm.trim_end_matches('\n'), next_draft)
+            };
+            format!("+++\n{}\n+++\n{}", updated_fm, body)
+        }
+        _ => format!("---\ndraft: {}\n---\n\n{}", next_draft, body),
+    }
+}
+
+fn toggle_hugo_draft(root: &Path, src: &Path) -> AppResult<PostSummary> {
+    let raw = fs::read_to_string(src)?;
+    let (format, fm_raw, _) = split_front_matter_with_format(&raw);
+    let fields = parse_front_matter_fields(format, fm_raw.as_deref());
+    let next_draft = !fields.is_draft;
+    let updated = update_draft_in_front_matter(&raw, next_draft);
+    fs::write(src, updated)?;
+
+    let is_bundle = is_page_bundle_doc(src)
+        && resolve_hugo_posts_dir(root)
+            .map(|d| src.parent() != Some(d.as_path()))
+            .unwrap_or_else(|| is_hugo_page_bundle(src));
+    parse_hugo_post_file(root, src, is_bundle)
+}
+
 pub fn toggle_post_draft(root_path: &str, file_path: &str) -> AppResult<PostSummary> {
     let config = inspect_hexo_site(root_path)?;
     let root = PathBuf::from(&config.root_path);
     let src = PathBuf::from(file_path);
     if !src.is_file() {
         return Err(AppError::NotFound(format!("Post not found: {}", file_path)));
+    }
+
+    if config.engine == SiteEngine::Hugo.as_str() {
+        return toggle_hugo_draft(&root, &src);
     }
 
     let source_dir = root.join(&config.source_dir);
@@ -681,6 +1299,18 @@ pub fn delete_post(file_path: &str, delete_asset_folder: bool) -> AppResult<()> 
     if !path.is_file() {
         return Err(AppError::NotFound(format!("File not found: {}", file_path)));
     }
+
+    if is_hugo_page_bundle(&path) {
+        if delete_asset_folder {
+            if let Some(bundle_dir) = path.parent() {
+                fs::remove_dir_all(bundle_dir)?;
+                return Ok(());
+            }
+        }
+        fs::remove_file(&path)?;
+        return Ok(());
+    }
+
     let stem = path
         .file_stem()
         .and_then(|s| s.to_str())
@@ -751,6 +1381,63 @@ pub fn rewrite_asset_folder_refs(content: &str, old_stem: &str, new_stem: &str) 
     result
 }
 
+fn rename_hugo_page_bundle(
+    old_path: &Path,
+    new_slug: &str,
+    current_content: &str,
+) -> AppResult<RenamePostResult> {
+    let old_bundle_dir = old_path
+        .parent()
+        .ok_or_else(|| AppError::InvalidPath("File has no parent directory".into()))?;
+    let bundle_parent = old_bundle_dir
+        .parent()
+        .ok_or_else(|| AppError::InvalidPath("Bundle directory has no parent".into()))?;
+    let old_slug = old_bundle_dir
+        .file_name()
+        .and_then(|s| s.to_str())
+        .ok_or_else(|| AppError::InvalidPath("Invalid bundle directory name".into()))?
+        .to_string();
+    let file_name = old_path
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("index.md");
+
+    if old_slug == new_slug {
+        fs::write(old_path, current_content)?;
+        return Ok(RenamePostResult {
+            old_file_path: old_path.to_string_lossy().to_string(),
+            new_file_path: old_path.to_string_lossy().to_string(),
+            new_slug: new_slug.to_string(),
+            renamed_asset_dirs: Vec::new(),
+            updated_content: current_content.to_string(),
+        });
+    }
+
+    let new_bundle_dir = bundle_parent.join(new_slug);
+    let same_case_insensitive = old_slug.eq_ignore_ascii_case(new_slug);
+    if !same_case_insensitive && new_bundle_dir.exists() {
+        return Err(AppError::AlreadyExists(format!(
+            "Target bundle already exists: {}",
+            new_bundle_dir.display()
+        )));
+    }
+
+    fs::rename(old_bundle_dir, &new_bundle_dir)?;
+    let new_file_path = new_bundle_dir.join(file_name);
+    if let Err(err) = fs::write(&new_file_path, current_content) {
+        let _ = fs::rename(&new_bundle_dir, old_bundle_dir);
+        return Err(err.into());
+    }
+
+    Ok(RenamePostResult {
+        old_file_path: old_path.to_string_lossy().to_string(),
+        new_file_path: new_file_path.to_string_lossy().to_string(),
+        new_slug: new_slug.to_string(),
+        renamed_asset_dirs: vec![new_bundle_dir.to_string_lossy().to_string()],
+        updated_content: current_content.to_string(),
+    })
+}
+
 pub fn rename_post_with_assets(
     site_root: Option<&str>,
     old_file_path: &str,
@@ -765,6 +1452,20 @@ pub fn rename_post_with_assets(
         )));
     }
 
+    let new_slug = sanitize_filename_stem(new_title_or_slug);
+    if new_slug.is_empty() {
+        return Err(AppError::InvalidInput(
+            "New filename cannot be empty".into(),
+        ));
+    }
+
+    let is_hugo_site = site_root
+        .and_then(|r| detect_site_engine(Path::new(r)))
+        == Some(SiteEngine::Hugo);
+    if is_page_bundle_doc(&old_path) && (is_hugo_site || is_hugo_page_bundle(&old_path)) {
+        return rename_hugo_page_bundle(&old_path, &new_slug, current_content);
+    }
+
     let parent = old_path
         .parent()
         .ok_or_else(|| AppError::InvalidPath("File has no parent directory".into()))?;
@@ -777,13 +1478,6 @@ pub fn rename_post_with_assets(
         .extension()
         .and_then(|e| e.to_str())
         .unwrap_or("md");
-
-    let new_slug = sanitize_filename_stem(new_title_or_slug);
-    if new_slug.is_empty() {
-        return Err(AppError::InvalidInput(
-            "New filename cannot be empty".into(),
-        ));
-    }
 
     let new_path = parent.join(format!("{}.{}", new_slug, ext));
     if old_stem == new_slug {
@@ -817,23 +1511,25 @@ pub fn rename_post_with_assets(
         renamed_asset_dirs.push(new_sibling_assets.to_string_lossy().to_string());
     }
 
-    // 2. Rename <source_dir>/images/<old_stem> directory if present
+    // 2. Rename <source_dir>/images/<old_stem> directory if present (Hexo)
     if let Some(root_str) = site_root {
-        let source_dir = inspect_hexo_site(root_str)
-            .map(|c| c.source_dir)
-            .unwrap_or_else(|_| "source".to_string());
-        let images_base = PathBuf::from(root_str).join(source_dir).join("images");
-        let old_images_dir = images_base.join(&old_stem);
-        let new_images_dir = images_base.join(&new_slug);
-        if old_images_dir.is_dir() && (same_case_insensitive || !new_images_dir.exists()) {
-            if let Err(err) = fs::rename(&old_images_dir, &new_images_dir) {
-                for (old_d, new_d) in renamed_pairs.iter().rev() {
-                    let _ = fs::rename(new_d, old_d);
+        if !is_hugo_site {
+            let source_dir = inspect_hexo_site(root_str)
+                .map(|c| c.source_dir)
+                .unwrap_or_else(|_| "source".to_string());
+            let images_base = PathBuf::from(root_str).join(source_dir).join("images");
+            let old_images_dir = images_base.join(&old_stem);
+            let new_images_dir = images_base.join(&new_slug);
+            if old_images_dir.is_dir() && (same_case_insensitive || !new_images_dir.exists()) {
+                if let Err(err) = fs::rename(&old_images_dir, &new_images_dir) {
+                    for (old_d, new_d) in renamed_pairs.iter().rev() {
+                        let _ = fs::rename(new_d, old_d);
+                    }
+                    return Err(err.into());
                 }
-                return Err(err.into());
+                renamed_pairs.push((old_images_dir, new_images_dir.clone()));
+                renamed_asset_dirs.push(new_images_dir.to_string_lossy().to_string());
             }
-            renamed_pairs.push((old_images_dir, new_images_dir.clone()));
-            renamed_asset_dirs.push(new_images_dir.to_string_lossy().to_string());
         }
     }
 
@@ -1058,5 +1754,179 @@ mod tests {
         fs::write(&outside, "# About").unwrap();
         let err = toggle_post_draft(site.path().to_str().unwrap(), outside.to_str().unwrap());
         assert!(matches!(err, Err(AppError::InvalidPath(_))));
+    }
+
+    fn create_mock_hugo_site() -> TempDir {
+        let dir = TempDir::new().unwrap();
+        let root = dir.path();
+        fs::write(
+            root.join("hugo.toml"),
+            "baseURL = \"https://example.org/\"\nlanguageCode = \"en-US\"\ntitle = \"Root Title\"\ntheme = \"base\"\n",
+        )
+        .unwrap();
+        fs::create_dir_all(root.join("config/_default")).unwrap();
+        fs::write(
+            root.join("config/_default/hugo.toml"),
+            "baseURL = 'https://blog.ause.cc/'\nlanguageCode = 'zh-CN'\ntitle = 'Zac Hugo'\ntheme = \"lowkey\"\n",
+        )
+        .unwrap();
+        fs::create_dir_all(root.join("content/posts")).unwrap();
+        dir
+    }
+
+    #[test]
+    fn test_detect_site_engine_and_hugo_config_precedence() {
+        let empty = TempDir::new().unwrap();
+        assert_eq!(detect_site_engine(empty.path()), None);
+
+        let hexo = create_mock_site();
+        assert_eq!(detect_site_engine(hexo.path()), Some(SiteEngine::Hexo));
+        let hexo_cfg = inspect_hexo_site(hexo.path().to_str().unwrap()).unwrap();
+        assert_eq!(hexo_cfg.engine, "hexo");
+
+        let hugo = create_mock_hugo_site();
+        assert_eq!(detect_site_engine(hugo.path()), Some(SiteEngine::Hugo));
+        let hugo_cfg = inspect_hexo_site(hugo.path().to_str().unwrap()).unwrap();
+        assert_eq!(hugo_cfg.engine, "hugo");
+        assert_eq!(hugo_cfg.title, "Zac Hugo");
+        assert_eq!(hugo_cfg.url.as_deref(), Some("https://blog.ause.cc/"));
+        assert_eq!(hugo_cfg.language.as_deref(), Some("zh-CN"));
+        assert_eq!(hugo_cfg.source_dir, "content");
+        assert!(hugo_cfg.post_asset_folder);
+        assert_eq!(hugo_cfg.default_layout, "post");
+
+        let yaml_hugo = TempDir::new().unwrap();
+        fs::write(yaml_hugo.path().join("hugo.yaml"), "title: YAML Hugo\nbaseURL: https://yaml.example/\n").unwrap();
+        assert_eq!(detect_site_engine(yaml_hugo.path()), Some(SiteEngine::Hugo));
+        let yaml_cfg = inspect_hexo_site(yaml_hugo.path().to_str().unwrap()).unwrap();
+        assert_eq!(yaml_cfg.title, "YAML Hugo");
+        assert_eq!(yaml_cfg.url.as_deref(), Some("https://yaml.example/"));
+    }
+
+    #[test]
+    fn test_scan_hugo_site_page_bundles_toml_and_skip_index() {
+        let hugo = create_mock_hugo_site();
+        let root = hugo.path();
+
+        fs::write(root.join("content/posts/_index.md"), "---\ntitle: Posts\n---\n").unwrap();
+
+        // Page bundle with YAML front-matter and sibling .md that should be ignored
+        let bundle = root.join("content/posts/my-bundle");
+        fs::create_dir_all(&bundle).unwrap();
+        fs::write(
+            bundle.join("index.md"),
+            "---\ntitle: Bundle Post\ndate: 2026-04-15\ntags:\n  - Hugo\ncategories:\n  - Tech\n---\n\nBundle body.\n",
+        )
+        .unwrap();
+        fs::write(bundle.join("notes.md"), "# Sibling resource note").unwrap();
+        fs::write(bundle.join("cover.png"), b"png").unwrap();
+
+        // Nested standalone post with TOML +++ front-matter
+        let nested = root.join("content/posts/2026");
+        fs::create_dir_all(&nested).unwrap();
+        fs::write(
+            nested.join("toml-guide.md"),
+            "+++\ntitle = \"TOML Guide\"\ndate = 2026-05-01T10:00:00+08:00\nlastmod = 2026-05-02T12:00:00+08:00\ntags = [\"Rust\", \"Hugo\"]\ncategories = [\"Notes\"]\ndraft = true\n+++\n\nTOML body.\n",
+        )
+        .unwrap();
+
+        let scan = scan_hexo_site(root.to_str().unwrap()).unwrap();
+        assert_eq!(scan.config.engine, "hugo");
+        assert_eq!(scan.posts.len(), 2);
+
+        let toml_post = scan.posts.iter().find(|p| p.slug == "toml-guide").unwrap();
+        assert_eq!(toml_post.title, "TOML Guide");
+        assert!(toml_post.is_draft);
+        assert!(toml_post.updated.as_deref().unwrap().starts_with("2026-05-02"));
+        assert_eq!(toml_post.tags, vec!["Rust", "Hugo"]);
+        assert_eq!(toml_post.categories, vec!["Notes"]);
+
+        let bundle_post = scan.posts.iter().find(|p| p.slug == "my-bundle").unwrap();
+        assert_eq!(bundle_post.title, "Bundle Post");
+        assert!(!bundle_post.is_draft);
+        assert!(bundle_post.has_asset_folder);
+        assert_eq!(bundle_post.relative_path, "content/posts/my-bundle/index.md");
+    }
+
+    #[test]
+    fn test_hugo_post_lifecycle_create_toggle_draft_rename_and_delete() {
+        let hugo = create_mock_hugo_site();
+        let root = hugo.path();
+        let root_str = root.to_str().unwrap();
+
+        // Create creates Page Bundle content/posts/<slug>/index.md
+        let created = create_hexo_post(
+            root_str,
+            "My Hugo Bundle",
+            true,
+            vec!["Hugo".into()],
+            vec!["Guide".into()],
+        )
+        .unwrap();
+        assert!(created.is_draft);
+        assert!(created.has_asset_folder);
+        assert_eq!(created.slug, "My-Hugo-Bundle");
+        assert!(created.file_path.ends_with("content/posts/My-Hugo-Bundle/index.md"));
+        assert!(Path::new(&created.file_path).is_file());
+
+        // Toggle draft in-place without moving file
+        let published = toggle_post_draft(root_str, &created.file_path).unwrap();
+        assert!(!published.is_draft);
+        assert_eq!(published.file_path, created.file_path);
+        let raw_after_pub = fs::read_to_string(&published.file_path).unwrap();
+        assert!(raw_after_pub.contains("draft: false"));
+
+        let back_to_draft = toggle_post_draft(root_str, &published.file_path).unwrap();
+        assert!(back_to_draft.is_draft);
+        assert_eq!(back_to_draft.file_path, created.file_path);
+
+        // Toggle TOML +++ front-matter draft in-place too
+        let toml_post = root.join("content/posts/toml-only.md");
+        fs::write(&toml_post, "+++\ntitle = \"Toml\"\ndraft = false\n+++\n\nHi\n").unwrap();
+        let toggled_toml = toggle_post_draft(root_str, toml_post.to_str().unwrap()).unwrap();
+        assert!(toggled_toml.is_draft);
+        assert!(fs::read_to_string(&toml_post).unwrap().contains("draft = true"));
+
+        // Add sibling image to bundle and rename bundle directory
+        let bundle_dir = Path::new(&created.file_path).parent().unwrap();
+        fs::write(bundle_dir.join("cover.png"), b"png-bytes").unwrap();
+        let content_with_img = format!("{}\n![cover](cover.png)\n", fs::read_to_string(&created.file_path).unwrap());
+        let renamed = rename_post_with_assets(
+            Some(root_str),
+            &created.file_path,
+            "Renamed Bundle",
+            &content_with_img,
+        )
+        .unwrap();
+        assert_eq!(renamed.new_slug, "Renamed-Bundle");
+        assert!(renamed.new_file_path.ends_with("content/posts/Renamed-Bundle/index.md"));
+        assert!(!bundle_dir.exists());
+        assert!(root.join("content/posts/Renamed-Bundle/cover.png").is_file());
+        assert!(renamed.updated_content.contains("![cover](cover.png)"));
+
+        // Delete with delete_asset_folder = false removes only index.md
+        delete_post(&renamed.new_file_path, false).unwrap();
+        assert!(!Path::new(&renamed.new_file_path).exists());
+        assert!(root.join("content/posts/Renamed-Bundle/cover.png").is_file());
+
+        // Delete with delete_asset_folder = true removes entire bundle directory
+        fs::write(&renamed.new_file_path, "---\ntitle: Recreated\n---\n").unwrap();
+        delete_post(&renamed.new_file_path, true).unwrap();
+        assert!(!root.join("content/posts/Renamed-Bundle").exists());
+    }
+
+    #[test]
+    fn test_read_only_compatibility_with_real_hugo_blog() {
+        let real_blog = Path::new("/Users/zac/code/github/blog/my-blog");
+        if !real_blog.is_dir() {
+            return;
+        }
+        let scan = scan_hexo_site(real_blog.to_str().unwrap()).unwrap();
+        assert_eq!(scan.config.engine, "hugo");
+        assert_eq!(scan.config.title, "Zac");
+        assert_eq!(scan.config.url.as_deref(), Some("https://blog.ause.cc/"));
+        assert_eq!(scan.config.source_dir, "content");
+        assert!(!scan.posts.is_empty());
+        assert!(scan.posts.iter().all(|p| !p.file_name.eq_ignore_ascii_case("_index.md")));
     }
 }

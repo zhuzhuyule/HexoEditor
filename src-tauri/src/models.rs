@@ -1,8 +1,14 @@
 use serde::{Deserialize, Serialize};
 
+fn default_site_engine() -> String {
+    "hexo".to_string()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HexoSiteConfig {
+    #[serde(default = "default_site_engine")]
+    pub engine: String,
     pub root_path: String,
     pub title: String,
     pub subtitle: Option<String>,
