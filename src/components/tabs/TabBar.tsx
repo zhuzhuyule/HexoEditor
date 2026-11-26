@@ -127,8 +127,8 @@ export function TabBar({
     <header
       data-tauri-drag-region
       className={cn(
-        "no-print flex h-10 shrink-0 items-center justify-between gap-2 border-b border-zinc-200/80 bg-zinc-50/75 pr-2 select-none",
-        overlayInset ? "pl-[76px]" : "pl-2"
+        "no-print flex h-[40px] shrink-0 items-center justify-between gap-2 border-b border-zinc-200/80 bg-zinc-50/75 pr-2 select-none",
+        overlayInset ? "pl-[74px]" : "pl-2"
       )}
     >
       {/* Left: Sidebar Toggle + Open Tabs */}

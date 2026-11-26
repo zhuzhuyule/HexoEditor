@@ -114,8 +114,14 @@ import {
 import * as api from "@/lib/tauri/api";
 import * as hexoApi from "@/lib/tauri/hexoApi";
 import * as imageBedApi from "@/lib/tauri/imageBedApi";
-import { formatMarkdownImageSnippet, getFileName } from "@/lib/utils";
-import { useAppStore } from "@/stores/useAppStore";
+import { cn, formatMarkdownImageSnippet, getFileName } from "@/lib/utils";
+import {
+  clampSidebarWidth,
+  DEFAULT_SIDEBAR_WIDTH,
+  MAX_SIDEBAR_WIDTH,
+  MIN_SIDEBAR_WIDTH,
+  useAppStore,
+} from "@/stores/useAppStore";
 import {
   DEFAULT_AI_SETTINGS,
   type AiPromptAction,
@@ -172,6 +178,8 @@ export function App() {
     sidebarOpen,
     toggleSidebar,
     setSidebarOpen,
+    sidebarWidth,
+    setSidebarWidth,
     setSidebarTab,
     sites,
     activeSiteRoot,
@@ -290,6 +298,62 @@ export function App() {
     null
   );
   const [imageVersion, setImageVersion] = useState(0);
+  const [draggingSidebarWidth, setDraggingSidebarWidth] = useState<
+    number | null
+  >(null);
+  const sidebarResizeCleanupRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      sidebarResizeCleanupRef.current?.();
+      sidebarResizeCleanupRef.current = null;
+    };
+  }, []);
+
+  const handleSidebarResizeMouseDown = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      sidebarResizeCleanupRef.current?.();
+
+      const startX = e.clientX;
+      const startWidth = useAppStore.getState().sidebarWidth;
+      let latestWidth = startWidth;
+      setDraggingSidebarWidth(startWidth);
+
+      const prevUserSelect = document.body.style.userSelect;
+      const prevCursor = document.body.style.cursor;
+      document.body.style.userSelect = "none";
+      document.body.style.cursor = "col-resize";
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        latestWidth = clampSidebarWidth(
+          startWidth + (moveEvent.clientX - startX)
+        );
+        setDraggingSidebarWidth(latestWidth);
+      };
+
+      const cleanup = () => {
+        window.removeEventListener("mousemove", handleMouseMove);
+        window.removeEventListener("mouseup", handleMouseUp);
+        document.body.style.userSelect = prevUserSelect;
+        document.body.style.cursor = prevCursor;
+        if (sidebarResizeCleanupRef.current === cleanup) {
+          sidebarResizeCleanupRef.current = null;
+        }
+      };
+
+      const handleMouseUp = () => {
+        cleanup();
+        setDraggingSidebarWidth(null);
+        setSidebarWidth(latestWidth);
+      };
+
+      sidebarResizeCleanupRef.current = cleanup;
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseup", handleMouseUp);
+    },
+    [setSidebarWidth]
+  );
 
   // Image manager modal runtime states
   const [localDocImages, setLocalDocImages] = useState<LocalDocumentImageItem[]>(
@@ -1992,6 +2056,7 @@ export function App() {
   const closeConfirmTab = tabs.find((t) => t.id === closeConfirmTabId) ?? null;
   const isFocusMode = viewMode === "focus";
   const showSidebar = sidebarOpen && !isFocusMode;
+  const activeSidebarWidth = draggingSidebarWidth ?? sidebarWidth;
 
   const renderPreviewPane = (centered = false) => {
     if (previewSource === "live") {
@@ -2046,36 +2111,45 @@ export function App() {
       data-zoom-level={editorPrefs.zoomLevel}
       className="flex h-screen w-screen flex-col overflow-hidden bg-white text-zinc-900"
     >
-      {/* Main Area (Sidebar + Editor Workspace) */}
+      {/* Main Area (Fixed-Pixel Sidebar + Adaptive Editor Workspace) */}
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <PanelGroup direction="horizontal" autoSaveId="hexo-v2-main-layout">
-          {showSidebar && (
-            <>
-              <Panel
-                id="sidebar"
-                defaultSize={21}
-                minSize={15}
-                maxSize={36}
-                order={1}
-                className="no-print"
-              >
-                <Sidebar
-                  onRequestNewPost={() => setNewPostOpen(true)}
-                  onSelectOutline={handleSelectOutline}
-                  overlayInset={useOverlayTitleBar}
-                />
-              </Panel>
-              <PanelResizeHandle className="no-print w-[1px] bg-transparent hover:bg-zinc-300 transition-colors cursor-col-resize" />
-            </>
-          )}
+        {showSidebar && (
+          <>
+            <div
+              data-testid="sidebar-container"
+              style={{ width: `${activeSidebarWidth}px` }}
+              className="no-print h-full shrink-0 overflow-hidden"
+            >
+              <Sidebar
+                onRequestNewPost={() => setNewPostOpen(true)}
+                onSelectOutline={handleSelectOutline}
+                overlayInset={useOverlayTitleBar}
+              />
+            </div>
+            <div
+              role="separator"
+              aria-orientation="vertical"
+              aria-label={
+                locale === "en-US" ? "Resize sidebar" : "调整侧边栏宽度"
+              }
+              aria-valuemin={MIN_SIDEBAR_WIDTH}
+              aria-valuemax={MAX_SIDEBAR_WIDTH}
+              aria-valuenow={activeSidebarWidth}
+              data-testid="sidebar-resize-handle"
+              onMouseDown={handleSidebarResizeMouseDown}
+              onDoubleClick={() => setSidebarWidth(DEFAULT_SIDEBAR_WIDTH)}
+              className={cn(
+                "no-print relative z-20 -ml-[2px] w-[5px] shrink-0 cursor-col-resize select-none",
+                "after:pointer-events-none after:absolute after:inset-y-0 after:left-[2px] after:w-[1px] after:transition-colors",
+                draggingSidebarWidth !== null
+                  ? "after:bg-zinc-400"
+                  : "hover:after:bg-zinc-400/80"
+              )}
+            />
+          </>
+        )}
 
-          <Panel
-            id="workspace"
-            defaultSize={showSidebar ? 79 : 100}
-            order={2}
-            minSize={50}
-          >
-            <div className="relative flex h-full w-full flex-col overflow-hidden">
+        <div className="relative flex h-full min-w-0 flex-1 flex-col overflow-hidden">
               {/* Top Tab Bar (hidden in Focus mode) */}
               {!isFocusMode && (
                 <TabBar
@@ -2310,9 +2384,7 @@ export function App() {
                   className="no-print"
                 />
               )}
-            </div>
-          </Panel>
-        </PanelGroup>
+        </div>
 
         {/* Collapsible Right AI Writing Assistant Drawer */}
         {!isFocusMode && aiDrawerOpen && (

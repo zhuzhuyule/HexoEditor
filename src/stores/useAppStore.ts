@@ -55,6 +55,17 @@ import {
 const MAX_RECENT_ENTRIES = 10;
 const MAX_HEXO_LOGS = 500;
 
+export const DEFAULT_SIDEBAR_WIDTH = 260;
+export const MIN_SIDEBAR_WIDTH = 220;
+export const MAX_SIDEBAR_WIDTH = 440;
+
+export function clampSidebarWidth(width: number): number {
+  if (typeof width !== "number" || !Number.isFinite(width)) {
+    return DEFAULT_SIDEBAR_WIDTH;
+  }
+  return Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, Math.round(width)));
+}
+
 const INITIAL_HEXO_STATUS: HexoCliStatus = {
   running: false,
   action: null,
@@ -97,6 +108,7 @@ interface AppState {
   isScanning: boolean;
 
   sidebarOpen: boolean;
+  sidebarWidth: number;
   sidebarTab: SidebarTab;
   filterTab: PostFilterTab;
   searchQuery: string;
@@ -141,6 +153,7 @@ interface AppState {
   setLocale: (locale: Locale) => void;
   setSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
+  setSidebarWidth: (width: number) => void;
   setSidebarTab: (tab: SidebarTab) => void;
   setFilterTab: (tab: PostFilterTab) => void;
   setSearchQuery: (q: string) => void;
@@ -449,6 +462,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   isScanning: false,
 
   sidebarOpen: true,
+  sidebarWidth: DEFAULT_SIDEBAR_WIDTH,
   sidebarTab: "posts",
   filterTab: "all",
   searchQuery: "",
@@ -501,6 +515,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       rawEditorPrefs,
       rawImageBed,
       rawAiSettings,
+      rawSidebarWidth,
     ] = await Promise.all([
       api.loadSetting<Locale>("locale", "zh-CN"),
       api.loadSetting<SavedSiteEntry[]>("sites", []),
@@ -516,6 +531,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       api.loadSetting<Partial<EditorPreferences> | null>("editorPrefs", null),
       api.loadSetting<Partial<ImageBedSettings> | null>("imageBed", null),
       api.loadSetting<Partial<AiSettings> | null>("aiSettings", null),
+      api.loadSetting<number>("sidebarWidth", DEFAULT_SIDEBAR_WIDTH),
     ]);
 
     const sanitizedRecents = Array.isArray(recentEntries)
@@ -523,6 +539,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       : [];
     const sanitizedPrefs = sanitizeEditorPrefs(rawEditorPrefs);
     const sanitizedAi = sanitizeAiSettings(rawAiSettings ?? rawEditorPrefs?.ai);
+    const sanitizedSidebarWidth = clampSidebarWidth(rawSidebarWidth);
 
     set({
       hydrated: true,
@@ -540,6 +557,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       editorPrefs: sanitizedPrefs,
       imageBed: sanitizeImageBedSettings(rawImageBed),
       aiSettings: sanitizedAi,
+      sidebarWidth: sanitizedSidebarWidth,
     });
 
     void get().discoverAgents();
@@ -557,6 +575,11 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
+  setSidebarWidth: (width) => {
+    const clamped = clampSidebarWidth(width);
+    set({ sidebarWidth: clamped });
+    void api.saveSetting("sidebarWidth", clamped);
+  },
   setSidebarTab: (sidebarTab) => set({ sidebarTab }),
   setFilterTab: (filterTab) => set({ filterTab }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),

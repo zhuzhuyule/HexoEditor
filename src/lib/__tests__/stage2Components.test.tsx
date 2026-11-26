@@ -27,7 +27,13 @@ import {
   type HexoTerminalLogEntry,
   type HexoTerminalStatus,
 } from "@/components/terminal/HexoTerminalDrawer";
-import { useAppStore } from "@/stores/useAppStore";
+import {
+  DEFAULT_SIDEBAR_WIDTH,
+  MAX_SIDEBAR_WIDTH,
+  MIN_SIDEBAR_WIDTH,
+  useAppStore,
+} from "@/stores/useAppStore";
+import * as api from "@/lib/tauri/api";
 
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -765,5 +771,36 @@ describe("Stage 2 minimalist UI & workbench components", () => {
       (el) => el.textContent?.trim() === "Hugo"
     );
     expect(engineBadge).toBeDefined();
+
+    // Verify Sidebar header keeps h-[40px] without engine badge inside trigger, while footer keeps h-[32px] with engine badge
+    const aside = container.querySelector("aside");
+    expect(aside).not.toBeNull();
+    const headerRow = aside?.firstElementChild as HTMLElement | null;
+    expect(headerRow?.className).toContain("h-[40px]");
+    const siteTriggerBtn = headerRow?.querySelector("button");
+    expect(siteTriggerBtn?.textContent?.trim()).toBe("Zac Hugo");
+    const footerRow = Array.from(aside?.children ?? []).find((el) =>
+      el.className.includes("h-[32px]")
+    ) as HTMLElement | undefined;
+    expect(footerRow).toBeDefined();
+    expect(footerRow?.textContent).toContain("Hugo");
+  });
+
+  it("clamps and persists sidebarWidth in useAppStore within [220, 440]", () => {
+    const saveSpy = vi.spyOn(api, "saveSetting").mockResolvedValue(undefined);
+    useAppStore.setState({ sidebarWidth: DEFAULT_SIDEBAR_WIDTH });
+    expect(useAppStore.getState().sidebarWidth).toBe(260);
+
+    useAppStore.getState().setSidebarWidth(120);
+    expect(useAppStore.getState().sidebarWidth).toBe(MIN_SIDEBAR_WIDTH);
+    expect(saveSpy).toHaveBeenLastCalledWith("sidebarWidth", MIN_SIDEBAR_WIDTH);
+
+    useAppStore.getState().setSidebarWidth(800);
+    expect(useAppStore.getState().sidebarWidth).toBe(MAX_SIDEBAR_WIDTH);
+    expect(saveSpy).toHaveBeenLastCalledWith("sidebarWidth", MAX_SIDEBAR_WIDTH);
+
+    useAppStore.getState().setSidebarWidth(315);
+    expect(useAppStore.getState().sidebarWidth).toBe(315);
+    expect(saveSpy).toHaveBeenLastCalledWith("sidebarWidth", 315);
   });
 });

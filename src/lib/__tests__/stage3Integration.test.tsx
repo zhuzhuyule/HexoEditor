@@ -657,4 +657,90 @@ describe("Stage 3 workbench integration", () => {
     expect(printSpy).toHaveBeenCalledTimes(1);
     window.dispatchEvent(new Event("afterprint"));
   });
+
+  it("renders a fixed-pixel resizable sidebar that updates on drag, clamps within bounds, and resets on double-click", async () => {
+    const saveSpy = vi.spyOn(api, "saveSetting").mockResolvedValue(undefined);
+    useAppStore.setState({
+      sidebarOpen: true,
+      sidebarWidth: 260,
+      viewMode: "split",
+      tabs: [],
+      activeTabId: null,
+    });
+
+    await act(async () => {
+      root.render(
+        <TooltipProvider>
+          <App />
+        </TooltipProvider>
+      );
+    });
+
+    const sidebarContainer = container.querySelector<HTMLElement>(
+      '[data-testid="sidebar-container"]'
+    );
+    const resizeHandle = container.querySelector<HTMLElement>(
+      '[data-testid="sidebar-resize-handle"]'
+    );
+    expect(sidebarContainer).not.toBeNull();
+    expect(resizeHandle).not.toBeNull();
+    expect(sidebarContainer!.style.width).toBe("260px");
+
+    // Drag right by +60px -> 320px
+    await act(async () => {
+      resizeHandle!.dispatchEvent(
+        new MouseEvent("mousedown", { clientX: 260, bubbles: true })
+      );
+      window.dispatchEvent(
+        new MouseEvent("mousemove", { clientX: 320, bubbles: true })
+      );
+    });
+    expect(sidebarContainer!.style.width).toBe("320px");
+
+    await act(async () => {
+      window.dispatchEvent(
+        new MouseEvent("mouseup", { clientX: 320, bubbles: true })
+      );
+    });
+    expect(useAppStore.getState().sidebarWidth).toBe(320);
+    expect(saveSpy).toHaveBeenCalledWith("sidebarWidth", 320);
+
+    // Drag beyond bounds (< 220 and > 440)
+    await act(async () => {
+      resizeHandle!.dispatchEvent(
+        new MouseEvent("mousedown", { clientX: 320, bubbles: true })
+      );
+      window.dispatchEvent(
+        new MouseEvent("mousemove", { clientX: 50, bubbles: true })
+      );
+      window.dispatchEvent(
+        new MouseEvent("mouseup", { clientX: 50, bubbles: true })
+      );
+    });
+    expect(sidebarContainer!.style.width).toBe("220px");
+    expect(useAppStore.getState().sidebarWidth).toBe(220);
+
+    await act(async () => {
+      resizeHandle!.dispatchEvent(
+        new MouseEvent("mousedown", { clientX: 220, bubbles: true })
+      );
+      window.dispatchEvent(
+        new MouseEvent("mousemove", { clientX: 900, bubbles: true })
+      );
+      window.dispatchEvent(
+        new MouseEvent("mouseup", { clientX: 900, bubbles: true })
+      );
+    });
+    expect(sidebarContainer!.style.width).toBe("440px");
+    expect(useAppStore.getState().sidebarWidth).toBe(440);
+
+    // Double-click resets to 260px
+    await act(async () => {
+      resizeHandle!.dispatchEvent(
+        new MouseEvent("dblclick", { bubbles: true })
+      );
+    });
+    expect(sidebarContainer!.style.width).toBe("260px");
+    expect(useAppStore.getState().sidebarWidth).toBe(260);
+  });
 });

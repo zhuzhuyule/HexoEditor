@@ -337,8 +337,8 @@ export function HexoTerminalDrawer({
         </div>
       )}
 
-      {/* Unified Single Workspace Footer Bar (h-8 = 32px, aligned with Sidebar Footer) */}
-      <footer className="no-print flex h-8 items-center justify-between gap-2 bg-zinc-50/75 px-2.5">
+      {/* Unified Single Workspace Footer Bar (32px, aligned with Sidebar Footer) */}
+      <footer className="no-print flex h-[32px] items-center justify-between gap-2 bg-zinc-50/75 px-2.5">
         {/* Left: Status trigger + running indicator + clickable live URL */}
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <button

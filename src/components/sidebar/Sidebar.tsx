@@ -151,12 +151,12 @@ export function Sidebar({
 
   return (
     <aside className="flex h-full w-full flex-col bg-zinc-50/70 border-r border-zinc-200/80 select-none overflow-hidden">
-      {/* Site Selector & Primary Actions (aligned height with TabBar h-10) */}
+      {/* Site Selector & Primary Actions (aligned height with TabBar h-[40px]) */}
       <div
         data-tauri-drag-region
         className={cn(
-          "flex h-10 shrink-0 items-center gap-1 border-b border-zinc-200/80 bg-zinc-50/75 pr-2",
-          overlayInset ? "pl-[76px]" : "pl-2.5"
+          "flex h-[40px] shrink-0 items-center gap-1 border-b border-zinc-200/80 bg-zinc-50/75 pr-2",
+          overlayInset ? "pl-[74px]" : "pl-2.5"
         )}
       >
         <DropdownMenu>
@@ -165,18 +165,8 @@ export function Sidebar({
               type="button"
               className="flex min-w-0 flex-1 items-center justify-between gap-1.5 rounded-md px-2 py-1 text-left text-xs font-semibold text-zinc-800 hover:bg-zinc-200/60 transition-colors cursor-pointer"
             >
-              <span className="flex min-w-0 items-center gap-1.5">
-                <span className="truncate">
-                  {siteConfig?.title || msg.sidebar.noSite}
-                </span>
-                {siteConfig && (
-                  <Badge
-                    variant="subtle"
-                    className="px-1 py-0 text-[10px] font-medium text-zinc-500"
-                  >
-                    {siteConfig.engine === "hugo" ? "Hugo" : "Hexo"}
-                  </Badge>
-                )}
+              <span className="min-w-0 truncate">
+                {siteConfig?.title || msg.sidebar.noSite}
               </span>
               <ChevronDown className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
             </button>
@@ -642,18 +632,28 @@ export function Sidebar({
         </>
       )}
 
-      {/* Unified Sidebar Footer (aligned height with workspace FooterBar h-8) */}
-      <div className="flex h-8 shrink-0 items-center justify-between border-t border-zinc-200/80 bg-zinc-50/75 px-3 text-[11px] text-zinc-400">
-        <span>
-          {sidebarTab === "outline"
-            ? activeTab
-              ? isEn
-                ? `${outlineItems.length} headings`
-                : `${outlineItems.length} 个标题`
-              : "—"
-            : activeSiteRoot
-            ? formatMessage(msg.sidebar.postCount, { count: filteredPosts.length })
-            : "—"}
+      {/* Unified Sidebar Footer (aligned height with workspace FooterBar h-[32px]) */}
+      <div className="flex h-[32px] shrink-0 items-center justify-between border-t border-zinc-200/80 bg-zinc-50/75 px-3 text-[11px] text-zinc-400">
+        <span className="flex min-w-0 items-center gap-1.5">
+          {siteConfig && (
+            <Badge
+              variant="subtle"
+              className="px-1 py-0 text-[10px] font-medium text-zinc-500"
+            >
+              {siteConfig.engine === "hugo" ? "Hugo" : "Hexo"}
+            </Badge>
+          )}
+          <span className="truncate">
+            {sidebarTab === "outline"
+              ? activeTab
+                ? isEn
+                  ? `${outlineItems.length} headings`
+                  : `${outlineItems.length} 个标题`
+                : "—"
+              : activeSiteRoot
+              ? formatMessage(msg.sidebar.postCount, { count: filteredPosts.length })
+              : "—"}
+          </span>
         </span>
         {activeSiteRoot && (
           <button
