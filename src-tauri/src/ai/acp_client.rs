@@ -6,21 +6,94 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStdin, ChildStdout, Command};
-use tokio::sync::watch;
+use tokio::sync::{oneshot, watch};
 
 use crate::error::{AppError, AppResult};
 
 use super::discovery::build_ai_path_env;
 use super::{
     emit_ai_event, terminate_process_group_force, terminate_process_group_graceful, AcpAgentInfo,
-    AcpAuthMethod, AcpProbeResult, AiProviderConfig,
+    AcpAuthMethod, AcpPermissionDecision, AcpPermissionOption, AcpPermissionRequestEvent,
+    AcpProbeResult, AiProviderConfig, AI_PERMISSION_REQUEST_EVENT,
 };
 
 const ACP_PROBE_TIMEOUT_SECS: u64 = 5;
 const ACP_HANDSHAKE_TIMEOUT_SECS: u64 = 12;
+const ACP_PERMISSION_TIMEOUT_SECS: u64 = 120;
+
+pub type PermissionRequestCallback = Arc<
+    dyn Fn(String, Option<String>, Vec<AcpPermissionOption>) -> oneshot::Receiver<AcpPermissionDecision>
+        + Send
+        + Sync,
+>;
+
+#[derive(Clone)]
+pub enum PermissionMode {
+    CancelAll,
+    Interactive(PermissionRequestCallback),
+}
+
+pub struct AcpSessionHandle {
+    pub pid: u32,
+    pub provider_fingerprint: String,
+    pub session_id: String,
+    pub next_rpc_id: u64,
+    pub child: Child,
+    pub stdin: ChildStdin,
+    pub reader: BufReader<ChildStdout>,
+    pub stderr_tail: Arc<Mutex<Vec<String>>>,
+}
+
+#[derive(Default)]
+pub struct AcpSessionSlot {
+    pid: AtomicU32,
+    inner: tokio::sync::Mutex<Option<AcpSessionHandle>>,
+}
+
+impl AcpSessionSlot {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn force_kill_blocking(&self) {
+        let pid = self.pid.swap(0, Ordering::AcqRel);
+        if pid > 0 {
+            terminate_process_group_force(pid);
+        }
+    }
+
+    pub async fn reset_async(&self) {
+        let taken = {
+            let mut guard = self.inner.lock().await;
+            guard.take()
+        };
+        if let Some(mut handle) = taken {
+            let pid = handle.pid;
+            drop(handle.stdin);
+            cleanup_child(&mut handle.child, pid).await;
+        }
+        self.pid.store(0, Ordering::Release);
+    }
+}
+
+pub fn build_provider_fingerprint(provider: &AiProviderConfig, cwd: Option<&Path>) -> String {
+    let exe = provider.executable.as_deref().unwrap_or("").trim();
+    let args = provider.args.join("\u{1f}");
+    let mut env_pairs: Vec<String> = provider
+        .env
+        .iter()
+        .map(|(k, v)| format!("{}={}", k.trim(), v))
+        .collect();
+    env_pairs.sort_unstable();
+    let cwd_str = cwd
+        .map(|p| p.to_string_lossy().to_string())
+        .or_else(|| provider.cwd.clone())
+        .unwrap_or_default();
+    format!("{}|{}|{}|{}", exe, args, env_pairs.join("\u{1f}"), cwd_str)
+}
 
 fn spawn_acp_child(
     executable: &str,
@@ -274,6 +347,71 @@ pub fn extract_session_update_event(params: &Value) -> Option<(&'static str, Str
     }
 }
 
+pub fn parse_permission_request_params(
+    params: Option<&Value>,
+) -> (String, Option<String>, Vec<AcpPermissionOption>) {
+    let Some(p) = params else {
+        return ("Tool permission".to_string(), None, Vec::new());
+    };
+    let tool_title = p
+        .pointer("/toolCall/title")
+        .or_else(|| p.pointer("/toolCall/toolName"))
+        .or_else(|| p.get("title"))
+        .or_else(|| p.get("toolName"))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .unwrap_or("Tool permission")
+        .to_string();
+
+    let kind = p
+        .pointer("/toolCall/kind")
+        .or_else(|| p.get("kind"))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(ToString::to_string);
+
+    let options = p
+        .get("options")
+        .and_then(Value::as_array)
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|opt| {
+                    let option_id = opt
+                        .get("optionId")
+                        .or_else(|| opt.get("id"))
+                        .and_then(Value::as_str)
+                        .map(str::trim)
+                        .filter(|s| !s.is_empty())?
+                        .to_string();
+                    let name = opt
+                        .get("name")
+                        .or_else(|| opt.get("label"))
+                        .and_then(Value::as_str)
+                        .map(str::trim)
+                        .filter(|s| !s.is_empty())
+                        .unwrap_or(&option_id)
+                        .to_string();
+                    let opt_kind = opt
+                        .get("kind")
+                        .and_then(Value::as_str)
+                        .map(str::trim)
+                        .filter(|s| !s.is_empty())
+                        .map(ToString::to_string);
+                    Some(AcpPermissionOption {
+                        option_id,
+                        name,
+                        kind: opt_kind,
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
+    (tool_title, kind, options)
+}
+
 fn format_jsonrpc_error(err_val: &Value) -> String {
     let code = err_val
         .get("code")
@@ -443,16 +581,14 @@ pub async fn probe_acp_agent(
     probe_res
 }
 
-#[allow(clippy::too_many_arguments)]
-pub async fn run_acp_prompt_with_emit<F>(
+async fn start_acp_session_handle<F>(
     provider: &AiProviderConfig,
-    system_prompt: Option<&str>,
-    prompt: &str,
     cwd: Option<&Path>,
-    mut cancel_rx: watch::Receiver<bool>,
-    child_pid: Arc<AtomicU32>,
-    mut emit: F,
-) -> AppResult<()>
+    fingerprint: String,
+    cancel_rx: &mut watch::Receiver<bool>,
+    child_pid: &Arc<AtomicU32>,
+    emit: &mut F,
+) -> AppResult<Option<AcpSessionHandle>>
 where
     F: FnMut(&str, &str, bool),
 {
@@ -478,8 +614,7 @@ where
     let stderr_tail = spawn_stderr_collector(child.stderr.take());
     let mut reader = BufReader::new(stdout);
 
-    let res = async {
-        // 1. Initialize
+    let handshake_res = async {
         emit("status", "ACP initialize...", false);
         let init_req = json!({
             "jsonrpc": "2.0",
@@ -504,10 +639,9 @@ where
         .await?;
 
         if *cancel_rx.borrow() {
-            return Ok(());
+            return Ok(None);
         }
 
-        // 2. session/new
         let cwd_str = cwd
             .map(|p| p.to_string_lossy().to_string())
             .or_else(|| {
@@ -544,129 +678,403 @@ where
             .to_string();
 
         if *cancel_rx.borrow() {
-            return Ok(());
+            return Ok(None);
         }
 
-        // 3. session/prompt
+        Ok(Some(session_id))
+    }
+    .await;
+
+    match handshake_res {
+        Ok(Some(session_id)) => Ok(Some(AcpSessionHandle {
+            pid,
+            provider_fingerprint: fingerprint,
+            session_id,
+            next_rpc_id: 3,
+            child,
+            stdin,
+            reader,
+            stderr_tail,
+        })),
+        Ok(None) => {
+            drop(stdin);
+            cleanup_child(&mut child, pid).await;
+            child_pid.store(0, Ordering::Release);
+            Ok(None)
+        }
+        Err(err) => {
+            drop(stdin);
+            cleanup_child(&mut child, pid).await;
+            child_pid.store(0, Ordering::Release);
+            Err(err)
+        }
+    }
+}
+
+async fn resolve_permission_outcome<F>(
+    params: Option<&Value>,
+    permission_mode: &PermissionMode,
+    cancel_rx: &mut watch::Receiver<bool>,
+    emit: &mut F,
+) -> Result<Value, ()>
+where
+    F: FnMut(&str, &str, bool),
+{
+    match permission_mode {
+        PermissionMode::CancelAll => {
+            emit(
+                "status",
+                "Rejected host write/command permission (advisory mode)",
+                false,
+            );
+            Ok(json!({ "outcome": "cancelled" }))
+        }
+        PermissionMode::Interactive(callback) => {
+            let (tool_title, kind, options) = parse_permission_request_params(params);
+            emit(
+                "status",
+                &format!("Waiting for permission: {}", tool_title),
+                false,
+            );
+            let rx = callback(tool_title.clone(), kind, options);
+
+            let decision = tokio::select! {
+                _ = cancel_rx.changed() => {
+                    if *cancel_rx.borrow() {
+                        return Err(());
+                    }
+                    AcpPermissionDecision { option_id: None, cancelled: true }
+                }
+                res = tokio::time::timeout(Duration::from_secs(ACP_PERMISSION_TIMEOUT_SECS), rx) => {
+                    match res {
+                        Ok(Ok(dec)) => dec,
+                        _ => AcpPermissionDecision { option_id: None, cancelled: true },
+                    }
+                }
+            };
+
+            if decision.cancelled {
+                emit(
+                    "status",
+                    &format!("Denied permission: {}", tool_title),
+                    false,
+                );
+                Ok(json!({ "outcome": "cancelled" }))
+            } else {
+                let selected_id = decision
+                    .option_id
+                    .as_deref()
+                    .map(str::trim)
+                    .filter(|s| !s.is_empty())
+                    .unwrap_or("allow_once")
+                    .to_string();
+                emit(
+                    "status",
+                    &format!("Approved permission: {}", tool_title),
+                    false,
+                );
+                Ok(json!({
+                    "outcome": "selected",
+                    "optionId": selected_id
+                }))
+            }
+        }
+    }
+}
+
+async fn execute_prompt_turn<F>(
+    handle: &mut AcpSessionHandle,
+    prompt_text: &str,
+    permission_mode: &PermissionMode,
+    cancel_rx: &mut watch::Receiver<bool>,
+    emit: &mut F,
+) -> AppResult<bool>
+where
+    F: FnMut(&str, &str, bool),
+{
+    let rpc_id = handle.next_rpc_id;
+    handle.next_rpc_id += 1;
+
+    let prompt_req = json!({
+        "jsonrpc": "2.0",
+        "id": rpc_id,
+        "method": "session/prompt",
+        "params": {
+            "sessionId": handle.session_id,
+            "prompt": [
+                {
+                    "type": "text",
+                    "text": prompt_text
+                }
+            ]
+        }
+    });
+    write_json_line(&mut handle.stdin, &prompt_req).await?;
+
+    let mut emitted_delta = false;
+    let mut line = String::new();
+    loop {
+        line.clear();
+        let read_step = tokio::select! {
+            _ = cancel_rx.changed() => {
+                if *cancel_rx.borrow() {
+                    return Ok(false);
+                }
+                continue;
+            }
+            res = handle.reader.read_line(&mut line) => res,
+        };
+
+        match read_step {
+            Ok(0) => {
+                if emitted_delta {
+                    emit("done", "", true);
+                    return Ok(false);
+                }
+                let tail = handle
+                    .stderr_tail
+                    .lock()
+                    .map(|v| v.join(" | "))
+                    .unwrap_or_default();
+                return Err(AppError::Watcher(if tail.is_empty() {
+                    "ACP session closed before completion".into()
+                } else {
+                    format!("ACP session closed: {}", tail)
+                }));
+            }
+            Ok(_) => {
+                let Some(msg) = parse_jsonrpc_line(&line) else {
+                    continue;
+                };
+
+                if let Some(method) = msg.get("method").and_then(Value::as_str) {
+                    if method == "session/update" {
+                        if let Some(params) = msg.get("params") {
+                            if let Some((kind, text)) = extract_session_update_event(params) {
+                                if kind == "delta" {
+                                    emitted_delta = true;
+                                }
+                                emit(kind, &text, false);
+                            }
+                        }
+                        continue;
+                    }
+
+                    if method == "session/request_permission" {
+                        if let Some(req_id) = msg.get("id") {
+                            let outcome = match resolve_permission_outcome(
+                                msg.get("params"),
+                                permission_mode,
+                                cancel_rx,
+                                emit,
+                            )
+                            .await
+                            {
+                                Ok(val) => val,
+                                Err(()) => {
+                                    let cancel_reply = json!({
+                                        "jsonrpc": "2.0",
+                                        "id": req_id,
+                                        "result": { "outcome": { "outcome": "cancelled" } }
+                                    });
+                                    let _ = write_json_line(&mut handle.stdin, &cancel_reply).await;
+                                    return Ok(false);
+                                }
+                            };
+
+                            let reply = json!({
+                                "jsonrpc": "2.0",
+                                "id": req_id,
+                                "result": {
+                                    "outcome": outcome
+                                }
+                            });
+                            write_json_line(&mut handle.stdin, &reply).await?;
+                        }
+                        continue;
+                    }
+                }
+
+                if msg.get("id").and_then(Value::as_u64) == Some(rpc_id) {
+                    if let Some(err) = msg.get("error") {
+                        return Err(AppError::InvalidInput(format_jsonrpc_error(err)));
+                    }
+                    if !emitted_delta {
+                        if let Some(fallback_text) = msg
+                            .get("result")
+                            .and_then(|r| r.get("text"))
+                            .and_then(Value::as_str)
+                            .filter(|s| !s.is_empty())
+                        {
+                            emit("delta", fallback_text, false);
+                        }
+                    }
+                    emit("done", "", true);
+                    return Ok(true);
+                }
+            }
+            Err(e) => return Err(AppError::Io(e)),
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+pub async fn run_acp_prompt_with_options<F>(
+    provider: &AiProviderConfig,
+    system_prompt: Option<&str>,
+    prompt: &str,
+    cwd: Option<&Path>,
+    mut cancel_rx: watch::Receiver<bool>,
+    child_pid: Arc<AtomicU32>,
+    session_slot: Option<Arc<AcpSessionSlot>>,
+    permission_mode: PermissionMode,
+    mut emit: F,
+) -> AppResult<()>
+where
+    F: FnMut(&str, &str, bool),
+{
+    let fingerprint = build_provider_fingerprint(provider, cwd);
+
+    if let Some(slot) = session_slot {
+        let mut guard = slot.inner.lock().await;
+
+        let mut reusable = None;
+        if let Some(mut existing) = guard.take() {
+            let alive = existing.child.try_wait().ok().flatten().is_none();
+            if alive && existing.provider_fingerprint == fingerprint {
+                reusable = Some(existing);
+            } else {
+                drop(existing.stdin);
+                cleanup_child(&mut existing.child, existing.pid).await;
+                slot.pid.store(0, Ordering::Release);
+            }
+        }
+
+        let is_new_session = reusable.is_none();
+        let mut handle = match reusable {
+            Some(h) => {
+                child_pid.store(h.pid, Ordering::Release);
+                h
+            }
+            None => {
+                let Some(h) = start_acp_session_handle(
+                    provider,
+                    cwd,
+                    fingerprint,
+                    &mut cancel_rx,
+                    &child_pid,
+                    &mut emit,
+                )
+                .await?
+                else {
+                    return Ok(());
+                };
+                slot.pid.store(h.pid, Ordering::Release);
+                h
+            }
+        };
+
+        let full_prompt = if is_new_session {
+            match system_prompt.map(str::trim).filter(|s| !s.is_empty()) {
+                Some(sys) => format!("{}\n\n---\n\n{}", sys, prompt),
+                None => prompt.to_string(),
+            }
+        } else {
+            prompt.to_string()
+        };
+
+        let turn_res = execute_prompt_turn(
+            &mut handle,
+            &full_prompt,
+            &permission_mode,
+            &mut cancel_rx,
+            &mut emit,
+        )
+        .await;
+
+        child_pid.store(0, Ordering::Release);
+
+        match turn_res {
+            Ok(true) => {
+                // Keep live ACP process/session for subsequent turns
+                *guard = Some(handle);
+                Ok(())
+            }
+            Ok(false) => {
+                drop(handle.stdin);
+                cleanup_child(&mut handle.child, handle.pid).await;
+                slot.pid.store(0, Ordering::Release);
+                Ok(())
+            }
+            Err(err) => {
+                drop(handle.stdin);
+                cleanup_child(&mut handle.child, handle.pid).await;
+                slot.pid.store(0, Ordering::Release);
+                Err(err)
+            }
+        }
+    } else {
+        let Some(mut handle) = start_acp_session_handle(
+            provider,
+            cwd,
+            fingerprint,
+            &mut cancel_rx,
+            &child_pid,
+            &mut emit,
+        )
+        .await?
+        else {
+            return Ok(());
+        };
+
         let full_prompt = match system_prompt.map(str::trim).filter(|s| !s.is_empty()) {
             Some(sys) => format!("{}\n\n---\n\n{}", sys, prompt),
             None => prompt.to_string(),
         };
 
-        let prompt_req = json!({
-            "jsonrpc": "2.0",
-            "id": 3,
-            "method": "session/prompt",
-            "params": {
-                "sessionId": session_id,
-                "prompt": [
-                    {
-                        "type": "text",
-                        "text": full_prompt
-                    }
-                ]
-            }
-        });
-        write_json_line(&mut stdin, &prompt_req).await?;
+        let turn_res = execute_prompt_turn(
+            &mut handle,
+            &full_prompt,
+            &permission_mode,
+            &mut cancel_rx,
+            &mut emit,
+        )
+        .await;
 
-        let mut emitted_delta = false;
-        let mut line = String::new();
-        loop {
-            line.clear();
-            let read_step = tokio::select! {
-                _ = cancel_rx.changed() => {
-                    if *cancel_rx.borrow() {
-                        return Ok(());
-                    }
-                    continue;
-                }
-                res = reader.read_line(&mut line) => res,
-            };
+        let pid = handle.pid;
+        drop(handle.stdin);
+        cleanup_child(&mut handle.child, pid).await;
+        child_pid.store(0, Ordering::Release);
 
-            match read_step {
-                Ok(0) => {
-                    if emitted_delta {
-                        emit("done", "", true);
-                        return Ok(());
-                    }
-                    let tail = stderr_tail
-                        .lock()
-                        .map(|v| v.join(" | "))
-                        .unwrap_or_default();
-                    return Err(AppError::Watcher(if tail.is_empty() {
-                        "ACP session closed before completion".into()
-                    } else {
-                        format!("ACP session closed: {}", tail)
-                    }));
-                }
-                Ok(_) => {
-                    let Some(msg) = parse_jsonrpc_line(&line) else {
-                        continue;
-                    };
-
-                    if let Some(method) = msg.get("method").and_then(Value::as_str) {
-                        if method == "session/update" {
-                            if let Some(params) = msg.get("params") {
-                                if let Some((kind, text)) = extract_session_update_event(params) {
-                                    if kind == "delta" {
-                                        emitted_delta = true;
-                                    }
-                                    emit(kind, &text, false);
-                                }
-                            }
-                            continue;
-                        }
-
-                        if method == "session/request_permission" {
-                            if let Some(req_id) = msg.get("id") {
-                                let cancel_reply = json!({
-                                    "jsonrpc": "2.0",
-                                    "id": req_id,
-                                    "result": {
-                                        "outcome": {
-                                            "outcome": "cancelled"
-                                        }
-                                    }
-                                });
-                                write_json_line(&mut stdin, &cancel_reply).await?;
-                                emit(
-                                    "status",
-                                    "Rejected host write/command permission (advisory mode)",
-                                    false,
-                                );
-                            }
-                            continue;
-                        }
-                    }
-
-                    if msg.get("id").and_then(Value::as_u64) == Some(3) {
-                        if let Some(err) = msg.get("error") {
-                            return Err(AppError::InvalidInput(format_jsonrpc_error(err)));
-                        }
-                        if !emitted_delta {
-                            if let Some(fallback_text) = msg
-                                .get("result")
-                                .and_then(|r| r.get("text"))
-                                .and_then(Value::as_str)
-                                .filter(|s| !s.is_empty())
-                            {
-                                emit("delta", fallback_text, false);
-                            }
-                        }
-                        emit("done", "", true);
-                        return Ok(());
-                    }
-                }
-                Err(e) => return Err(AppError::Io(e)),
-            }
-        }
+        turn_res.map(|_| ())
     }
-    .await;
+}
 
-    drop(stdin);
-    cleanup_child(&mut child, pid).await;
-    child_pid.store(0, Ordering::Release);
-    res
+#[allow(clippy::too_many_arguments)]
+pub async fn run_acp_prompt_with_emit<F>(
+    provider: &AiProviderConfig,
+    system_prompt: Option<&str>,
+    prompt: &str,
+    cwd: Option<&Path>,
+    cancel_rx: watch::Receiver<bool>,
+    child_pid: Arc<AtomicU32>,
+    emit: F,
+) -> AppResult<()>
+where
+    F: FnMut(&str, &str, bool),
+{
+    run_acp_prompt_with_options(
+        provider,
+        system_prompt,
+        prompt,
+        cwd,
+        cancel_rx,
+        child_pid,
+        None,
+        PermissionMode::CancelAll,
+        emit,
+    )
+    .await
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -679,19 +1087,30 @@ pub async fn run_acp_prompt(
     cwd: Option<&Path>,
     cancel_rx: watch::Receiver<bool>,
     child_pid: Arc<AtomicU32>,
+    session_slot: Option<Arc<AcpSessionSlot>>,
+    permission_broker: PermissionRequestCallback,
 ) -> AppResult<()> {
-    run_acp_prompt_with_emit(
+    run_acp_prompt_with_options(
         provider,
         system_prompt,
         prompt,
         cwd,
         cancel_rx,
         child_pid,
+        session_slot,
+        PermissionMode::Interactive(permission_broker),
         |kind, text, done| {
             emit_ai_event(app, request_id, kind, text, done);
         },
     )
     .await
+}
+
+pub fn emit_permission_request(
+    app: &AppHandle,
+    payload: AcpPermissionRequestEvent,
+) {
+    let _ = app.emit(AI_PERMISSION_REQUEST_EVENT, payload);
 }
 
 #[cfg(test)]
@@ -868,5 +1287,136 @@ done
             reply_val["result"]["outcome"]["outcome"].as_str(),
             Some("cancelled")
         );
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn acp_interactive_permission_and_multiturn_session_reuse() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let tmp = TempDir::new().expect("tempdir");
+        let script_path = tmp.path().join("mock-acp-multiturn.sh");
+        let init_count_path = tmp.path().join("init-count.log");
+        let prompt_log_path = tmp.path().join("prompts.log");
+        let perm_reply_path = tmp.path().join("perm-interactive.log");
+
+        let script = format!(
+            r#"#!/bin/sh
+while IFS= read -r line; do
+  case "$line" in
+    *'"method":"initialize"'*)
+      printf 'init\n' >> "{}"
+      printf '%s\n' '{{"jsonrpc":"2.0","id":1,"result":{{"protocolVersion":1,"agentInfo":{{"name":"mock-multi","version":"1.0.0"}}}}}}'
+      ;;
+    *'"method":"session/new"'*)
+      printf '%s\n' '{{"jsonrpc":"2.0","id":2,"result":{{"sessionId":"sess-multi-1"}}}}'
+      ;;
+    *'"method":"session/prompt"'*)
+      printf '%s\n' "$line" >> "{}"
+      case "$line" in
+        *'"id":3'*)
+          printf '%s\n' '{{"jsonrpc":"2.0","id":77,"method":"session/request_permission","params":{{"sessionId":"sess-multi-1","toolCall":{{"title":"edit_post","kind":"edit"}},"options":[{{"optionId":"allow-once","name":"Allow once","kind":"allow_once"}},{{"optionId":"reject-once","name":"Deny","kind":"reject_once"}}]}}}}'
+          IFS= read -r perm_reply
+          printf '%s\n' "$perm_reply" > "{}"
+          printf '%s\n' '{{"jsonrpc":"2.0","method":"session/update","params":{{"sessionId":"sess-multi-1","update":{{"sessionUpdate":"agent_message_chunk","content":{{"type":"text","text":"Turn 1 ok"}}}}}}}}'
+          printf '%s\n' '{{"jsonrpc":"2.0","id":3,"result":{{"stopReason":"end_turn"}}}}'
+          ;;
+        *'"id":4'*)
+          printf '%s\n' '{{"jsonrpc":"2.0","method":"session/update","params":{{"sessionId":"sess-multi-1","update":{{"sessionUpdate":"agent_message_chunk","content":{{"type":"text","text":"Turn 2 ok"}}}}}}}}'
+          printf '%s\n' '{{"jsonrpc":"2.0","id":4,"result":{{"stopReason":"end_turn"}}}}'
+          ;;
+      esac
+      ;;
+  esac
+done
+"#,
+            init_count_path.display(),
+            prompt_log_path.display(),
+            perm_reply_path.display()
+        );
+        fs::write(&script_path, script).unwrap();
+        fs::set_permissions(&script_path, fs::Permissions::from_mode(0o755)).unwrap();
+
+        let provider = AiProviderConfig {
+            mode: "acp".to_string(),
+            executable: Some(script_path.to_string_lossy().to_string()),
+            args: vec![],
+            env: HashMap::new(),
+            cwd: None,
+            base_url: None,
+            api_key: None,
+            model: None,
+        };
+
+        let slot = Arc::new(AcpSessionSlot::new());
+        let seen_perm = Arc::new(Mutex::new(None::<(String, Option<String>, Vec<AcpPermissionOption>)>));
+        let seen_perm_clone = Arc::clone(&seen_perm);
+
+        let broker: PermissionRequestCallback = Arc::new(move |title, kind, opts| {
+            *seen_perm_clone.lock().unwrap() = Some((title, kind, opts.clone()));
+            let (tx, rx) = oneshot::channel();
+            let allow_id = opts.first().map(|o| o.option_id.clone());
+            let _ = tx.send(AcpPermissionDecision {
+                option_id: allow_id,
+                cancelled: false,
+            });
+            rx
+        });
+
+        let (_tx1, rx1) = watch::channel(false);
+        let pid1 = Arc::new(AtomicU32::new(0));
+        let mut events1 = Vec::new();
+        run_acp_prompt_with_options(
+            &provider,
+            Some("System"),
+            "First turn",
+            Some(tmp.path()),
+            rx1,
+            pid1,
+            Some(Arc::clone(&slot)),
+            PermissionMode::Interactive(broker.clone()),
+            |k, t, d| events1.push((k.to_string(), t.to_string(), d)),
+        )
+        .await
+        .expect("turn 1 succeeds");
+
+        assert!(events1.iter().any(|(k, t, _)| k == "delta" && t == "Turn 1 ok"));
+        let captured = seen_perm.lock().unwrap().clone().expect("permission seen");
+        assert_eq!(captured.0, "edit_post");
+        assert_eq!(captured.1.as_deref(), Some("edit"));
+        assert_eq!(captured.2.len(), 2);
+
+        let perm_raw = fs::read_to_string(&perm_reply_path).expect("perm reply logged");
+        let perm_val: Value = serde_json::from_str(perm_raw.trim()).unwrap();
+        assert_eq!(perm_val["result"]["outcome"]["outcome"], "selected");
+        assert_eq!(perm_val["result"]["outcome"]["optionId"], "allow-once");
+
+        // Second turn reuses the live ACP child process and session without re-initializing
+        let (_tx2, rx2) = watch::channel(false);
+        let pid2 = Arc::new(AtomicU32::new(0));
+        let mut events2 = Vec::new();
+        run_acp_prompt_with_options(
+            &provider,
+            Some("System"),
+            "Second turn",
+            Some(tmp.path()),
+            rx2,
+            pid2,
+            Some(Arc::clone(&slot)),
+            PermissionMode::Interactive(broker),
+            |k, t, d| events2.push((k.to_string(), t.to_string(), d)),
+        )
+        .await
+        .expect("turn 2 succeeds");
+
+        assert!(events2.iter().any(|(k, t, _)| k == "delta" && t == "Turn 2 ok"));
+
+        let init_lines = fs::read_to_string(&init_count_path).expect("init log");
+        assert_eq!(init_lines.lines().count(), 1);
+
+        let prompt_lines = fs::read_to_string(&prompt_log_path).expect("prompt log");
+        assert_eq!(prompt_lines.lines().count(), 2);
+
+        slot.reset_async().await;
     }
 }

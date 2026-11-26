@@ -7,6 +7,7 @@ import {
   RefreshCw,
   RotateCcw,
   Settings2,
+  Sparkles,
   Trash2,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -93,6 +94,7 @@ export interface ImageBedUploadDialogProps {
   cleaningUnused?: boolean;
   onScanUnused?: () => void | Promise<void>;
   onDeleteUnused?: (paths: string[]) => void | Promise<void>;
+  onAiSuggestImages?: () => void;
 }
 
 const COPY = {
@@ -149,6 +151,7 @@ const COPY = {
     confirmDeleteHint: "仅删除当前文章图片目录内的未引用文件，删除后无法恢复。",
     cancel: "取消",
     confirmDelete: "确认删除",
+    aiSuggestImages: "AI 建议插入与配文",
   },
   "en-US": {
     title: "Image Manager & Bed Upload",
@@ -211,6 +214,7 @@ const COPY = {
       "Only unreferenced images in the post asset directory will be deleted. This cannot be undone.",
     cancel: "Cancel",
     confirmDelete: "Confirm Delete",
+    aiSuggestImages: "AI Suggest Insert & Captions",
   },
 } as const;
 
@@ -245,6 +249,7 @@ export function ImageBedUploadDialog({
   cleaningUnused = false,
   onScanUnused,
   onDeleteUnused,
+  onAiSuggestImages,
 }: ImageBedUploadDialogProps) {
   const t = COPY[locale];
 
@@ -691,26 +696,42 @@ export function ImageBedUploadDialog({
                 </span>
               </div>
 
-              {onScanUnused && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="xs"
-                  disabled={scanningUnused || cleaningUnused}
-                  onClick={() => {
-                    setConfirmingDelete(false);
-                    void onScanUnused();
-                  }}
-                >
-                  <RefreshCw
-                    className={cn(
-                      "h-3 w-3",
-                      scanningUnused && "animate-spin"
-                    )}
-                  />
-                  {scanningUnused ? t.scanning : t.rescan}
-                </Button>
-              )}
+              <div className="flex items-center gap-1.5">
+                {onAiSuggestImages && unusedImages.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    data-testid="ai-suggest-unused-images-btn"
+                    disabled={scanningUnused || cleaningUnused}
+                    onClick={onAiSuggestImages}
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    {t.aiSuggestImages}
+                  </Button>
+                )}
+
+                {onScanUnused && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    disabled={scanningUnused || cleaningUnused}
+                    onClick={() => {
+                      setConfirmingDelete(false);
+                      void onScanUnused();
+                    }}
+                  >
+                    <RefreshCw
+                      className={cn(
+                        "h-3 w-3",
+                        scanningUnused && "animate-spin"
+                      )}
+                    />
+                    {scanningUnused ? t.scanning : t.rescan}
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* Unused Images List (Single Scroll Container) */}

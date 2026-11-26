@@ -2,18 +2,92 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 import type {
+  AcpPermissionRequestEvent,
   AcpProbeResult,
+  AcpRegistryEntry,
+  AcpRegistryResult,
   AiConnectionResult,
   AiProviderConfig,
   AiRunRequest,
   AiStreamEvent,
   DiscoveredAgent,
   SiteContextSnapshot,
+  SitePromptTemplate,
 } from "@/types/ai";
 
 import { isTauriRuntime } from "./api";
 
 export const AI_STREAM_EVENT = "ai-stream";
+export const AI_PERMISSION_REQUEST_EVENT = "ai-permission-request";
+
+export const BUILTIN_ACP_REGISTRY_AGENTS: AcpRegistryEntry[] = [
+  {
+    id: "antigravity",
+    name: "Antigravity",
+    version: null,
+    description: "Google Antigravity local ACP coding & writing agent.",
+    executable: "agy",
+    args: ["acp"],
+    protocol: "acp",
+    homepage: "https://antigravity.google",
+    installHint: "agy acp",
+  },
+  {
+    id: "opencode",
+    name: "OpenCode",
+    version: null,
+    description: "Open-source terminal coding agent with native ACP server support.",
+    executable: "opencode",
+    args: ["acp"],
+    protocol: "acp",
+    homepage: "https://opencode.ai",
+    installHint: "npm i -g opencode-ai",
+  },
+  {
+    id: "gemini",
+    name: "Gemini CLI",
+    version: null,
+    description: "Google Gemini CLI with experimental ACP stdio mode.",
+    executable: "gemini",
+    args: ["--experimental-acp"],
+    protocol: "acp",
+    homepage: "https://github.com/google-gemini/gemini-cli",
+    installHint: "npm i -g @google/gemini-cli",
+  },
+  {
+    id: "goose",
+    name: "Goose",
+    version: null,
+    description: "Block's extensible local developer agent over ACP.",
+    executable: "goose",
+    args: ["acp"],
+    protocol: "acp",
+    homepage: "https://block.github.io/goose",
+    installHint: "brew install block/tap/goose",
+  },
+  {
+    id: "claude-code-acp",
+    name: "Claude Code (ACP)",
+    version: null,
+    description: "ACP adapter for Anthropic Claude Code via Zed Industries bridge.",
+    executable: "npx",
+    args: ["-y", "@zed-industries/claude-code-acp"],
+    protocol: "acp",
+    homepage: "https://github.com/zed-industries/claude-code-acp",
+    installHint: "npx -y @zed-industries/claude-code-acp",
+  },
+  {
+    id: "codex-acp",
+    name: "Codex (ACP)",
+    version: null,
+    description: "ACP adapter for OpenAI Codex CLI via Zed Industries bridge.",
+    executable: "npx",
+    args: ["-y", "@zed-industries/codex-acp"],
+    protocol: "acp",
+    homepage: "https://github.com/zed-industries/codex-acp",
+    installHint: "npx -y @zed-industries/codex-acp",
+  },
+];
 
 export async function discoverLocalAgents(): Promise<DiscoveredAgent[]> {
   if (!isTauriRuntime()) {
@@ -81,6 +155,27 @@ export async function buildSiteAiContext(
   });
 }
 
+export async function listSitePrompts(
+  siteRoot: string
+): Promise<SitePromptTemplate[]> {
+  if (!isTauriRuntime()) {
+    return [];
+  }
+  return invoke<SitePromptTemplate[]>("list_site_prompts", { siteRoot });
+}
+
+export async function fetchAcpRegistry(): Promise<AcpRegistryResult> {
+  if (!isTauriRuntime()) {
+    return {
+      source: "builtin",
+      fetchedAt: null,
+      agents: BUILTIN_ACP_REGISTRY_AGENTS,
+      message: null,
+    };
+  }
+  return invoke<AcpRegistryResult>("fetch_acp_registry");
+}
+
 export async function testAiConnection(
   config: AiProviderConfig
 ): Promise<AiConnectionResult> {
@@ -111,6 +206,30 @@ export async function aiCancelPrompt(requestId?: string | null): Promise<boolean
   });
 }
 
+export async function aiRespondPermission(
+  permissionId: string,
+  optionId: string | null,
+  cancelled: boolean
+): Promise<boolean> {
+  if (!isTauriRuntime()) {
+    return false;
+  }
+  return invoke<boolean>("ai_respond_permission", {
+    permissionId,
+    optionId,
+    cancelled,
+  });
+}
+
+export async function aiResetSession(sessionKey?: string | null): Promise<boolean> {
+  if (!isTauriRuntime()) {
+    return false;
+  }
+  return invoke<boolean>("ai_reset_session", {
+    sessionKey: sessionKey ?? null,
+  });
+}
+
 export async function listenAiStream(
   handler: (event: AiStreamEvent) => void
 ): Promise<UnlistenFn> {
@@ -118,6 +237,17 @@ export async function listenAiStream(
     return () => {};
   }
   return listen<AiStreamEvent>(AI_STREAM_EVENT, (ev) => {
+    handler(ev.payload);
+  });
+}
+
+export async function listenAiPermissionRequest(
+  handler: (event: AcpPermissionRequestEvent) => void
+): Promise<UnlistenFn> {
+  if (!isTauriRuntime()) {
+    return () => {};
+  }
+  return listen<AcpPermissionRequestEvent>(AI_PERMISSION_REQUEST_EVENT, (ev) => {
     handler(ev.payload);
   });
 }
