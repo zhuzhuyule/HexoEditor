@@ -211,7 +211,10 @@ interface AppState {
   refreshActiveSite: () => Promise<void>;
 
   openPost: (post: PostSummary) => Promise<void>;
-  openStandaloneFile: (filePath: string) => Promise<void>;
+  openStandaloneFile: (
+    filePath: string,
+    options?: { silent?: boolean }
+  ) => Promise<void>;
   createScratchTab: () => void;
   createNewPost: (params: {
     title: string;
@@ -246,6 +249,8 @@ interface InFlightSave {
 }
 
 let activeScanSeq = 0;
+let openPostSeq = 0;
+let watcherRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 let watchedSiteDirs: string[] = [];
 const inFlightSaves = new Map<string, InFlightSave>();
 
@@ -516,6 +521,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       rawImageBed,
       rawAiSettings,
       rawSidebarWidth,
+      lastActiveFilePath,
     ] = await Promise.all([
       api.loadSetting<Locale>("locale", "zh-CN"),
       api.loadSetting<SavedSiteEntry[]>("sites", []),
@@ -532,6 +538,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       api.loadSetting<Partial<ImageBedSettings> | null>("imageBed", null),
       api.loadSetting<Partial<AiSettings> | null>("aiSettings", null),
       api.loadSetting<number>("sidebarWidth", DEFAULT_SIDEBAR_WIDTH),
+      api.loadSetting<string | null>("lastActiveFilePath", null),
     ]);
 
     const sanitizedRecents = Array.isArray(recentEntries)
@@ -560,11 +567,30 @@ export const useAppStore = create<AppState>((set, get) => ({
       sidebarWidth: sanitizedSidebarWidth,
     });
 
-    void get().discoverAgents();
+    if (api.isTauriRuntime()) {
+      setTimeout(() => {
+        void get().discoverAgents();
+      }, 2500);
+    }
 
     const targetRoot = activeSiteRoot || sites[0]?.rootPath || null;
     if (targetRoot) {
       await get().switchSite(targetRoot, { recordRecent: false });
+    }
+
+    if (
+      typeof lastActiveFilePath === "string" &&
+      lastActiveFilePath.trim() &&
+      get().tabs.length === 0
+    ) {
+      const matchedPost = get().posts.find(
+        (p) => p.filePath === lastActiveFilePath
+      );
+      if (matchedPost) {
+        await get().openPost(matchedPost);
+      } else {
+        await get().openStandaloneFile(lastActiveFilePath, { silent: true });
+      }
     }
   },
 
@@ -1259,38 +1285,67 @@ export const useAppStore = create<AppState>((set, get) => ({
       return;
     }
 
+    const prevTabId = get().activeTabId;
+    if (prevTabId && get().autoSave) {
+      const prevTab = get().tabs.find((t) => t.id === prevTabId);
+      if (prevTab?.isDirty && prevTab.filePath) {
+        void get().saveTab(prevTab.id, true);
+      }
+    }
+
+    const cfg = get().siteConfig;
+    const placeholderId = makeId("tab");
+    const placeholderTitle = post.title || getFileName(post.filePath);
+    const placeholderTab: EditorTab = {
+      id: placeholderId,
+      filePath: post.filePath,
+      title: placeholderTitle,
+      content: "",
+      savedContent: "",
+      isDirty: false,
+      isLoading: true,
+      isDraft: post.isDraft,
+      isStandalone: false,
+      siteRoot: get().activeSiteRoot,
+      postAssetFolder: cfg?.postAssetFolder ?? false,
+      sourceDir: cfg?.sourceDir ?? "source",
+      modifiedMs: post.modifiedMs,
+      externalChange: null,
+      cursorLine: 1,
+      cursorCol: 1,
+    };
+
+    const seq = ++openPostSeq;
+    set((s) => ({
+      tabs: [...s.tabs, placeholderTab],
+      activeTabId: placeholderId,
+    }));
+    void api.saveSetting("lastActiveFilePath", post.filePath);
+
     try {
       const doc = await api.readDocument(post.filePath);
-      const cfg = get().siteConfig;
       const tabTitle = post.title || getFileName(doc.filePath);
-      const tab: EditorTab = {
-        id: makeId("tab"),
-        filePath: doc.filePath,
-        title: tabTitle,
-        content: doc.content,
-        savedContent: doc.content,
-        isDirty: false,
-        isDraft: post.isDraft,
-        isStandalone: false,
-        siteRoot: get().activeSiteRoot,
-        postAssetFolder: cfg?.postAssetFolder ?? false,
-        sourceDir: cfg?.sourceDir ?? "source",
-        modifiedMs: doc.modifiedMs,
-        externalChange: null,
-        cursorLine: 1,
-        cursorCol: 1,
-      };
-      const prevTabId = get().activeTabId;
-      if (prevTabId && get().autoSave) {
-        const prevTab = get().tabs.find((t) => t.id === prevTabId);
-        if (prevTab?.isDirty && prevTab.filePath) {
-          void get().saveTab(prevTab.id, true);
+      set((s) => ({
+        tabs: s.tabs.map((t) =>
+          t.id === placeholderId
+            ? {
+                ...t,
+                filePath: doc.filePath,
+                title: tabTitle,
+                content: doc.content,
+                savedContent: doc.content,
+                modifiedMs: doc.modifiedMs,
+                isLoading: false,
+              }
+            : t
+        ),
+      }));
+      if (seq === openPostSeq && get().activeTabId !== placeholderId) {
+        const stillExists = get().tabs.some((t) => t.id === placeholderId);
+        if (stillExists) {
+          set({ activeTabId: placeholderId });
         }
       }
-      set((s) => ({
-        tabs: [...s.tabs, tab],
-        activeTabId: tab.id,
-      }));
       get().recordRecentEntry({
         kind: "file",
         path: doc.filePath,
@@ -1298,11 +1353,21 @@ export const useAppStore = create<AppState>((set, get) => ({
       });
       void api.watchPath(doc.filePath, false);
     } catch (err) {
+      set((s) => {
+        const idx = s.tabs.findIndex((t) => t.id === placeholderId);
+        const nextTabs = s.tabs.filter((t) => t.id !== placeholderId);
+        let nextActive = s.activeTabId;
+        if (s.activeTabId === placeholderId) {
+          const fallback = nextTabs[idx] || nextTabs[idx - 1] || null;
+          nextActive = fallback ? fallback.id : null;
+        }
+        return { tabs: nextTabs, activeTabId: nextActive };
+      });
       get().pushToast(String(err), "error");
     }
   },
 
-  openStandaloneFile: async (filePath) => {
+  openStandaloneFile: async (filePath, options) => {
     const existing = get().tabs.find((t) => t.filePath === filePath);
     if (existing) {
       get().setActiveTab(existing.id);
@@ -1362,10 +1427,12 @@ export const useAppStore = create<AppState>((set, get) => ({
           void get().saveTab(prevTab.id, true);
         }
       }
+      openPostSeq++;
       set((s) => ({
         tabs: [...s.tabs, tab],
         activeTabId: tab.id,
       }));
+      void api.saveSetting("lastActiveFilePath", doc.filePath);
       get().recordRecentEntry({
         kind: "file",
         path: doc.filePath,
@@ -1373,7 +1440,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       });
       void api.watchPath(doc.filePath, false);
     } catch (err) {
-      get().pushToast(String(err), "error");
+      if (!options?.silent) {
+        get().pushToast(String(err), "error");
+      }
     }
   },
 
@@ -1434,6 +1503,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   setActiveTab: (activeTabId) => {
+    openPostSeq++;
     const prevTabId = get().activeTabId;
     if (prevTabId && prevTabId !== activeTabId && get().autoSave) {
       const prevTab = get().tabs.find((t) => t.id === prevTabId);
@@ -1441,7 +1511,9 @@ export const useAppStore = create<AppState>((set, get) => ({
         void get().saveTab(prevTab.id, true);
       }
     }
+    const nextTab = get().tabs.find((t) => t.id === activeTabId) ?? null;
     set({ activeTabId });
+    void api.saveSetting("lastActiveFilePath", nextTab?.filePath ?? null);
   },
 
   updateTabContent: (tabId, content) => {
@@ -1660,6 +1732,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (closing?.filePath) {
       void api.unwatchPath(closing.filePath);
     }
+    let nextActiveFilePath: string | null | undefined;
     set((state) => {
       const idx = state.tabs.findIndex((t) => t.id === tabId);
       if (idx === -1) return state;
@@ -1668,11 +1741,15 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (state.activeTabId === tabId) {
         const fallback = nextTabs[idx] || nextTabs[idx - 1] || null;
         nextActive = fallback ? fallback.id : null;
+        nextActiveFilePath = fallback?.filePath ?? null;
       }
       const nextBatches = { ...state.lastUploadBatches };
       delete nextBatches[tabId];
       return { tabs: nextTabs, activeTabId: nextActive, lastUploadBatches: nextBatches };
     });
+    if (nextActiveFilePath !== undefined) {
+      void api.saveSetting("lastActiveFilePath", nextActiveFilePath);
+    }
   },
 
   toggleDraftStatus: async (post) => {
@@ -1815,7 +1892,15 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const activeRoot = get().activeSiteRoot;
     if (activeRoot && isPathInsideDir(normalized, activeRoot) && !matchedOpenTab) {
-      void get().refreshActiveSite();
+      if (watcherRefreshTimer !== null) {
+        clearTimeout(watcherRefreshTimer);
+      }
+      watcherRefreshTimer = setTimeout(() => {
+        watcherRefreshTimer = null;
+        if (get().activeSiteRoot === activeRoot) {
+          void get().refreshActiveSite();
+        }
+      }, 350);
     }
   },
 

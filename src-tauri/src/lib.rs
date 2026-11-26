@@ -130,33 +130,47 @@ use crate::models::{
 };
 use crate::watcher::FileWatcherState;
 
-#[tauri::command]
-fn inspect_hexo_site(root_path: String) -> AppResult<HexoSiteConfig> {
-    hexo::inspect_hexo_site(&root_path)
+async fn run_blocking_io<T, F>(task: F) -> AppResult<T>
+where
+    T: Send + 'static,
+    F: FnOnce() -> AppResult<T> + Send + 'static,
+{
+    tauri::async_runtime::spawn_blocking(task)
+        .await
+        .map_err(|e| crate::error::AppError::Io(std::io::Error::other(e.to_string())))?
 }
 
 #[tauri::command]
-fn scan_hexo_site(root_path: String) -> AppResult<SiteScanResult> {
-    hexo::scan_hexo_site(&root_path)
+async fn inspect_hexo_site(root_path: String) -> AppResult<HexoSiteConfig> {
+    run_blocking_io(move || hexo::inspect_hexo_site(&root_path)).await
 }
 
 #[tauri::command]
-fn read_document(file_path: String) -> AppResult<DocumentContent> {
-    hexo::read_document(&file_path)
+async fn scan_hexo_site(root_path: String) -> AppResult<SiteScanResult> {
+    run_blocking_io(move || hexo::scan_hexo_site(&root_path)).await
 }
 
 #[tauri::command]
-fn write_document(
+async fn read_document(file_path: String) -> AppResult<DocumentContent> {
+    run_blocking_io(move || hexo::read_document(&file_path)).await
+}
+
+#[tauri::command]
+async fn write_document(
     watcher: State<'_, FileWatcherState>,
     file_path: String,
     content: String,
 ) -> AppResult<u64> {
-    watcher.mark_self_write(Path::new(&file_path));
-    hexo::write_document(&file_path, &content)
+    let watcher = watcher.inner().clone();
+    run_blocking_io(move || {
+        watcher.mark_self_write(Path::new(&file_path));
+        hexo::write_document(&file_path, &content)
+    })
+    .await
 }
 
 #[tauri::command]
-fn create_hexo_post(
+async fn create_hexo_post(
     watcher: State<'_, FileWatcherState>,
     root_path: String,
     title: String,
@@ -164,99 +178,115 @@ fn create_hexo_post(
     tags: Vec<String>,
     categories: Vec<String>,
 ) -> AppResult<PostSummary> {
-    if let Ok(cfg) = hexo::inspect_hexo_site(&root_path) {
-        let stem = hexo::sanitize_filename_stem(&title);
-        if !stem.is_empty() {
-            let predicted = if cfg.engine == "hugo" {
-                Path::new(&cfg.root_path)
-                    .join(&cfg.source_dir)
-                    .join("posts")
-                    .join(&stem)
-                    .join("index.md")
-            } else {
-                Path::new(&cfg.root_path)
-                    .join(&cfg.source_dir)
-                    .join(if is_draft { "_drafts" } else { "_posts" })
-                    .join(format!("{}.md", stem))
-            };
-            watcher.mark_self_write(&predicted);
+    let watcher = watcher.inner().clone();
+    run_blocking_io(move || {
+        if let Ok(cfg) = hexo::inspect_hexo_site(&root_path) {
+            let stem = hexo::sanitize_filename_stem(&title);
+            if !stem.is_empty() {
+                let predicted = if cfg.engine == "hugo" {
+                    Path::new(&cfg.root_path)
+                        .join(&cfg.source_dir)
+                        .join("posts")
+                        .join(&stem)
+                        .join("index.md")
+                } else {
+                    Path::new(&cfg.root_path)
+                        .join(&cfg.source_dir)
+                        .join(if is_draft { "_drafts" } else { "_posts" })
+                        .join(format!("{}.md", stem))
+                };
+                watcher.mark_self_write(&predicted);
+            }
         }
-    }
-    let summary = hexo::create_hexo_post(&root_path, &title, is_draft, tags, categories)?;
-    watcher.mark_self_write(Path::new(&summary.file_path));
-    Ok(summary)
+        let summary = hexo::create_hexo_post(&root_path, &title, is_draft, tags, categories)?;
+        watcher.mark_self_write(Path::new(&summary.file_path));
+        Ok(summary)
+    })
+    .await
 }
 
 #[tauri::command]
-fn toggle_post_draft(
+async fn toggle_post_draft(
     watcher: State<'_, FileWatcherState>,
     root_path: String,
     file_path: String,
 ) -> AppResult<PostSummary> {
-    watcher.mark_self_write(Path::new(&file_path));
-    if let (Ok(cfg), Some(file_name)) = (
-        hexo::inspect_hexo_site(&root_path),
-        Path::new(&file_path).file_name(),
-    ) {
-        if cfg.engine != "hugo" {
-            let source = Path::new(&cfg.root_path).join(&cfg.source_dir);
-            watcher.mark_self_write(&source.join("_posts").join(file_name));
-            watcher.mark_self_write(&source.join("_drafts").join(file_name));
+    let watcher = watcher.inner().clone();
+    run_blocking_io(move || {
+        watcher.mark_self_write(Path::new(&file_path));
+        if let (Ok(cfg), Some(file_name)) = (
+            hexo::inspect_hexo_site(&root_path),
+            Path::new(&file_path).file_name(),
+        ) {
+            if cfg.engine != "hugo" {
+                let source = Path::new(&cfg.root_path).join(&cfg.source_dir);
+                watcher.mark_self_write(&source.join("_posts").join(file_name));
+                watcher.mark_self_write(&source.join("_drafts").join(file_name));
+            }
         }
-    }
-    let summary = hexo::toggle_post_draft(&root_path, &file_path)?;
-    watcher.mark_self_write(Path::new(&summary.file_path));
-    Ok(summary)
+        let summary = hexo::toggle_post_draft(&root_path, &file_path)?;
+        watcher.mark_self_write(Path::new(&summary.file_path));
+        Ok(summary)
+    })
+    .await
 }
 
 #[tauri::command]
-fn delete_post(
+async fn delete_post(
     watcher: State<'_, FileWatcherState>,
     file_path: String,
     delete_asset_folder: bool,
 ) -> AppResult<()> {
-    watcher.mark_self_write(Path::new(&file_path));
-    hexo::delete_post(&file_path, delete_asset_folder)
+    let watcher = watcher.inner().clone();
+    run_blocking_io(move || {
+        watcher.mark_self_write(Path::new(&file_path));
+        hexo::delete_post(&file_path, delete_asset_folder)
+    })
+    .await
 }
 
 #[tauri::command]
-fn rename_post_with_assets(
+async fn rename_post_with_assets(
     watcher: State<'_, FileWatcherState>,
     site_root: Option<String>,
     old_file_path: String,
     new_title_or_slug: String,
     current_content: String,
 ) -> AppResult<RenamePostResult> {
-    let old_path = Path::new(&old_file_path);
-    watcher.mark_self_write(old_path);
-    if let Some(parent) = old_path.parent() {
-        let new_slug = hexo::sanitize_filename_stem(&new_title_or_slug);
-        if !new_slug.is_empty() {
-            let file_name = old_path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-            if file_name.eq_ignore_ascii_case("index.md")
-                || file_name.eq_ignore_ascii_case("index.markdown")
-            {
-                if let Some(posts_parent) = parent.parent() {
-                    watcher.mark_self_write(&posts_parent.join(&new_slug).join(file_name));
+    let watcher = watcher.inner().clone();
+    run_blocking_io(move || {
+        let old_path = Path::new(&old_file_path);
+        watcher.mark_self_write(old_path);
+        if let Some(parent) = old_path.parent() {
+            let new_slug = hexo::sanitize_filename_stem(&new_title_or_slug);
+            if !new_slug.is_empty() {
+                let file_name = old_path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+                if file_name.eq_ignore_ascii_case("index.md")
+                    || file_name.eq_ignore_ascii_case("index.markdown")
+                {
+                    if let Some(posts_parent) = parent.parent() {
+                        watcher.mark_self_write(&posts_parent.join(&new_slug).join(file_name));
+                    }
+                } else {
+                    let ext = old_path.extension().and_then(|e| e.to_str()).unwrap_or("md");
+                    watcher.mark_self_write(&parent.join(format!("{}.{}", new_slug, ext)));
                 }
-            } else {
-                let ext = old_path.extension().and_then(|e| e.to_str()).unwrap_or("md");
-                watcher.mark_self_write(&parent.join(format!("{}.{}", new_slug, ext)));
             }
         }
-    }
-    let res = hexo::rename_post_with_assets(
-        site_root.as_deref(),
-        &old_file_path,
-        &new_title_or_slug,
-        &current_content,
-    )?;
-    watcher.mark_self_write(Path::new(&res.new_file_path));
-    Ok(res)
+        let res = hexo::rename_post_with_assets(
+            site_root.as_deref(),
+            &old_file_path,
+            &new_title_or_slug,
+            &current_content,
+        )?;
+        watcher.mark_self_write(Path::new(&res.new_file_path));
+        Ok(res)
+    })
+    .await
 }
 
 #[tauri::command]
-fn save_image_bytes(
+async fn save_image_bytes(
     doc_path: String,
     site_root: Option<String>,
     post_asset_folder: bool,
@@ -265,71 +295,86 @@ fn save_image_bytes(
     extension: Option<String>,
     preferred_name: Option<String>,
 ) -> AppResult<SavedImageResult> {
-    images::save_image_bytes(
-        &doc_path,
-        site_root.as_deref(),
-        post_asset_folder,
-        source_dir.as_deref(),
-        &bytes,
-        extension.as_deref(),
-        preferred_name.as_deref(),
-    )
+    run_blocking_io(move || {
+        images::save_image_bytes(
+            &doc_path,
+            site_root.as_deref(),
+            post_asset_folder,
+            source_dir.as_deref(),
+            &bytes,
+            extension.as_deref(),
+            preferred_name.as_deref(),
+        )
+    })
+    .await
 }
 
 #[tauri::command]
-fn import_local_image_file(
+async fn import_local_image_file(
     doc_path: String,
     site_root: Option<String>,
     post_asset_folder: bool,
     source_dir: Option<String>,
     source_image_path: String,
 ) -> AppResult<SavedImageResult> {
-    images::import_local_image_file(
-        &doc_path,
-        site_root.as_deref(),
-        post_asset_folder,
-        source_dir.as_deref(),
-        &source_image_path,
-    )
+    run_blocking_io(move || {
+        images::import_local_image_file(
+            &doc_path,
+            site_root.as_deref(),
+            post_asset_folder,
+            source_dir.as_deref(),
+            &source_image_path,
+        )
+    })
+    .await
 }
 
 #[tauri::command]
-fn resolve_local_images(
+async fn resolve_local_images(
     doc_path: Option<String>,
     site_root: Option<String>,
     source_dir: Option<String>,
     srcs: Vec<String>,
 ) -> Vec<ResolvedImageResult> {
-    images::resolve_local_images(
-        doc_path.as_deref(),
-        site_root.as_deref(),
-        source_dir.as_deref(),
-        srcs,
-    )
+    tauri::async_runtime::spawn_blocking(move || {
+        images::resolve_local_images(
+            doc_path.as_deref(),
+            site_root.as_deref(),
+            source_dir.as_deref(),
+            srcs,
+        )
+    })
+    .await
+    .unwrap_or_default()
 }
 
 #[tauri::command]
-fn rename_local_image(
+async fn rename_local_image(
     old_abs_path: String,
     new_name_input: String,
     current_content: String,
 ) -> AppResult<RenameImageResult> {
-    images::rename_local_image(&old_abs_path, &new_name_input, &current_content)
+    run_blocking_io(move || {
+        images::rename_local_image(&old_abs_path, &new_name_input, &current_content)
+    })
+    .await
 }
 
 #[tauri::command]
-fn watch_path(
+async fn watch_path(
     app: AppHandle,
     watcher: State<'_, FileWatcherState>,
     path: String,
     recursive: bool,
 ) -> AppResult<()> {
-    watcher.watch_path(app, Path::new(&path), recursive)
+    let watcher = watcher.inner().clone();
+    run_blocking_io(move || watcher.watch_path(app, Path::new(&path), recursive)).await
 }
 
 #[tauri::command]
-fn unwatch_path(watcher: State<'_, FileWatcherState>, path: String) -> AppResult<()> {
-    watcher.unwatch_path(Path::new(&path))
+async fn unwatch_path(watcher: State<'_, FileWatcherState>, path: String) -> AppResult<()> {
+    let watcher = watcher.inner().clone();
+    run_blocking_io(move || watcher.unwatch_path(Path::new(&path))).await
 }
 
 #[tauri::command]
@@ -365,30 +410,33 @@ fn get_hexo_cli_status(cli: State<'_, HexoCliState>) -> HexoCliStatus {
 }
 
 #[tauri::command]
-fn load_site_theme_css(root_path: String) -> AppResult<ThemeCssResult> {
-    theme_css::load_site_theme_css(&root_path)
+async fn load_site_theme_css(root_path: String) -> AppResult<ThemeCssResult> {
+    run_blocking_io(move || theme_css::load_site_theme_css(&root_path)).await
 }
 
 #[tauri::command]
-fn read_custom_css_file(file_path: String) -> AppResult<ThemeCssResult> {
-    theme_css::read_custom_css_file(&file_path)
+async fn read_custom_css_file(file_path: String) -> AppResult<ThemeCssResult> {
+    run_blocking_io(move || theme_css::read_custom_css_file(&file_path)).await
 }
 
 #[tauri::command]
-fn resolve_quick_open(
+async fn resolve_quick_open(
     target: String,
     site_root: Option<String>,
     doc_path: Option<String>,
     post_asset_folder: Option<bool>,
     source_dir: Option<String>,
 ) -> AppResult<QuickOpenResult> {
-    theme_css::resolve_quick_open_target(
-        &target,
-        site_root.as_deref(),
-        doc_path.as_deref(),
-        post_asset_folder.unwrap_or(false),
-        source_dir.as_deref(),
-    )
+    run_blocking_io(move || {
+        theme_css::resolve_quick_open_target(
+            &target,
+            site_root.as_deref(),
+            doc_path.as_deref(),
+            post_asset_folder.unwrap_or(false),
+            source_dir.as_deref(),
+        )
+    })
+    .await
 }
 
 #[tauri::command]
@@ -413,33 +461,36 @@ async fn delete_remote_images(
 }
 
 #[tauri::command]
-fn scan_unused_local_images(
+async fn scan_unused_local_images(
     doc_path: String,
     site_root: Option<String>,
     post_asset_folder: bool,
     source_dir: Option<String>,
     current_content: String,
 ) -> AppResult<ScanUnusedImagesResult> {
-    image_bed::scan_unused_local_images(
-        &doc_path,
-        site_root.as_deref(),
-        post_asset_folder,
-        source_dir.as_deref(),
-        &current_content,
-    )
+    run_blocking_io(move || {
+        image_bed::scan_unused_local_images(
+            &doc_path,
+            site_root.as_deref(),
+            post_asset_folder,
+            source_dir.as_deref(),
+            &current_content,
+        )
+    })
+    .await
 }
 
 #[tauri::command]
-fn delete_local_images(
+async fn delete_local_images(
     paths: Vec<String>,
     allowed_dirs: Vec<String>,
 ) -> AppResult<DeleteLocalImagesResult> {
-    image_bed::delete_local_images(&paths, &allowed_dirs)
+    run_blocking_io(move || image_bed::delete_local_images(&paths, &allowed_dirs)).await
 }
 
 #[tauri::command]
-fn read_local_file_as_data_uri(file_path: String) -> AppResult<String> {
-    image_bed::read_local_file_as_data_uri(&file_path)
+async fn read_local_file_as_data_uri(file_path: String) -> AppResult<String> {
+    run_blocking_io(move || image_bed::read_local_file_as_data_uri(&file_path)).await
 }
 
 #[tauri::command]

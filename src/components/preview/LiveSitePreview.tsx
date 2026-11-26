@@ -126,15 +126,18 @@ export function LiveSitePreview({
     normalizedPostUrl ?? normalizedBaseUrl ?? ""
   );
   const [reloadNonce, setReloadNonce] = useState<number>(0);
+  const [isFrameLoading, setIsFrameLoading] = useState<boolean>(false);
 
   useEffect(() => {
     if (normalizedBaseUrl) {
       const target = normalizedPostUrl || normalizedBaseUrl;
       setActiveUrl(target);
       setAddressInput(target);
+      setIsFrameLoading(true);
     } else {
       setActiveUrl("");
       setAddressInput("");
+      setIsFrameLoading(false);
     }
   }, [normalizedBaseUrl, normalizedPostUrl]);
 
@@ -143,6 +146,18 @@ export function LiveSitePreview({
     if (!normalizedBaseUrl || !currentPostSlug) return null;
     return buildPostPreviewUrl(normalizedBaseUrl, currentPostSlug);
   }, [normalizedPostUrl, normalizedBaseUrl, currentPostSlug]);
+
+  const effectiveUrl = activeUrl || normalizedBaseUrl || "";
+  const isEn = locale === "en-US";
+
+  useEffect(() => {
+    if (!serverRunning || !effectiveUrl) return;
+    setIsFrameLoading(true);
+    const fallbackTimer = setTimeout(() => {
+      setIsFrameLoading(false);
+    }, 6000);
+    return () => clearTimeout(fallbackTimer);
+  }, [serverRunning, effectiveUrl, reloadNonce]);
 
   if (!serverRunning || !normalizedBaseUrl) {
     return (
@@ -177,6 +192,7 @@ export function LiveSitePreview({
     }
     setActiveUrl(resolved);
     setAddressInput(resolved);
+    setIsFrameLoading(true);
     setReloadNonce((n) => n + 1);
   };
 
@@ -186,6 +202,7 @@ export function LiveSitePreview({
   };
 
   const handleRefresh = () => {
+    setIsFrameLoading(true);
     setReloadNonce((n) => n + 1);
   };
 
@@ -198,8 +215,6 @@ export function LiveSitePreview({
       void api.openExternalUrl(target);
     }
   };
-
-  const effectiveUrl = activeUrl || normalizedBaseUrl;
 
   return (
     <div className="flex h-full w-full flex-col bg-white">
@@ -262,12 +277,30 @@ export function LiveSitePreview({
         </Button>
       </div>
 
-      <iframe
-        key={`${effectiveUrl}#${reloadNonce}`}
-        src={effectiveUrl}
-        title={copy.iframeTitle}
-        className="w-full flex-1 border-0 bg-white"
-      />
+      <div className="relative w-full flex-1 overflow-hidden bg-white">
+        {isFrameLoading && (
+          <div
+            data-testid="live-preview-loading"
+            className="pointer-events-none absolute inset-0 z-10 flex flex-col bg-white/88 backdrop-blur-[1px]"
+          >
+            <div className="h-0.5 w-full overflow-hidden bg-zinc-100">
+              <div className="h-full w-1/3 bg-zinc-400 animate-pulse" />
+            </div>
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 text-xs text-zinc-400">
+              <RefreshCw className="h-4 w-4 animate-spin text-zinc-400" />
+              <span>{isEn ? "Loading page..." : "正在加载页面..."}</span>
+            </div>
+          </div>
+        )}
+        <iframe
+          key={`${effectiveUrl}#${reloadNonce}`}
+          src={effectiveUrl}
+          title={copy.iframeTitle}
+          onLoad={() => setIsFrameLoading(false)}
+          onError={() => setIsFrameLoading(false)}
+          className="h-full w-full border-0 bg-white"
+        />
+      </div>
     </div>
   );
 }

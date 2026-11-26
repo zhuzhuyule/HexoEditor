@@ -200,7 +200,7 @@ async fn query_agent_version(executable: &str, path_env: &OsStr) -> Option<Strin
         cmd.creation_flags(CREATE_NO_WINDOW);
     }
 
-    let output = tokio::time::timeout(Duration::from_millis(2500), cmd.output())
+    let output = tokio::time::timeout(Duration::from_millis(5000), cmd.output())
         .await
         .ok()?
         .ok()?;

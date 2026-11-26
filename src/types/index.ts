@@ -128,6 +128,7 @@ export interface EditorTab {
   content: string;
   savedContent: string;
   isDirty: boolean;
+  isLoading?: boolean;
   isDraft: boolean;
   isStandalone: boolean;
   siteRoot: string | null;

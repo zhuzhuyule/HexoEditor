@@ -18,18 +18,19 @@ struct WatcherInner {
     recent_self_writes: Arc<Mutex<HashMap<PathBuf, Instant>>>,
 }
 
+#[derive(Clone)]
 pub struct FileWatcherState {
-    inner: Mutex<WatcherInner>,
+    inner: Arc<Mutex<WatcherInner>>,
 }
 
 impl Default for FileWatcherState {
     fn default() -> Self {
         Self {
-            inner: Mutex::new(WatcherInner {
+            inner: Arc::new(Mutex::new(WatcherInner {
                 watcher: None,
                 watched_paths: HashSet::new(),
                 recent_self_writes: Arc::new(Mutex::new(HashMap::new())),
-            }),
+            })),
         }
     }
 }

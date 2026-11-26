@@ -81,7 +81,17 @@ export interface MarkdownEditorProps {
   lineHeight?: number;
   tabSize?: number;
   zoomLevel?: number;
+  tabId?: string;
+  openTabIds?: string[];
+  isLoading?: boolean;
 }
+
+const markdownLanguageExtension = yamlFrontmatter({
+  content: markdown({
+    base: markdownLanguage,
+    codeLanguages: languages,
+  }),
+});
 
 const lightHighlightStyle = HighlightStyle.define([
   { tag: tags.heading1, fontSize: "1.35em", fontWeight: "700", color: "#18181b" },
@@ -215,6 +225,9 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
       lineHeight = DEFAULT_EDITOR_PREFS.lineHeight,
       tabSize = DEFAULT_EDITOR_PREFS.tabSize,
       zoomLevel = DEFAULT_EDITOR_PREFS.zoomLevel,
+      tabId,
+      openTabIds,
+      isLoading = false,
     },
     ref
   ) {
@@ -223,6 +236,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     const lineNumbersCompartmentRef = useRef<Compartment>(new Compartment());
     const typographyCompartmentRef = useRef<Compartment>(new Compartment());
     const tabSizeCompartmentRef = useRef<Compartment>(new Compartment());
+    const placeholderCompartmentRef = useRef<Compartment>(new Compartment());
     const initialShowLineNumbersRef = useRef(showLineNumbers);
     const initialTypographyRef = useRef({
       fontFamily,
@@ -231,6 +245,16 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
       zoomLevel,
     });
     const initialTabSizeRef = useRef(tabSize);
+    const initialPlaceholderRef = useRef(placeholder);
+    const initialValueRef = useRef(value);
+    const initialTabIdRef = useRef(tabId);
+    const activeTabIdRef = useRef<string | undefined>(tabId);
+    const tabStatesRef = useRef<
+      Map<string, { state: EditorState; scrollTop: number }>
+    >(new Map());
+    const buildStateRef = useRef<((docValue: string) => EditorState) | null>(
+      null
+    );
     const programmaticScrollUntilRef = useRef<number>(0);
 
     // Latest callbacks stored in refs to avoid re-instantiating CodeMirror
@@ -391,63 +415,66 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         },
       });
 
-      const state = EditorState.create({
-        doc: value,
-        extensions: [
-          lineNumbersCompartmentRef.current.of(
-            initialShowLineNumbersRef.current ? lineNumbers() : []
-          ),
-          history(),
-          drawSelection(),
-          bracketMatching(),
-          highlightActiveLine(),
-          highlightSelectionMatches(),
-          EditorView.lineWrapping,
-          yamlFrontmatter({
-            content: markdown({
-              base: markdownLanguage,
-              codeLanguages: languages,
+      const buildState = (docValue: string) =>
+        EditorState.create({
+          doc: docValue,
+          extensions: [
+            lineNumbersCompartmentRef.current.of(
+              initialShowLineNumbersRef.current ? lineNumbers() : []
+            ),
+            history(),
+            drawSelection(),
+            bracketMatching(),
+            highlightActiveLine(),
+            highlightSelectionMatches(),
+            EditorView.lineWrapping,
+            markdownLanguageExtension,
+            syntaxHighlighting(lightHighlightStyle),
+            minimalistLightTheme,
+            typographyCompartmentRef.current.of(
+              createTypographyTheme(
+                initialTypographyRef.current.fontFamily,
+                initialTypographyRef.current.fontSize,
+                initialTypographyRef.current.lineHeight,
+                initialTypographyRef.current.zoomLevel
+              )
+            ),
+            tabSizeCompartmentRef.current.of(
+              createTabSizeExtensions(initialTabSizeRef.current)
+            ),
+            placeholderCompartmentRef.current.of(
+              cmPlaceholder(initialPlaceholderRef.current)
+            ),
+            keymap.of([
+              ...mdKeymap,
+              indentWithTab,
+              ...defaultKeymap,
+              ...historyKeymap,
+              ...searchKeymap,
+            ]),
+            domHandlers,
+            EditorView.updateListener.of((update) => {
+              if (update.docChanged) {
+                callbacksRef.current.onChange(update.state.doc.toString());
+              }
+              if (update.selectionSet || update.docChanged) {
+                const head = update.state.selection.main.head;
+                const line = update.state.doc.lineAt(head);
+                callbacksRef.current.onCursorChange?.(
+                  line.number,
+                  head - line.from + 1
+                );
+              }
             }),
-          }),
-          syntaxHighlighting(lightHighlightStyle),
-          minimalistLightTheme,
-          typographyCompartmentRef.current.of(
-            createTypographyTheme(
-              initialTypographyRef.current.fontFamily,
-              initialTypographyRef.current.fontSize,
-              initialTypographyRef.current.lineHeight,
-              initialTypographyRef.current.zoomLevel
-            )
-          ),
-          tabSizeCompartmentRef.current.of(
-            createTabSizeExtensions(initialTabSizeRef.current)
-          ),
-          cmPlaceholder(placeholder),
-          keymap.of([
-            ...mdKeymap,
-            indentWithTab,
-            ...defaultKeymap,
-            ...historyKeymap,
-            ...searchKeymap,
-          ]),
-          domHandlers,
-          EditorView.updateListener.of((update) => {
-            if (update.docChanged) {
-              callbacksRef.current.onChange(update.state.doc.toString());
-            }
-            if (update.selectionSet || update.docChanged) {
-              const head = update.state.selection.main.head;
-              const line = update.state.doc.lineAt(head);
-              callbacksRef.current.onCursorChange?.(
-                line.number,
-                head - line.from + 1
-              );
-            }
-          }),
-        ],
-      });
+          ],
+        });
 
-      const view = new EditorView({ state, parent });
+      buildStateRef.current = buildState;
+      activeTabIdRef.current = initialTabIdRef.current;
+      const view = new EditorView({
+        state: buildState(initialValueRef.current),
+        parent,
+      });
       viewRef.current = view;
 
       const handleScroll = () => {
@@ -467,8 +494,20 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         view.scrollDOM.removeEventListener("scroll", handleScroll);
         view.destroy();
         viewRef.current = null;
+        buildStateRef.current = null;
       };
-      // Re-mount only when placeholder changes (tab switch uses React key={tab.id})
+    }, []);
+
+    // Dynamically update placeholder without recreating EditorView
+    useEffect(() => {
+      initialPlaceholderRef.current = placeholder;
+      const view = viewRef.current;
+      if (!view) return;
+      view.dispatch({
+        effects: placeholderCompartmentRef.current.reconfigure(
+          cmPlaceholder(placeholder)
+        ),
+      });
     }, [placeholder]);
 
     // Dynamically toggle line numbers via Compartment without recreating EditorView
@@ -512,10 +551,95 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
       });
     }, [tabSize]);
 
-    // Sync external value updates (e.g., Front-Matter bar edits, disk reload, image rename)
+    // Prune closed tab states from the in-memory EditorState cache
     useEffect(() => {
+      if (!openTabIds) return;
+      const validIds = new Set(openTabIds);
+      for (const cachedTabId of tabStatesRef.current.keys()) {
+        if (!validIds.has(cachedTabId)) {
+          tabStatesRef.current.delete(cachedTabId);
+        }
+      }
+    }, [openTabIds]);
+
+    // Swap cached EditorState on tab switch or sync external content updates on the same tab
+    useEffect(() => {
+      initialValueRef.current = value;
+      initialTabIdRef.current = tabId;
       const view = viewRef.current;
-      if (!view) return;
+      const buildState = buildStateRef.current;
+      if (!view || !buildState) return;
+
+      if (isLoading) {
+        const prevTabId = activeTabIdRef.current;
+        if (prevTabId) {
+          if (tabStatesRef.current.has(prevTabId)) {
+            tabStatesRef.current.delete(prevTabId);
+          } else if (tabStatesRef.current.size >= 30) {
+            const oldestKey = tabStatesRef.current.keys().next().value;
+            if (oldestKey !== undefined) {
+              tabStatesRef.current.delete(oldestKey);
+            }
+          }
+          tabStatesRef.current.set(prevTabId, {
+            state: view.state,
+            scrollTop: view.scrollDOM.scrollTop,
+          });
+        }
+        activeTabIdRef.current = undefined;
+        return;
+      }
+
+      if (tabId !== activeTabIdRef.current) {
+        const prevTabId = activeTabIdRef.current;
+        if (prevTabId) {
+          if (tabStatesRef.current.has(prevTabId)) {
+            tabStatesRef.current.delete(prevTabId);
+          } else if (tabStatesRef.current.size >= 30) {
+            const oldestKey = tabStatesRef.current.keys().next().value;
+            if (oldestKey !== undefined) {
+              tabStatesRef.current.delete(oldestKey);
+            }
+          }
+          tabStatesRef.current.set(prevTabId, {
+            state: view.state,
+            scrollTop: view.scrollDOM.scrollTop,
+          });
+        }
+        activeTabIdRef.current = tabId;
+
+        const cached = tabId ? tabStatesRef.current.get(tabId) : undefined;
+        if (cached && cached.state.doc.toString() === value) {
+          view.setState(cached.state);
+          view.dispatch({
+            effects: [
+              lineNumbersCompartmentRef.current.reconfigure(
+                initialShowLineNumbersRef.current ? lineNumbers() : []
+              ),
+              typographyCompartmentRef.current.reconfigure(
+                createTypographyTheme(
+                  initialTypographyRef.current.fontFamily,
+                  initialTypographyRef.current.fontSize,
+                  initialTypographyRef.current.lineHeight,
+                  initialTypographyRef.current.zoomLevel
+                )
+              ),
+              tabSizeCompartmentRef.current.reconfigure(
+                createTabSizeExtensions(initialTabSizeRef.current)
+              ),
+              placeholderCompartmentRef.current.reconfigure(
+                cmPlaceholder(initialPlaceholderRef.current)
+              ),
+            ],
+          });
+          view.scrollDOM.scrollTop = cached.scrollTop;
+        } else {
+          view.setState(buildState(value));
+          view.scrollDOM.scrollTop = 0;
+        }
+        return;
+      }
+
       const current = view.state.doc.toString();
       if (current === value) return;
       const anchor = Math.min(view.state.selection.main.anchor, value.length);
@@ -523,7 +647,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         changes: { from: 0, to: current.length, insert: value },
         selection: { anchor },
       });
-    }, [value]);
+    }, [tabId, value, isLoading]);
 
     return (
       <div

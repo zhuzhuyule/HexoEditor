@@ -173,6 +173,7 @@ function summarizeImageBed(settings: ImageBedSettings): ImageBedConfigSummary {
 
 export function App() {
   const {
+    hydrated,
     locale,
     setLocale,
     sidebarOpen,
@@ -261,10 +262,14 @@ export function App() {
   const useOverlayTitleBar =
     isMacTauri && (editorPrefs.titleBarMode ?? "overlay") === "overlay";
 
+  const prevTitleBarModeRef = useRef<"overlay" | "system">("overlay");
   useEffect(() => {
-    if (!api.isTauriRuntime()) return;
-    void api.setWindowTitleBarMode(editorPrefs.titleBarMode ?? "overlay");
-  }, [editorPrefs.titleBarMode]);
+    if (!api.isTauriRuntime() || !hydrated) return;
+    const mode = editorPrefs.titleBarMode ?? "overlay";
+    if (mode === prevTitleBarModeRef.current) return;
+    prevTitleBarModeRef.current = mode;
+    void api.setWindowTitleBarMode(mode);
+  }, [hydrated, editorPrefs.titleBarMode]);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -1353,6 +1358,7 @@ export function App() {
   // Fallback print-only article for Write / Focus / Live-preview modes so Cmd+P and Export PDF always print full formatted article with resolved local images
   const needsPrintFallback = Boolean(
     activeTab &&
+      !activeTab.isLoading &&
       (viewMode === "write" ||
         viewMode === "focus" ||
         previewSource === "live")
@@ -1409,6 +1415,11 @@ export function App() {
     imageVersion,
   ]);
 
+  const scopedThemeCssForPrint = useMemo(
+    () => scopePreviewThemeCss(themeCss),
+    [themeCss]
+  );
+
   const printFallbackData = useMemo(() => {
     if (!needsPrintFallback || !activeTab) return null;
     const parsed = parseMarkdownDocument(activeTab.content);
@@ -1417,17 +1428,17 @@ export function App() {
       imageMap: printFallbackImageMap,
       enableHexoTags,
     });
-    const scopedCss = scopePreviewThemeCss(themeCss);
-    return { parsed, html, scopedCss };
+    return { parsed, html, scopedCss: scopedThemeCssForPrint };
   }, [
     needsPrintFallback,
     activeTab?.content,
     printFallbackImageMap,
     enableHexoTags,
-    themeCss,
+    scopedThemeCssForPrint,
   ]);
 
   const commandItems = useMemo<CommandPaletteItem[]>(() => {
+    if (!commandPaletteOpen) return [];
     const items: CommandPaletteItem[] = [];
 
     // 1. Open Tabs
@@ -2003,6 +2014,7 @@ export function App() {
     addSite,
     autoSave,
     clearThemeCssAction,
+    commandPaletteOpen,
     createScratchTab,
     enableHexoTags,
     handleExportHtml,
@@ -2054,6 +2066,7 @@ export function App() {
   ]);
 
   const closeConfirmTab = tabs.find((t) => t.id === closeConfirmTabId) ?? null;
+  const openTabIds = useMemo(() => tabs.map((t) => t.id), [tabs]);
   const isFocusMode = viewMode === "focus";
   const showSidebar = sidebarOpen && !isFocusMode;
   const activeSidebarWidth = draggingSidebarWidth ?? sidebarWidth;
@@ -2082,6 +2095,7 @@ export function App() {
     return (
       <MarkdownPreview
         ref={previewRef}
+        docKey={activeTab.id}
         content={activeTab.content}
         docPath={activeTab.filePath}
         siteRoot={activeTab.siteRoot}
@@ -2180,8 +2194,26 @@ export function App() {
                 </div>
               )}
 
-              {/* Active Document Workspace or Welcome Empty State */}
-              {!activeTab ? (
+              {/* Startup Skeleton / Welcome Empty State / Active Document Workspace */}
+              {!hydrated ? (
+                <div
+                  data-testid="startup-loading-skeleton"
+                  className="flex min-h-0 flex-1 flex-col items-center justify-center bg-[#F8F8F9] px-6 select-none"
+                  aria-busy="true"
+                >
+                  <div className="w-full max-w-md space-y-4 rounded-xl border border-zinc-200/80 bg-white p-6 shadow-2xs">
+                    <div className="h-4 w-32 rounded bg-zinc-200/70 animate-pulse" />
+                    <div className="space-y-2.5">
+                      <div className="h-3.5 w-full rounded bg-zinc-100 animate-pulse" />
+                      <div className="h-3.5 w-5/6 rounded bg-zinc-100 animate-pulse" />
+                      <div className="h-3.5 w-2/3 rounded bg-zinc-100 animate-pulse" />
+                    </div>
+                    <div className="text-center text-[11px] text-zinc-400">
+                      {locale === "en-US" ? "Loading workspace..." : "正在恢复工作区..."}
+                    </div>
+                  </div>
+                </div>
+              ) : !activeTab ? (
                 <WelcomePane
                   recentEntries={recentEntries}
                   onOpenRecent={handleOpenRecent}
@@ -2219,11 +2251,42 @@ export function App() {
 
                   {/* Editor / Preview Region */}
                   <div className="relative min-h-0 flex-1 overflow-hidden">
+                    {activeTab.isLoading && (
+                      <div
+                        data-testid="doc-loading-skeleton"
+                        className="absolute inset-0 z-30 flex flex-col bg-white p-8 select-none"
+                        aria-busy="true"
+                      >
+                        <div className="mx-auto w-full max-w-3xl space-y-5">
+                          <div className="space-y-2 border-b border-zinc-100 pb-4">
+                            <div className="text-lg font-semibold text-zinc-800 truncate">
+                              {activeTab.title}
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-zinc-400">
+                              <span className="h-2 w-2 rounded-full bg-zinc-300 animate-pulse" />
+                              <span>
+                                {locale === "en-US"
+                                  ? "Loading document..."
+                                  : "正在读取文章内容..."}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="space-y-3">
+                            <div className="h-3.5 w-11/12 rounded bg-zinc-100 animate-pulse" />
+                            <div className="h-3.5 w-full rounded bg-zinc-100 animate-pulse" />
+                            <div className="h-3.5 w-4/5 rounded bg-zinc-100 animate-pulse" />
+                            <div className="h-24 w-full rounded-md bg-zinc-50 animate-pulse" />
+                            <div className="h-3.5 w-3/4 rounded bg-zinc-100 animate-pulse" />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Keep MarkdownEditor mounted in a stable tree slot across split/write/focus/read */}
                     <div
-                      aria-hidden={viewMode === "read"}
+                      aria-hidden={viewMode === "read" || Boolean(activeTab.isLoading)}
                       className={
-                        viewMode === "read"
+                        viewMode === "read" || activeTab.isLoading
                           ? "no-print pointer-events-none invisible absolute inset-0"
                           : "h-full w-full"
                       }
@@ -2240,8 +2303,10 @@ export function App() {
                           className="no-print"
                         >
                           <MarkdownEditor
-                            key={activeTab.id}
                             ref={editorRef}
+                            tabId={activeTab.id}
+                            openTabIds={openTabIds}
+                            isLoading={Boolean(activeTab.isLoading)}
                             value={activeTab.content}
                             onChange={(next) =>
                               updateTabContent(activeTab.id, next)
@@ -2288,14 +2353,14 @@ export function App() {
                               minSize={25}
                               order={2}
                             >
-                              {renderPreviewPane(false)}
+                              {!activeTab.isLoading && renderPreviewPane(false)}
                             </Panel>
                           </>
                         )}
                       </PanelGroup>
                     </div>
 
-                    {viewMode === "read" && (
+                    {viewMode === "read" && !activeTab.isLoading && (
                       <div className="relative z-10 h-full w-full bg-white">
                         {renderPreviewPane(true)}
                       </div>

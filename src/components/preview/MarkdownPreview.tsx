@@ -40,7 +40,42 @@ export interface MarkdownPreviewProps {
   enableHexoTags?: boolean;
   /** Preview typography zoom percentage (85-125, default: 100) */
   zoomLevel?: number;
+  /** Stable document key for non-blocking render isolation & cache alignment */
+  docKey?: string;
 }
+
+const EMPTY_IMAGE_MAP: Record<string, LocalImageEntry> = {};
+
+function lruGet<V>(cache: Map<string, V>, key: string): V | undefined {
+  const value = cache.get(key);
+  if (value !== undefined) {
+    cache.delete(key);
+    cache.set(key, value);
+  }
+  return value;
+}
+
+function lruSet<V>(
+  cache: Map<string, V>,
+  key: string,
+  value: V,
+  maxSize: number
+): void {
+  if (cache.has(key)) {
+    cache.delete(key);
+  } else if (cache.size >= maxSize) {
+    const oldest = cache.keys().next().value;
+    if (oldest !== undefined) {
+      cache.delete(oldest);
+    }
+  }
+  cache.set(key, value);
+}
+
+const scopedThemeCssCache = new Map<string, string>();
+const localImageCache = new Map<string, Record<string, LocalImageEntry>>();
+const renderedHtmlCache = new Map<string, string>();
+const mermaidSvgCache = new Map<string, string>();
 
 const CONDITIONAL_AT_RULES = new Set([
   "@media",
@@ -270,10 +305,15 @@ export function scopePreviewThemeCss(
   scope = ".markdown-preview-scoped"
 ): string {
   if (!rawCss || !rawCss.trim()) return "";
+  const cacheKey = `${scope}\0${rawCss}`;
+  const cached = lruGet(scopedThemeCssCache, cacheKey);
+  if (cached !== undefined) return cached;
   // Prevent breaking out of `<style>` tags (including whitespace variants like `</ style>`)
   const safeInput = rawCss.replace(/<\/\s*style/gi, "");
   const withoutComments = stripCssComments(safeInput);
-  return scopeCssBlock(withoutComments, scope);
+  const result = scopeCssBlock(withoutComments, scope);
+  lruSet(scopedThemeCssCache, cacheKey, result, 10);
+  return result;
 }
 
 let mermaidModulePromise: Promise<typeof import("mermaid")["default"]> | null = null;
@@ -307,15 +347,19 @@ export const MarkdownPreview = forwardRef<MarkdownPreviewHandle, MarkdownPreview
       themeCss = null,
       enableHexoTags = true,
       zoomLevel = 100,
+      docKey,
     },
     ref
   ) {
     const locale = useAppStore((s) => s.locale);
     const messages = getMessages(locale);
+    const isEn = locale === "en-US";
+    const effectiveDocKey = docKey ?? docPath ?? "__inline__";
 
     const scrollRef = useRef<HTMLDivElement | null>(null);
     const contentRef = useRef<HTMLDivElement | null>(null);
     const programmaticScrollUntilRef = useRef<number>(0);
+    const prevDocKeyRef = useRef<string>(effectiveDocKey);
 
     const parsed = useMemo(() => parseMarkdownDocument(content), [content]);
     const localSrcs = useMemo(
@@ -323,19 +367,44 @@ export const MarkdownPreview = forwardRef<MarkdownPreviewHandle, MarkdownPreview
       [parsed.body, enableHexoTags]
     );
     const localSrcsKey = localSrcs.join("\0");
+    const imageCacheKey = `${docPath ?? ""}\0${siteRoot ?? ""}\0${sourceDir ?? ""}\0${imageVersion}\0${localSrcsKey}`;
 
     const scopedThemeCss = useMemo(
       () => scopePreviewThemeCss(themeCss, ".markdown-preview-scoped"),
       [themeCss]
     );
 
-    const [imageMap, setImageMap] = useState<Record<string, LocalImageEntry>>({});
+    const cachedImageMap = useMemo(() => {
+      if (localSrcs.length === 0) return EMPTY_IMAGE_MAP;
+      return lruGet(localImageCache, imageCacheKey) ?? EMPTY_IMAGE_MAP;
+    }, [localSrcs.length, imageCacheKey]);
 
-    // Batch resolve local images via Rust when docPath or image list changes
+    const [resolvedImageState, setResolvedImageState] = useState<{
+      cacheKey: string;
+      map: Record<string, LocalImageEntry>;
+    } | null>(null);
+
+    const activeImageMap =
+      localSrcs.length === 0
+        ? EMPTY_IMAGE_MAP
+        : resolvedImageState?.cacheKey === imageCacheKey
+        ? resolvedImageState.map
+        : cachedImageMap;
+
+    // Reset preview scroll position when switching between documents
+    useEffect(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTop = 0;
+      }
+    }, [effectiveDocKey]);
+
+    // Batch resolve local images via Rust when docPath or image list changes (non-blocking & cached)
     useEffect(() => {
       let cancelled = false;
       if (localSrcs.length === 0) {
-        setImageMap({});
+        return;
+      }
+      if (lruGet(localImageCache, imageCacheKey)) {
         return;
       }
 
@@ -362,29 +431,126 @@ export const MarkdownPreview = forwardRef<MarkdownPreviewHandle, MarkdownPreview
               };
             }
           }
-          setImageMap(next);
+          lruSet(localImageCache, imageCacheKey, next, 60);
+          setResolvedImageState({ cacheKey: imageCacheKey, map: next });
         })
         .catch(() => {
-          if (!cancelled) setImageMap({});
+          if (!cancelled) {
+            setResolvedImageState({
+              cacheKey: imageCacheKey,
+              map: EMPTY_IMAGE_MAP,
+            });
+          }
         });
 
       return () => {
         cancelled = true;
       };
-    }, [docPath, siteRoot, sourceDir, localSrcsKey, imageVersion]);
+    }, [docPath, siteRoot, sourceDir, localSrcsKey, imageVersion, imageCacheKey]);
 
-    const renderedHtml = useMemo(
-      () =>
-        renderMarkdownToHtml(parsed.body, {
-          bodyStartLine: parsed.bodyStartLine,
-          imageMap,
-          enableHexoTags,
-        }),
-      [parsed.body, parsed.bodyStartLine, imageMap, enableHexoTags]
-    );
+    const imageMapSig = useMemo(() => {
+      const keys = Object.keys(activeImageMap);
+      if (keys.length === 0) return "";
+      keys.sort();
+      return keys.map((k) => `${k}=${activeImageMap[k].assetUrl}`).join("\0");
+    }, [activeImageMap]);
 
-    // Async render Mermaid blocks after HTML updates
+    const renderKey = `${enableHexoTags ? 1 : 0}\0${parsed.bodyStartLine}\0${imageMapSig}\0${parsed.body}`;
+    const cachedHtml = lruGet(renderedHtmlCache, renderKey);
+    const isFastInlineRender =
+      cachedHtml !== undefined ||
+      (parsed.body.length <= 2500 && !/```|~~~|\$\$/.test(parsed.body));
+
+    const fastHtml = useMemo(() => {
+      if (cachedHtml !== undefined) return cachedHtml;
+      if (!isFastInlineRender) return null;
+      const html = renderMarkdownToHtml(parsed.body, {
+        bodyStartLine: parsed.bodyStartLine,
+        imageMap: activeImageMap,
+        enableHexoTags,
+      });
+      lruSet(renderedHtmlCache, renderKey, html, 40);
+      return html;
+    }, [
+      cachedHtml,
+      isFastInlineRender,
+      parsed.body,
+      parsed.bodyStartLine,
+      activeImageMap,
+      enableHexoTags,
+      renderKey,
+    ]);
+
+    const [asyncRenderState, setAsyncRenderState] = useState<{
+      docKey: string;
+      renderKey: string;
+      html: string;
+    } | null>(null);
+
+    // Offload uncached heavy Markdown/KaTeX/Highlight rendering asynchronously so tab switching never freezes
     useEffect(() => {
+      const docSwitched = prevDocKeyRef.current !== effectiveDocKey;
+      prevDocKeyRef.current = effectiveDocKey;
+
+      if (fastHtml !== null) {
+        return;
+      }
+
+      let cancelled = false;
+      let rafId: number | null = null;
+      let timerId: ReturnType<typeof setTimeout> | null = null;
+
+      const runRender = () => {
+        if (cancelled) return;
+        const html = renderMarkdownToHtml(parsed.body, {
+          bodyStartLine: parsed.bodyStartLine,
+          imageMap: activeImageMap,
+          enableHexoTags,
+        });
+        lruSet(renderedHtmlCache, renderKey, html, 40);
+        if (!cancelled) {
+          setAsyncRenderState({ docKey: effectiveDocKey, renderKey, html });
+        }
+      };
+
+      const delay = docSwitched ? 0 : 80;
+      if (typeof requestAnimationFrame === "function" && docSwitched) {
+        rafId = requestAnimationFrame(() => {
+          timerId = setTimeout(runRender, 0);
+        });
+      } else {
+        timerId = setTimeout(runRender, delay);
+      }
+
+      return () => {
+        cancelled = true;
+        if (rafId !== null && typeof cancelAnimationFrame === "function") {
+          cancelAnimationFrame(rafId);
+        }
+        if (timerId !== null) {
+          clearTimeout(timerId);
+        }
+      };
+    }, [
+      effectiveDocKey,
+      fastHtml,
+      parsed.body,
+      parsed.bodyStartLine,
+      activeImageMap,
+      enableHexoTags,
+      renderKey,
+    ]);
+
+    const displayedHtml =
+      fastHtml !== null
+        ? fastHtml
+        : asyncRenderState?.docKey === effectiveDocKey
+        ? asyncRenderState.html
+        : null;
+
+    // Async render Mermaid blocks after HTML updates (cached SVGs apply synchronously with zero flicker)
+    useEffect(() => {
+      if (displayedHtml === null) return;
       const root = contentRef.current;
       if (!root) return;
       const blocks = Array.from(
@@ -392,38 +558,62 @@ export const MarkdownPreview = forwardRef<MarkdownPreviewHandle, MarkdownPreview
       );
       if (blocks.length === 0) return;
 
-      let cancelled = false;
+      const pendingBlocks: { block: HTMLElement; code: string; index: number }[] = [];
+      for (let i = 0; i < blocks.length; i++) {
+        const block = blocks[i];
+        const encoded = block.getAttribute("data-mermaid-source") || "";
+        let code = encoded;
+        try {
+          code = decodeURIComponent(encoded);
+        } catch {
+          // keep raw fallback
+        }
+        const cachedSvg = lruGet(mermaidSvgCache, code);
+        if (cachedSvg !== undefined) {
+          block.innerHTML = cachedSvg;
+          block.classList.add("mermaid-rendered");
+        } else {
+          pendingBlocks.push({ block, code, index: i });
+        }
+      }
 
-      void (async () => {
-        const mermaid = await getMermaid();
+      if (pendingBlocks.length === 0) return;
+
+      let cancelled = false;
+      const timerId = setTimeout(() => {
         if (cancelled) return;
-        for (let i = 0; i < blocks.length; i++) {
+        void (async () => {
+          const mermaid = await getMermaid();
           if (cancelled) return;
-          const block = blocks[i];
-          const encoded = block.getAttribute("data-mermaid-source") || "";
-          const code = decodeURIComponent(encoded);
-          const id = `mmd-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}`;
-          try {
-            const { svg } = await mermaid.render(id, code);
-            if (!cancelled) {
-              block.innerHTML = svg;
-              block.classList.add("mermaid-rendered");
-            }
-          } catch (err) {
-            if (!cancelled) {
-              const errMsg = err instanceof Error ? err.message : String(err);
-              block.innerHTML = `<div class="mermaid-error">${messages.tabs.mermaidError}${errMsg
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")}</div>`;
+          for (const item of pendingBlocks) {
+            if (cancelled) return;
+            const id = `mmd-${Date.now()}-${item.index}-${Math.random()
+              .toString(36)
+              .slice(2, 6)}`;
+            try {
+              const { svg } = await mermaid.render(id, item.code);
+              lruSet(mermaidSvgCache, item.code, svg, 60);
+              if (!cancelled) {
+                item.block.innerHTML = svg;
+                item.block.classList.add("mermaid-rendered");
+              }
+            } catch (err) {
+              if (!cancelled) {
+                const errMsg = err instanceof Error ? err.message : String(err);
+                item.block.innerHTML = `<div class="mermaid-error">${messages.tabs.mermaidError}${errMsg
+                  .replace(/</g, "&lt;")
+                  .replace(/>/g, "&gt;")}</div>`;
+              }
             }
           }
-        }
-      })();
+        })();
+      }, 0);
 
       return () => {
         cancelled = true;
+        clearTimeout(timerId);
       };
-    }, [renderedHtml, messages.tabs.mermaidError]);
+    }, [displayedHtml, messages.tabs.mermaidError]);
 
     const scrollToHeadingId = useCallback((id: string) => {
       const scroller = scrollRef.current;
@@ -499,9 +689,25 @@ export const MarkdownPreview = forwardRef<MarkdownPreviewHandle, MarkdownPreview
           scroller.scrollTop = Math.max(0, targetTop - 16);
         },
         scrollToHeadingId,
-        getRenderedHtml: () => contentRef.current?.innerHTML ?? renderedHtml,
+        getRenderedHtml: () => {
+          if (displayedHtml !== null) {
+            return contentRef.current?.innerHTML ?? displayedHtml;
+          }
+          return renderMarkdownToHtml(parsed.body, {
+            bodyStartLine: parsed.bodyStartLine,
+            imageMap: activeImageMap,
+            enableHexoTags,
+          });
+        },
       }),
-      [renderedHtml, scrollToHeadingId]
+      [
+        displayedHtml,
+        scrollToHeadingId,
+        parsed.body,
+        parsed.bodyStartLine,
+        activeImageMap,
+        enableHexoTags,
+      ]
     );
 
     const handleScroll = () => {
@@ -637,17 +843,41 @@ export const MarkdownPreview = forwardRef<MarkdownPreviewHandle, MarkdownPreview
             </header>
           )}
 
-          <div
-            ref={contentRef}
-            onClick={handlePreviewClick}
-            style={
-              zoomLevel !== 100
-                ? { fontSize: `${Math.round(15 * (zoomLevel / 100) * 10) / 10}px` }
-                : undefined
-            }
-            className="markdown-preview markdown-preview-scoped"
-            dangerouslySetInnerHTML={{ __html: renderedHtml }}
-          />
+          {displayedHtml === null ? (
+            <div
+              data-testid="preview-skeleton"
+              className="space-y-4 py-2 select-none"
+              aria-busy="true"
+            >
+              <div className="flex items-center gap-2 text-xs text-zinc-400">
+                <span className="h-2 w-2 rounded-full bg-zinc-300 animate-pulse" />
+                <span>{isEn ? "Rendering preview..." : "正在渲染预览..."}</span>
+              </div>
+              <div className="space-y-2.5">
+                <div className="h-4 w-3/4 rounded bg-zinc-100 animate-pulse" />
+                <div className="h-3.5 w-full rounded bg-zinc-100/80 animate-pulse" />
+                <div className="h-3.5 w-11/12 rounded bg-zinc-100/80 animate-pulse" />
+                <div className="h-3.5 w-2/3 rounded bg-zinc-100/80 animate-pulse" />
+              </div>
+              <div className="h-28 w-full rounded-md border border-zinc-100 bg-zinc-50 animate-pulse" />
+              <div className="space-y-2">
+                <div className="h-3.5 w-full rounded bg-zinc-100/80 animate-pulse" />
+                <div className="h-3.5 w-5/6 rounded bg-zinc-100/80 animate-pulse" />
+              </div>
+            </div>
+          ) : (
+            <div
+              ref={contentRef}
+              onClick={handlePreviewClick}
+              style={
+                zoomLevel !== 100
+                  ? { fontSize: `${Math.round(15 * (zoomLevel / 100) * 10) / 10}px` }
+                  : undefined
+              }
+              className="markdown-preview markdown-preview-scoped"
+              dangerouslySetInnerHTML={{ __html: displayedHtml }}
+            />
+          )}
         </article>
       </div>
     );

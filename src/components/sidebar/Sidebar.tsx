@@ -101,8 +101,11 @@ export function Sidebar({
   const activeFilePath = activeTab?.filePath ?? null;
 
   const outlineItems = useMemo(
-    () => (activeTab ? extractMarkdownToc(activeTab.content) : []),
-    [activeTab?.content]
+    () =>
+      sidebarTab === "outline" && activeTab
+        ? extractMarkdownToc(activeTab.content)
+        : [],
+    [sidebarTab, activeTab?.content]
   );
 
   const filteredPosts = useMemo(() => {
