@@ -12,6 +12,7 @@ import {
   PlugZap,
   Rocket,
   Send,
+  Sparkles,
   Square,
   Terminal,
   Trash2,
@@ -66,6 +67,7 @@ export interface HexoTerminalDrawerProps {
   onKillPort: () => void;
   onClearLogs: () => void;
   onOpenServerUrl?: (url: string) => void;
+  onAiDiagnose?: () => void;
   targetUrl?: string | null;
   disabled?: boolean;
   locale?: Locale;
@@ -147,6 +149,7 @@ export function HexoTerminalDrawer({
   onKillPort,
   onClearLogs,
   onOpenServerUrl,
+  onAiDiagnose,
   targetUrl,
   disabled = false,
   locale = "zh-CN",
@@ -180,6 +183,12 @@ export function HexoTerminalDrawer({
 
   const isBusy = status.running && !status.serverRunning;
   const actionDisabled = disabled || status.running;
+  const hasTerminalError =
+    logs.some((l) => l.stream === "stderr") ||
+    (status.exitCode !== null &&
+      status.exitCode !== undefined &&
+      status.exitCode !== 0);
+  const showAiDiagnose = Boolean(onAiDiagnose && hasTerminalError);
   const hasDedicatedPostUrl = Boolean(
     targetUrl && targetUrl !== status.serverUrl
   );
@@ -258,6 +267,10 @@ export function HexoTerminalDrawer({
       : isEn
       ? "No Hexo command output yet."
       : "暂无 Hexo 命令输出日志",
+    aiDiagnose: isEn ? "AI Diagnose" : "AI 诊断",
+    aiDiagnoseTip: isEn
+      ? "Diagnose terminal errors with AI"
+      : "使用 AI 诊断终端报错",
   };
 
   const hasEditorToggles = Boolean(
@@ -435,6 +448,21 @@ export function HexoTerminalDrawer({
           )}
 
           {/* Primary Outer Actions */}
+          {showAiDiagnose && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              onClick={onAiDiagnose}
+              title={labels.aiDiagnoseTip}
+              aria-label={labels.aiDiagnose}
+              data-testid="terminal-ai-diagnose"
+              className="h-6 gap-1 rounded border border-red-200/80 bg-red-50/70 px-2 text-[11px] font-medium text-red-700 hover:bg-red-100/80 hover:text-red-800"
+            >
+              <Sparkles className="h-3 w-3 shrink-0" />
+              <span>{labels.aiDiagnose}</span>
+            </Button>
+          )}
           {status.serverRunning ? (
             <Button
               variant="ghost"
