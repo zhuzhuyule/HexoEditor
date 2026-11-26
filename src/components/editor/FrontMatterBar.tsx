@@ -4,6 +4,7 @@ import {
   ChevronRight,
   FolderSync,
   Plus,
+  Sparkles,
   X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -22,6 +23,7 @@ import type { EditorTab, FrontMatterData } from "@/types";
 
 interface FrontMatterBarProps {
   tab: EditorTab;
+  onAiCompleteFrontMatter?: () => void;
 }
 
 interface ChipAutocompleteProps {
@@ -114,7 +116,10 @@ function ChipAutocomplete({
   );
 }
 
-export function FrontMatterBar({ tab }: FrontMatterBarProps) {
+export function FrontMatterBar({
+  tab,
+  onAiCompleteFrontMatter,
+}: FrontMatterBarProps) {
   const {
     locale,
     allTags,
@@ -220,6 +225,19 @@ export function FrontMatterBar({ tab }: FrontMatterBarProps) {
           >
             <FolderSync className="h-3 w-3" />
             <span>{msg.frontMatter.syncFileName}</span>
+          </Button>
+        )}
+
+        {!hasYamlError && onAiCompleteFrontMatter && (
+          <Button
+            variant="ghost"
+            size="xs"
+            title={msg.frontMatter.aiCompleteTip}
+            onClick={onAiCompleteFrontMatter}
+            className="shrink-0 gap-1 text-zinc-500 hover:text-zinc-900"
+          >
+            <Sparkles className="h-3 w-3" />
+            <span>{msg.frontMatter.aiComplete}</span>
           </Button>
         )}
 

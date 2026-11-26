@@ -1,3 +1,5 @@
+import type { AiSettings } from "./ai";
+
 export type EditorFontFamily = "mono" | "sans" | "serif";
 
 export type CodeHighlightTheme =
@@ -15,6 +17,7 @@ export type SettingsSectionId =
   | "editor"
   | "hexo"
   | "imagebed"
+  | "ai"
   | "about";
 
 export interface EditorPreferences {
@@ -25,6 +28,7 @@ export interface EditorPreferences {
   zoomLevel: number;
   codeTheme: CodeHighlightTheme;
   externalChangePolicy: ExternalChangePolicy;
+  ai?: AiSettings;
 }
 
 export interface ImageBedSettings {

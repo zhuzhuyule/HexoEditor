@@ -1,3 +1,4 @@
+pub mod ai;
 mod error;
 mod hexo;
 mod hexo_cli;
@@ -457,10 +458,15 @@ pub fn run() {
         .on_window_event(|window, event| {
             if matches!(event, tauri::WindowEvent::Destroyed) && window.label() == "main" {
                 window.app_handle().state::<HexoCliState>().stop_all_blocking();
+                window
+                    .app_handle()
+                    .state::<ai::AiRuntimeState>()
+                    .stop_all_blocking();
             }
         })
         .manage(FileWatcherState::default())
         .manage(HexoCliState::default())
+        .manage(ai::AiRuntimeState::default())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
@@ -495,6 +501,12 @@ pub fn run() {
             scan_unused_local_images,
             delete_local_images,
             read_local_file_as_data_uri,
+            ai::discover_local_agents,
+            ai::probe_acp_agent,
+            ai::build_site_ai_context,
+            ai::test_ai_connection,
+            ai::ai_run_prompt,
+            ai::ai_cancel_prompt,
         ])
         .build(tauri::generate_context!())
         .expect("error while building HexoEditor");
@@ -502,6 +514,7 @@ pub fn run() {
     app.run(|app_handle, event| {
         if matches!(event, tauri::RunEvent::Exit) {
             app_handle.state::<HexoCliState>().stop_all_blocking();
+            app_handle.state::<ai::AiRuntimeState>().stop_all_blocking();
         }
     });
 }

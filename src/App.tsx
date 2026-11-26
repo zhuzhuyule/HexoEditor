@@ -45,6 +45,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 
 import {
+  AiAssistantDrawer,
+  type AiPendingAction,
+} from "@/components/ai/AiAssistantDrawer";
+import {
   CommandPalette,
   type CommandPaletteItem,
 } from "@/components/command/CommandPalette";
@@ -100,7 +104,7 @@ import {
 } from "@/components/ui/dialog";
 import { buildStandaloneHtmlDocument } from "@/lib/export/htmlExport";
 import { triggerDocumentPrint } from "@/lib/export/printPdf";
-import { parseMarkdownDocument } from "@/lib/frontmatter";
+import { parseMarkdownDocument, updateFrontMatterInMarkdown } from "@/lib/frontmatter";
 import { formatMessage, getMessages } from "@/lib/i18n";
 import { buildHexoPostUrl } from "@/lib/markdown/permalink";
 import {
@@ -113,6 +117,11 @@ import * as hexoApi from "@/lib/tauri/hexoApi";
 import * as imageBedApi from "@/lib/tauri/imageBedApi";
 import { formatMarkdownImageSnippet, getFileName } from "@/lib/utils";
 import { useAppStore } from "@/stores/useAppStore";
+import {
+  DEFAULT_AI_SETTINGS,
+  type AiPromptAction,
+  type SuggestedFrontMatter,
+} from "@/types/ai";
 import type { ImageBedSettings, SettingsSectionId } from "@/types/settings";
 
 const IMAGE_EXT_RE = /\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i;
@@ -212,6 +221,10 @@ export function App() {
     resetEditorPrefs,
     imageBed,
     setImageBed,
+    aiSettings,
+    setAiSettings,
+    discoveredAgents,
+    discoverAgents,
     lastUploadBatches,
     uploadTabImagesToBed,
     undoLastTabUpload,
@@ -250,6 +263,9 @@ export function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsSection, setSettingsSection] =
     useState<SettingsSectionId>("general");
+  const [aiDrawerOpen, setAiDrawerOpen] = useState(false);
+  const [aiPendingAction, setAiPendingAction] =
+    useState<AiPendingAction | null>(null);
   const [imageManagerOpen, setImageManagerOpen] = useState(false);
   const [imageManagerTab, setImageManagerTab] =
     useState<ImageManagerTab>("upload");
@@ -279,6 +295,89 @@ export function App() {
       setSettingsOpen(true);
     },
     []
+  );
+
+  const triggerAiAction = useCallback((action?: AiPromptAction) => {
+    setAiDrawerOpen(true);
+    if (action) {
+      setAiPendingAction({ action, nonce: Date.now() + Math.random() });
+    }
+  }, []);
+
+  const aiEditorSelection = useMemo(() => {
+    if (!aiDrawerOpen || !activeTab) {
+      return { text: "", hasSelection: false };
+    }
+    const view = editorRef.current?.getView();
+    if (!view) return { text: "", hasSelection: false };
+    const range = view.state.selection.main;
+    if (range.empty) return { text: "", hasSelection: false };
+    return {
+      text: view.state.sliceDoc(range.from, range.to),
+      hasSelection: true,
+    };
+  }, [
+    aiDrawerOpen,
+    activeTab?.id,
+    activeTab?.content,
+    activeTab?.cursorLine,
+    activeTab?.cursorCol,
+  ]);
+
+  const aiTerminalLogLines = useMemo(
+    () =>
+      hexoLogs
+        .slice(-60)
+        .map((entry) => `[${entry.stream}] ${entry.line}`),
+    [hexoLogs]
+  );
+
+  const handleApplyAiTextToEditor = useCallback(
+    (text: string, mode: "replace-selection" | "insert-cursor") => {
+      if (!activeTab) return;
+      const view = editorRef.current?.getView();
+      if (view) {
+        const range = view.state.selection.main;
+        const from = mode === "replace-selection" ? range.from : range.to;
+        const to = mode === "replace-selection" ? range.to : range.to;
+        view.focus();
+        view.dispatch({
+          changes: { from, to, insert: text },
+          selection: { anchor: from, head: from + text.length },
+        });
+      } else {
+        const next = activeTab.content
+          ? `${activeTab.content.trimEnd()}\n\n${text}`
+          : text;
+        updateTabContent(activeTab.id, next);
+      }
+      pushToast(msg.toast.aiTextApplied, "success");
+    },
+    [activeTab, msg.toast.aiTextApplied, pushToast, updateTabContent]
+  );
+
+  const handleApplyAiFrontMatter = useCallback(
+    (suggested: SuggestedFrontMatter) => {
+      if (!activeTab) return;
+      const next = updateFrontMatterInMarkdown(activeTab.content, (cur) => ({
+        ...cur,
+        title: suggested.title ?? cur.title,
+        categories:
+          suggested.categories && suggested.categories.length > 0
+            ? suggested.categories
+            : cur.categories,
+        tags:
+          suggested.tags && suggested.tags.length > 0
+            ? suggested.tags
+            : cur.tags,
+        extra: suggested.description
+          ? { ...cur.extra, description: suggested.description }
+          : cur.extra,
+      }));
+      updateTabContent(activeTab.id, next);
+      pushToast(msg.toast.aiFrontMatterApplied, "success");
+    },
+    [activeTab, msg.toast.aiFrontMatterApplied, pushToast, updateTabContent]
   );
 
   // Hydrate persisted state & active Hexo site on boot
@@ -1723,6 +1822,62 @@ export function App() {
       }
     );
 
+    // 8. AI Writing Assistant
+    items.push(
+      {
+        id: "ai:toggle-drawer",
+        label: msg.command.toggleAiDrawer,
+        group: msg.command.groupAi,
+        keywords: ["ai", "assistant", "acp", "drawer"],
+        icon: <Sparkles className="h-3.5 w-3.5" />,
+        onSelect: () => setAiDrawerOpen((v) => !v),
+      },
+      {
+        id: "ai:frontmatter",
+        label: msg.command.aiFrontMatter,
+        group: msg.command.groupAi,
+        disabled: !activeTab,
+        keywords: ["ai", "frontmatter", "tags", "categories", "title"],
+        icon: <Sparkles className="h-3.5 w-3.5" />,
+        onSelect: () => triggerAiAction("frontmatter_complete"),
+      },
+      {
+        id: "ai:polish",
+        label: msg.command.aiPolish,
+        group: msg.command.groupAi,
+        disabled: !activeTab,
+        keywords: ["ai", "polish", "rewrite", "edit"],
+        icon: <Sparkles className="h-3.5 w-3.5" />,
+        onSelect: () => triggerAiAction("polish"),
+      },
+      {
+        id: "ai:theme-format",
+        label: msg.command.aiThemeFormat,
+        group: msg.command.groupAi,
+        disabled: !activeTab,
+        keywords: ["ai", "theme", "format", "next", "note", "tabs"],
+        icon: <Sparkles className="h-3.5 w-3.5" />,
+        onSelect: () => triggerAiAction("theme_format"),
+      },
+      {
+        id: "ai:diagnose-terminal",
+        label: msg.command.aiDiagnoseTerminal,
+        group: msg.command.groupAi,
+        disabled: hexoLogs.length === 0 && !activeSiteRoot,
+        keywords: ["ai", "diagnose", "terminal", "error", "stderr"],
+        icon: <Terminal className="h-3.5 w-3.5" />,
+        onSelect: () => triggerAiAction("diagnose_terminal"),
+      },
+      {
+        id: "ai:settings",
+        label: msg.command.aiSettings,
+        group: msg.command.groupAi,
+        keywords: ["ai", "acp", "agent", "api", "settings"],
+        icon: <Settings className="h-3.5 w-3.5" />,
+        onSelect: () => openSettingsModal("ai"),
+      }
+    );
+
     return items;
   }, [
     activeSiteRoot,
@@ -1774,6 +1929,8 @@ export function App() {
     toggleLineNumbers,
     toggleSidebar,
     toggleToolbar,
+    triggerAiAction,
+    hexoLogs.length,
   ]);
 
   const closeConfirmTab = tabs.find((t) => t.id === closeConfirmTabId) ?? null;
@@ -1871,6 +2028,8 @@ export function App() {
                   onOpenImageManager={() => openImageManagerModal("upload")}
                   onExportHtml={() => void handleExportHtml()}
                   onExportPdf={handleExportPdf}
+                  aiDrawerOpen={aiDrawerOpen}
+                  onToggleAiDrawer={() => setAiDrawerOpen((v) => !v)}
                 />
               )}
 
@@ -1905,7 +2064,12 @@ export function App() {
 
                   {!isFocusMode && (
                     <div className="no-print shrink-0">
-                      <FrontMatterBar tab={activeTab} />
+                      <FrontMatterBar
+                        tab={activeTab}
+                        onAiCompleteFrontMatter={() =>
+                          triggerAiAction("frontmatter_complete")
+                        }
+                      />
                     </div>
                   )}
 
@@ -2076,6 +2240,29 @@ export function App() {
             </div>
           </Panel>
         </PanelGroup>
+
+        {/* Collapsible Right AI Writing Assistant Drawer */}
+        {!isFocusMode && aiDrawerOpen && (
+          <AiAssistantDrawer
+            open={aiDrawerOpen}
+            onOpenChange={setAiDrawerOpen}
+            locale={locale}
+            aiSettings={aiSettings ?? DEFAULT_AI_SETTINGS}
+            onAiSettingsChange={setAiSettings}
+            discoveredAgents={discoveredAgents ?? []}
+            onRefreshAgents={discoverAgents}
+            activeSiteRoot={activeTab?.siteRoot ?? activeSiteRoot}
+            activeDocPath={activeTab?.filePath ?? null}
+            documentContent={activeTab?.content ?? ""}
+            selectionText={aiEditorSelection.text}
+            hasSelection={aiEditorSelection.hasSelection}
+            terminalLogs={aiTerminalLogLines}
+            pendingAction={aiPendingAction}
+            onOpenAiSettings={() => openSettingsModal("ai")}
+            onApplyTextToEditor={handleApplyAiTextToEditor}
+            onApplyFrontMatter={handleApplyAiFrontMatter}
+          />
+        )}
       </div>
 
       {/* Bottom Status Bar (hidden in Focus mode) */}
@@ -2121,6 +2308,10 @@ export function App() {
         imageBed={imageBed}
         onImageBedChange={setImageBed}
         onTestImageBedConnection={handleTestImageBed}
+        aiSettings={aiSettings ?? DEFAULT_AI_SETTINGS}
+        onAiSettingsChange={setAiSettings}
+        discoveredAgents={discoveredAgents ?? []}
+        onRefreshAgents={discoverAgents}
       />
 
       {/* Image Bed Batch Upload & Unused Local Asset Cleanup Dialog */}

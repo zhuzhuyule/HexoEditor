@@ -7,6 +7,7 @@ import {
   restoreRemoteImageInMarkdown,
 } from "@/lib/markdown/imageRefs";
 import * as api from "@/lib/tauri/api";
+import * as aiApi from "@/lib/tauri/aiApi";
 import * as hexoApi from "@/lib/tauri/hexoApi";
 import type {
   HexoCliAction,
@@ -33,6 +34,12 @@ import type {
   ViewMode,
   WelcomeRecentEntry,
 } from "@/types";
+import {
+  DEFAULT_AI_SETTINGS,
+  type AiApiPreset,
+  type AiSettings,
+  type DiscoveredAgent,
+} from "@/types/ai";
 import {
   clampEditorFontSize,
   clampEditorLineHeight,
@@ -123,6 +130,10 @@ interface AppState {
   imageBed: ImageBedSettings;
   lastUploadBatches: Record<string, StoredUploadBatch>;
 
+  // Phase 4A AI / ACP state
+  aiSettings: AiSettings;
+  discoveredAgents: DiscoveredAgent[];
+
   toasts: ToastItem[];
 
   // Actions
@@ -153,6 +164,8 @@ interface AppState {
   setEditorPrefs: (patch: Partial<EditorPreferences>) => void;
   resetEditorPrefs: () => void;
   setImageBed: (patch: Partial<ImageBedSettings>) => void;
+  setAiSettings: (patch: Partial<AiSettings>) => void;
+  discoverAgents: () => Promise<DiscoveredAgent[]>;
 
   uploadTabImagesToBed: (
     tabId: string,
@@ -280,6 +293,32 @@ function sanitizeEditorPrefs(
   };
 }
 
+function sanitizeAiSettings(
+  raw: Partial<AiSettings> | null | undefined,
+  base: AiSettings = DEFAULT_AI_SETTINGS
+): AiSettings {
+  const merged = { ...base, ...(raw ?? {}) };
+  const validPresets: AiApiPreset[] = ["openai_compatible", "anthropic", "ollama"];
+  const apiPreset: AiApiPreset = validPresets.includes(merged.apiPreset)
+    ? merged.apiPreset
+    : "openai_compatible";
+  return {
+    selectedProviderKey:
+      typeof merged.selectedProviderKey === "string" &&
+      merged.selectedProviderKey.trim()
+        ? merged.selectedProviderKey
+        : DEFAULT_AI_SETTINGS.selectedProviderKey,
+    apiPreset,
+    baseUrl:
+      typeof merged.baseUrl === "string"
+        ? merged.baseUrl
+        : DEFAULT_AI_SETTINGS.baseUrl,
+    apiKey: typeof merged.apiKey === "string" ? merged.apiKey : "",
+    model:
+      typeof merged.model === "string" ? merged.model : DEFAULT_AI_SETTINGS.model,
+  };
+}
+
 function sanitizeImageBedSettings(
   raw: Partial<ImageBedSettings> | null | undefined,
   base: ImageBedSettings = DEFAULT_IMAGE_BED_SETTINGS
@@ -386,6 +425,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   imageBed: { ...DEFAULT_IMAGE_BED_SETTINGS },
   lastUploadBatches: {},
 
+  aiSettings: { ...DEFAULT_AI_SETTINGS },
+  discoveredAgents: [],
+
   toasts: [],
 
   hydrate: async () => {
@@ -404,6 +446,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       themeCssLabel,
       rawEditorPrefs,
       rawImageBed,
+      rawAiSettings,
     ] = await Promise.all([
       api.loadSetting<Locale>("locale", "zh-CN"),
       api.loadSetting<SavedSiteEntry[]>("sites", []),
@@ -418,11 +461,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       api.loadSetting<string | null>("themeCssLabel", null),
       api.loadSetting<Partial<EditorPreferences> | null>("editorPrefs", null),
       api.loadSetting<Partial<ImageBedSettings> | null>("imageBed", null),
+      api.loadSetting<Partial<AiSettings> | null>("aiSettings", null),
     ]);
 
     const sanitizedRecents = Array.isArray(recentEntries)
       ? recentEntries.slice(0, MAX_RECENT_ENTRIES)
       : [];
+    const sanitizedPrefs = sanitizeEditorPrefs(rawEditorPrefs);
+    const sanitizedAi = sanitizeAiSettings(rawAiSettings ?? rawEditorPrefs?.ai);
 
     set({
       hydrated: true,
@@ -437,9 +483,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       enableHexoTags,
       themeCss,
       themeCssLabel,
-      editorPrefs: sanitizeEditorPrefs(rawEditorPrefs),
+      editorPrefs: sanitizedPrefs,
       imageBed: sanitizeImageBedSettings(rawImageBed),
+      aiSettings: sanitizedAi,
     });
+
+    void get().discoverAgents();
 
     const targetRoot = activeSiteRoot || sites[0]?.rootPath || null;
     if (targetRoot) {
@@ -557,6 +606,39 @@ export const useAppStore = create<AppState>((set, get) => ({
     const next = sanitizeImageBedSettings(patch, get().imageBed);
     set({ imageBed: next });
     void api.saveSetting("imageBed", next);
+  },
+
+  setAiSettings: (patch) => {
+    const next = sanitizeAiSettings(patch, get().aiSettings ?? DEFAULT_AI_SETTINGS);
+    set({ aiSettings: next });
+    void api.saveSetting("aiSettings", next);
+  },
+
+  discoverAgents: async () => {
+    try {
+      const agents = await aiApi.discoverLocalAgents();
+      set((state) => {
+        const currentKey = (state.aiSettings ?? DEFAULT_AI_SETTINGS).selectedProviderKey;
+        const shouldAutoSelect =
+          currentKey === "api" &&
+          !(state.aiSettings?.apiKey ?? "").trim() &&
+          agents.length > 0;
+        if (shouldAutoSelect) {
+          const preferred =
+            agents.find((a) => a.protocol === "acp") ?? agents[0];
+          const nextSettings = sanitizeAiSettings(
+            { selectedProviderKey: `agent:${preferred.id}` },
+            state.aiSettings ?? DEFAULT_AI_SETTINGS
+          );
+          void api.saveSetting("aiSettings", nextSettings);
+          return { discoveredAgents: agents, aiSettings: nextSettings };
+        }
+        return { discoveredAgents: agents };
+      });
+      return agents;
+    } catch {
+      return [];
+    }
   },
 
   uploadTabImagesToBed: async (tabId, items) => {
