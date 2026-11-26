@@ -36,7 +36,7 @@ import {
   parseEnvText,
 } from "@/lib/ai/profiles";
 import * as aiApi from "@/lib/tauri/aiApi";
-import { cn } from "@/lib/utils";
+import { cn, isMacPlatform } from "@/lib/utils";
 import type { Locale } from "@/types";
 import {
   DEFAULT_AI_SETTINGS,
@@ -178,6 +178,7 @@ const SHORTCUT_ITEMS: ReadonlyArray<ShortcutEntry> = [
   { keys: "Cmd+\\", zh: "展开 / 收起侧边栏", en: "Toggle Sidebar" },
   { keys: "Cmd+N", zh: "新建文章或临时草稿", en: "New Post or Scratch Note" },
   { keys: "Cmd+O", zh: "打开本地 Markdown 文件", en: "Open Local Markdown File" },
+  { keys: "Cmd+I", zh: "行内 AI 划词改写与 Diff", en: "Inline AI Rewrite & Diff" },
   { keys: "Cmd+Shift+I", zh: "插入本地图片", en: "Insert Local Image" },
   { keys: "Cmd+Shift+F", zh: "格式化 Markdown 表格", en: "Format Markdown Table" },
   { keys: "Cmd+Shift+K", zh: "插入代码块", en: "Insert Code Block" },
@@ -279,7 +280,7 @@ export function SettingsDialog({
   onOpenChange,
   locale,
   initialSection = "general",
-  appVersion = "2.0.0-alpha.1",
+  appVersion = "2.0.0-beta.1",
   onLocaleChange,
   autoSave,
   onAutoSaveChange,
@@ -1031,36 +1032,40 @@ export function SettingsDialog({
                     />
                   </SettingRow>
 
-                  <Separator />
+                  {isMacPlatform() && (
+                    <>
+                      <Separator />
 
-                  <SettingRow
-                    label={isEn ? "Title Bar Mode" : "标题栏模式"}
-                    hint={
-                      isEn
-                        ? "Blend tools into macOS title bar or use classic system title bar"
-                        : "融合标题栏可将窗口控制与工具栏合二为一，也可切回系统原生标题栏"
-                    }
-                  >
-                    <SegmentedControl<TitleBarMode>
-                      ariaLabel={isEn ? "Title Bar Mode" : "标题栏模式"}
-                      value={editorPrefs.titleBarMode ?? "overlay"}
-                      onChange={(titleBarMode) =>
-                        onEditorPrefsChange({ titleBarMode })
-                      }
-                      options={[
-                        {
-                          value: "overlay",
-                          label: isEn
-                            ? "Overlay (Draggable)"
-                            : "融合标题栏（可拖拽）",
-                        },
-                        {
-                          value: "system",
-                          label: isEn ? "System Title Bar" : "系统标题栏",
-                        },
-                      ]}
-                    />
-                  </SettingRow>
+                      <SettingRow
+                        label={isEn ? "Title Bar Mode" : "标题栏模式"}
+                        hint={
+                          isEn
+                            ? "Blend tools into macOS title bar or use classic system title bar"
+                            : "融合标题栏可将窗口控制与工具栏合二为一，也可切回系统原生标题栏"
+                        }
+                      >
+                        <SegmentedControl<TitleBarMode>
+                          ariaLabel={isEn ? "Title Bar Mode" : "标题栏模式"}
+                          value={editorPrefs.titleBarMode ?? "overlay"}
+                          onChange={(titleBarMode) =>
+                            onEditorPrefsChange({ titleBarMode })
+                          }
+                          options={[
+                            {
+                              value: "overlay",
+                              label: isEn
+                                ? "Overlay (Draggable)"
+                                : "融合标题栏（可拖拽）",
+                            },
+                            {
+                              value: "system",
+                              label: isEn ? "System Title Bar" : "系统标题栏",
+                            },
+                          ]}
+                        />
+                      </SettingRow>
+                    </>
+                  )}
 
                   <Separator />
 
@@ -2412,8 +2417,8 @@ export function SettingsDialog({
                     </div>
                     <p className="mt-1.5 text-xs leading-relaxed text-zinc-500">
                       {isEn
-                        ? "Native lightweight Hexo Markdown desktop workbench powered by Tauri v2, Rust, React 19, and CodeMirror 6."
-                        : "基于 Tauri v2 + Rust 与 React 19 / CodeMirror 6 构建的原生轻量级 Hexo Markdown 写作工作台。"}
+                        ? "Native lightweight Hexo & Hugo Markdown desktop workbench powered by Tauri v2, Rust, React 19, and CodeMirror 6."
+                        : "基于 Tauri v2 + Rust 与 React 19 / CodeMirror 6 构建的原生轻量级 Hexo & Hugo 双引擎写作工作台。"}
                     </p>
                   </div>
 
@@ -2434,7 +2439,11 @@ export function SettingsDialog({
                               </td>
                               <td className="px-3 py-2 text-right">
                                 <kbd className="inline-block rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 font-mono text-[11px] text-zinc-600">
-                                  {item.keys}
+                                  {isMacPlatform()
+                                    ? item.keys
+                                    : item.keys
+                                        .replace(/Cmd\+/g, "Ctrl+")
+                                        .replace(/Option\+/g, "Alt+")}
                                 </kbd>
                               </td>
                             </tr>

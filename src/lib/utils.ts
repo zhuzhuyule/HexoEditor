@@ -72,12 +72,46 @@ export function formatShortDate(dateStr?: string | null): string {
 }
 
 /**
+ * Normalizes a filesystem path for cross-platform comparisons (Windows slashes, `\\?\` prefix, drive letter case).
+ */
+export function normalizeFsPath(rawPath: string): string {
+  let normalized = rawPath.replace(/\\/g, "/");
+  if (normalized.startsWith("//?/") && !normalized.startsWith("//?/UNC/")) {
+    normalized = normalized.slice(4);
+  }
+  if (/^[A-Za-z]:\//.test(normalized)) {
+    normalized = `${normalized[0].toLowerCase()}${normalized.slice(1)}`;
+  }
+  return normalized.replace(/\/+$/, "");
+}
+
+/**
+ * Checks whether the current runtime is macOS (or a headless test env defaulting to Mac shortcut conventions).
+ */
+export function isMacPlatform(): boolean {
+  if (typeof navigator === "undefined") return true;
+  const platform = navigator.platform || "";
+  const ua = navigator.userAgent || "";
+  if (/mac/i.test(platform) || /macintosh|mac os x|darwin/i.test(ua)) {
+    return true;
+  }
+  if (
+    /\bwin(?:32|64|dows)?\b/i.test(platform) ||
+    /windows/i.test(ua) ||
+    /linux|x11/i.test(`${platform} ${ua}`)
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/**
  * Checks whether `filePath` is strictly inside (or equal to) `dirPath`,
  * respecting path separator boundaries so `/a/blog-2/x.md` does not match `/a/blog`.
  */
 export function isPathInsideDir(filePath: string, dirPath: string): boolean {
-  const normFile = filePath.replace(/\\/g, "/").replace(/\/+$/, "");
-  const normDir = dirPath.replace(/\\/g, "/").replace(/\/+$/, "");
+  const normFile = normalizeFsPath(filePath);
+  const normDir = normalizeFsPath(dirPath);
   if (!normDir) return false;
   return normFile === normDir || normFile.startsWith(`${normDir}/`);
 }

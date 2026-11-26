@@ -12,7 +12,7 @@ use tokio::sync::watch;
 
 use crate::error::{AppError, AppResult};
 
-use super::discovery::build_ai_path_env;
+use super::discovery::{build_ai_path_env, resolve_agent_executable};
 use super::{
     emit_ai_event, terminate_process_group_force, terminate_process_group_graceful,
     AiProviderConfig,
@@ -109,19 +109,20 @@ pub async fn run_cli_prompt(
     mut cancel_rx: watch::Receiver<bool>,
     child_pid: Arc<AtomicU32>,
 ) -> AppResult<()> {
-    let executable = provider
+    let executable_input = provider
         .executable
         .as_deref()
         .map(str::trim)
         .filter(|s| !s.is_empty())
         .ok_or_else(|| AppError::InvalidInput("CLI executable path is required".into()))?;
+    let executable = resolve_agent_executable(executable_input);
 
     let full_prompt = match system_prompt.map(str::trim).filter(|s| !s.is_empty()) {
         Some(sys) => format!("{}\n\n---\n\n{}", sys, prompt),
         None => prompt.to_string(),
     };
 
-    let mut cmd = Command::new(executable);
+    let mut cmd = Command::new(&executable);
     cmd.args(&provider.args)
         .env("PATH", build_ai_path_env())
         .env("NO_COLOR", "1")

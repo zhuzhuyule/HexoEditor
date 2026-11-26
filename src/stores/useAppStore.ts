@@ -17,7 +17,7 @@ import type {
 } from "@/lib/tauri/hexoApi";
 import * as imageBedApi from "@/lib/tauri/imageBedApi";
 import type { ImageBedUploadBatchResult } from "@/lib/tauri/imageBedApi";
-import { getFileName, isPathInsideDir } from "@/lib/utils";
+import { getFileName, isPathInsideDir, normalizeFsPath } from "@/lib/utils";
 import type {
   EditorTab,
   ExternalChangeEvent,
@@ -1860,20 +1860,20 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   handleExternalChange: (event) => {
-    const normalized = event.filePath.replace(/\\/g, "/");
+    const normalized = normalizeFsPath(event.filePath);
     const policy = get().editorPrefs.externalChangePolicy;
     let matchedOpenTab = false;
     const autoReloadTabIds: string[] = [];
 
     if (policy === "ignore") {
       matchedOpenTab = get().tabs.some(
-        (tab) => tab.filePath && tab.filePath.replace(/\\/g, "/") === normalized
+        (tab) => tab.filePath && normalizeFsPath(tab.filePath) === normalized
       );
     } else {
       set((state) => ({
         tabs: state.tabs.map((tab) => {
           if (!tab.filePath) return tab;
-          if (tab.filePath.replace(/\\/g, "/") === normalized) {
+          if (normalizeFsPath(tab.filePath) === normalized) {
             matchedOpenTab = true;
             if (policy === "auto" && !tab.isDirty) {
               autoReloadTabIds.push(tab.id);

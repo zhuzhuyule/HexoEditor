@@ -9,6 +9,7 @@ import { LiveSitePreview } from "@/components/preview/LiveSitePreview";
 import { MarkdownPreview } from "@/components/preview/MarkdownPreview";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import * as api from "@/lib/tauri/api";
+import { isPathInsideDir, normalizeFsPath } from "@/lib/utils";
 import { useAppStore } from "@/stores/useAppStore";
 import type { EditorTab, PostSummary } from "@/types";
 import {
@@ -476,5 +477,20 @@ describe("Performance & responsive UX guarantees", () => {
     });
     expect(useAppStore.getState().tabs).toHaveLength(0);
     expect(useAppStore.getState().activeTabId).toBeNull();
+  });
+
+  it("normalizes Windows verbatim \\\\?\\ prefixes and drive letter case consistently", () => {
+    expect(normalizeFsPath("\\\\?\\C:\\Users\\Zac\\Blog\\source\\_posts\\hello.md")).toBe(
+      "c:/Users/Zac/Blog/source/_posts/hello.md"
+    );
+    expect(
+      isPathInsideDir(
+        "\\\\?\\C:\\Users\\Zac\\Blog\\source\\_posts\\hello.md",
+        "C:/Users/Zac/Blog"
+      )
+    ).toBe(true);
+    expect(normalizeFsPath("\\\\?\\UNC\\server\\share\\post.md")).toBe(
+      "//?/UNC/server/share/post.md"
+    );
   });
 });

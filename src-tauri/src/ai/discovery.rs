@@ -166,6 +166,21 @@ pub fn find_agent_executable(dirs: &[PathBuf], bin_name: &str) -> Option<PathBuf
     None
 }
 
+/// Resolves bare executable names (e.g. `agy`, `opencode`, `claude`) against candidate PATH
+/// directories so GUI launches on macOS and `.cmd`/`.bat` shims on Windows work reliably.
+pub fn resolve_agent_executable(executable: &str) -> String {
+    let trimmed = executable.trim();
+    if trimmed.is_empty() || trimmed.contains('/') || trimmed.contains('\\') {
+        return trimmed.to_string();
+    }
+    let home = user_home_dir();
+    let existing = std::env::var_os("PATH");
+    let dirs = build_ai_candidate_path_dirs(home.as_deref(), existing.as_deref());
+    find_agent_executable(&dirs, trimmed)
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|| trimmed.to_string())
+}
+
 /// Scans candidate directories synchronously for known agents (without running `--version`).
 pub fn scan_agents_in_dirs(dirs: &[PathBuf]) -> Vec<DiscoveredAgent> {
     let mut found = Vec::new();
@@ -326,5 +341,11 @@ mod tests {
         assert_eq!(agents[2].id, "claude");
         assert_eq!(agents[2].protocol, "cli");
         assert_eq!(agents[2].version.as_deref(), Some("claude 1.0.0"));
+
+        // Explicit path inputs should pass through verbatim without mangling
+        assert_eq!(
+            resolve_agent_executable(&claude_path.to_string_lossy()),
+            claude_path.to_string_lossy()
+        );
     }
 }

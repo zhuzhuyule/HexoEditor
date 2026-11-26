@@ -1,3 +1,4 @@
+import { getVersion as getTauriAppVersion } from "@tauri-apps/api/app";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import {
   BookOpen,
@@ -48,6 +49,7 @@ import {
   AiAssistantDrawer,
   type AiPendingAction,
 } from "@/components/ai/AiAssistantDrawer";
+import { InlineAiPopover } from "@/components/ai/InlineAiPopover";
 import {
   CommandPalette,
   type CommandPaletteItem,
@@ -56,6 +58,7 @@ import { EditorToolbar } from "@/components/editor/EditorToolbar";
 import { FrontMatterBar } from "@/components/editor/FrontMatterBar";
 import {
   MarkdownEditor,
+  type EditorSelectionChange,
   type MarkdownEditorHandle,
 } from "@/components/editor/MarkdownEditor";
 import {
@@ -114,7 +117,12 @@ import {
 import * as api from "@/lib/tauri/api";
 import * as hexoApi from "@/lib/tauri/hexoApi";
 import * as imageBedApi from "@/lib/tauri/imageBedApi";
-import { cn, formatMarkdownImageSnippet, getFileName } from "@/lib/utils";
+import {
+  cn,
+  formatMarkdownImageSnippet,
+  getFileName,
+  isMacPlatform,
+} from "@/lib/utils";
 import {
   clampSidebarWidth,
   DEFAULT_SIDEBAR_WIDTH,
@@ -295,6 +303,10 @@ export function App() {
   const [aiDrawerOpen, setAiDrawerOpen] = useState(false);
   const [aiPendingAction, setAiPendingAction] =
     useState<AiPendingAction | null>(null);
+  const [inlineAiOpen, setInlineAiOpen] = useState(false);
+  const [editorSelection, setEditorSelection] =
+    useState<EditorSelectionChange | null>(null);
+  const [appVersion, setAppVersion] = useState("2.0.0-beta.1");
   const [imageManagerOpen, setImageManagerOpen] = useState(false);
   const [imageManagerTab, setImageManagerTab] =
     useState<ImageManagerTab>("upload");
@@ -468,7 +480,27 @@ export function App() {
   // Hydrate persisted state & active Hexo site on boot
   useEffect(() => {
     void hydrate();
+    if (api.isTauriRuntime()) {
+      void getTauriAppVersion()
+        .then((v) => {
+          if (v && v.trim()) setAppVersion(v.trim());
+        })
+        .catch(() => {});
+    }
   }, [hydrate]);
+
+  // Reset inline AI popover & cached selection on tab switch or entering read mode
+  useEffect(() => {
+    setInlineAiOpen(false);
+    setEditorSelection(null);
+  }, [activeTabId]);
+
+  useEffect(() => {
+    if (viewMode === "read") {
+      setInlineAiOpen(false);
+      setEditorSelection(null);
+    }
+  }, [viewMode]);
 
   // Listen for Rust file-watcher external change events
   useEffect(() => {
@@ -796,7 +828,8 @@ export function App() {
         !imageManagerOpen &&
         !closeConfirmTabId &&
         !newPostOpen &&
-        !selectedImage
+        !selectedImage &&
+        !inlineAiOpen
       ) {
         e.preventDefault();
         exitFocusMode();
@@ -804,6 +837,19 @@ export function App() {
       }
 
       if (!mod) return;
+
+      // Cmd/Ctrl + I -> Inline AI Rewrite & Diff Popover
+      if (!e.shiftKey && !e.altKey && (key === "i" || e.code === "KeyI")) {
+        const currentTab = useAppStore
+          .getState()
+          .tabs.find((t) => t.id === useAppStore.getState().activeTabId);
+        if (currentTab && !currentTab.isLoading && viewMode !== "read") {
+          e.preventDefault();
+          e.stopPropagation();
+          setInlineAiOpen((open) => !open);
+        }
+        return;
+      }
 
       // Support both Cmd/Ctrl+Shift+1..4 and Cmd/Ctrl+Option/Alt+1..4
       const isViewModeModifier =
@@ -877,6 +923,7 @@ export function App() {
     createScratchTab,
     exitFocusMode,
     imageManagerOpen,
+    inlineAiOpen,
     msg.sidebar.openFile,
     newPostOpen,
     openStandaloneFile,
@@ -1366,15 +1413,47 @@ export function App() {
   const [printFallbackImageMap, setPrintFallbackImageMap] = useState<
     Record<string, LocalImageEntry>
   >({});
+  const [debouncedPrintTab, setDebouncedPrintTab] = useState<{
+    id: string;
+    content: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!needsPrintFallback || !activeTab) {
+      setDebouncedPrintTab(null);
+      return;
+    }
+    if (!debouncedPrintTab || debouncedPrintTab.id !== activeTab.id) {
+      setDebouncedPrintTab({ id: activeTab.id, content: activeTab.content });
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setDebouncedPrintTab({ id: activeTab.id, content: activeTab.content });
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [needsPrintFallback, activeTab?.id, activeTab?.content]);
+
+  const printParsed = useMemo(() => {
+    if (!needsPrintFallback || !activeTab) return null;
+    const contentForPrint =
+      debouncedPrintTab && debouncedPrintTab.id === activeTab.id
+        ? debouncedPrintTab.content
+        : activeTab.content;
+    return parseMarkdownDocument(contentForPrint);
+  }, [needsPrintFallback, activeTab?.id, activeTab?.content, debouncedPrintTab]);
+
+  const printLocalSrcs = useMemo(() => {
+    if (!printParsed) return [];
+    return extractLocalImageSrcs(printParsed.body, { enableHexoTags });
+  }, [printParsed, enableHexoTags]);
+  const printLocalSrcsKey = printLocalSrcs.join("\0");
 
   useEffect(() => {
     if (!needsPrintFallback || !activeTab) {
       setPrintFallbackImageMap({});
       return;
     }
-    const parsed = parseMarkdownDocument(activeTab.content);
-    const srcs = extractLocalImageSrcs(parsed.body, { enableHexoTags });
-    if (srcs.length === 0) {
+    if (printLocalSrcs.length === 0) {
       setPrintFallbackImageMap({});
       return;
     }
@@ -1384,7 +1463,7 @@ export function App() {
         docPath: activeTab.filePath,
         siteRoot: activeTab.siteRoot,
         sourceDir: activeTab.sourceDir,
-        srcs,
+        srcs: printLocalSrcs,
       })
       .then((resolved) => {
         if (cancelled) return;
@@ -1407,11 +1486,10 @@ export function App() {
     };
   }, [
     needsPrintFallback,
-    activeTab?.content,
     activeTab?.filePath,
     activeTab?.siteRoot,
     activeTab?.sourceDir,
-    enableHexoTags,
+    printLocalSrcsKey,
     imageVersion,
   ]);
 
@@ -1421,17 +1499,16 @@ export function App() {
   );
 
   const printFallbackData = useMemo(() => {
-    if (!needsPrintFallback || !activeTab) return null;
-    const parsed = parseMarkdownDocument(activeTab.content);
-    const html = renderMarkdownToHtml(parsed.body, {
-      bodyStartLine: parsed.bodyStartLine,
+    if (!needsPrintFallback || !printParsed) return null;
+    const html = renderMarkdownToHtml(printParsed.body, {
+      bodyStartLine: printParsed.bodyStartLine,
       imageMap: printFallbackImageMap,
       enableHexoTags,
     });
-    return { parsed, html, scopedCss: scopedThemeCssForPrint };
+    return { parsed: printParsed, html, scopedCss: scopedThemeCssForPrint };
   }, [
     needsPrintFallback,
-    activeTab?.content,
+    printParsed,
     printFallbackImageMap,
     enableHexoTags,
     scopedThemeCssForPrint,
@@ -1718,20 +1795,24 @@ export function App() {
         icon: <Save className="h-3.5 w-3.5" />,
         onSelect: () => setAutoSave(!autoSave),
       },
-      {
-        id: "view:toggle-titlebar",
-        label: msg.command.toggleTitleBar,
-        group: msg.command.groupView,
-        keywords: ["titlebar", "overlay", "system", "header", "macos"],
-        icon: <Maximize2 className="h-3.5 w-3.5" />,
-        onSelect: () =>
-          setEditorPrefs({
-            titleBarMode:
-              (editorPrefs.titleBarMode ?? "overlay") === "overlay"
-                ? "system"
-                : "overlay",
-          }),
-      },
+      ...(isMacPlatform()
+        ? [
+            {
+              id: "view:toggle-titlebar",
+              label: msg.command.toggleTitleBar,
+              group: msg.command.groupView,
+              keywords: ["titlebar", "overlay", "system", "header", "macos"],
+              icon: <Maximize2 className="h-3.5 w-3.5" />,
+              onSelect: () =>
+                setEditorPrefs({
+                  titleBarMode:
+                    (editorPrefs.titleBarMode ?? "overlay") === "overlay"
+                      ? "system"
+                      : "overlay",
+                }),
+            },
+          ]
+        : []),
       {
         id: "view:ui-font-sm",
         label: locale === "en-US" ? "UI Font Size: Small" : "界面字号：小",
@@ -1960,6 +2041,19 @@ export function App() {
         keywords: ["ai", "assistant", "acp", "drawer"],
         icon: <Sparkles className="h-3.5 w-3.5" />,
         onSelect: () => setAiDrawerOpen((v) => !v),
+      },
+      {
+        id: "ai:inline-rewrite",
+        label:
+          locale === "en-US"
+            ? "AI Inline Selection Rewrite (Diff)"
+            : "AI 行内划词改写与 Diff",
+        group: msg.command.groupAi,
+        shortcut: isMacPlatform() ? "⌘I" : "Ctrl+I",
+        disabled: !activeTab || viewMode === "read",
+        keywords: ["ai", "inline", "diff", "rewrite", "selection"],
+        icon: <Sparkles className="h-3.5 w-3.5" />,
+        onSelect: () => setInlineAiOpen(true),
       },
       {
         id: "ai:frontmatter",
@@ -2314,6 +2408,9 @@ export function App() {
                             onCursorChange={(line, col) =>
                               updateTabCursor(activeTab.id, line, col)
                             }
+                            onSelectionChange={(sel) =>
+                              setEditorSelection(sel.text.trim() ? sel : null)
+                            }
                             onScrollLine={(line, ratio) => {
                               if (
                                 syncScroll &&
@@ -2364,6 +2461,75 @@ export function App() {
                       <div className="relative z-10 h-full w-full bg-white">
                         {renderPreviewPane(true)}
                       </div>
+                    )}
+
+                    {/* Floating Selection Mini Trigger Pill + Inline AI Diff Popover */}
+                    {editorSelection?.text.trim() &&
+                      editorSelection.rect &&
+                      !inlineAiOpen &&
+                      !activeTab.isLoading &&
+                      viewMode !== "read" && (
+                        <button
+                          type="button"
+                          data-testid="inline-ai-selection-trigger"
+                          style={{
+                            position: "fixed",
+                            top: Math.max(8, editorSelection.rect.top - 32),
+                            left: Math.max(12, editorSelection.rect.left),
+                          }}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setInlineAiOpen(true);
+                          }}
+                          className="no-print z-40 inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white/95 px-2.5 py-1 text-[11px] font-medium text-zinc-700 shadow-sm backdrop-blur-xs transition-colors hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 cursor-pointer"
+                        >
+                          <Sparkles className="h-3 w-3 text-zinc-600" />
+                          <span>
+                            {locale === "en-US" ? "AI Rewrite" : "AI 改写"}
+                          </span>
+                          <kbd className="font-mono text-[10px] text-zinc-400">
+                            {isMacPlatform() ? "⌘I" : "Ctrl+I"}
+                          </kbd>
+                        </button>
+                      )}
+
+                    {inlineAiOpen && !activeTab.isLoading && viewMode !== "read" && (
+                      <InlineAiPopover
+                        open={inlineAiOpen}
+                        onOpenChange={setInlineAiOpen}
+                        locale={locale}
+                        aiSettings={aiSettings ?? DEFAULT_AI_SETTINGS}
+                        discoveredAgents={discoveredAgents ?? []}
+                        activeSiteRoot={activeTab.siteRoot ?? activeSiteRoot}
+                        activeDocPath={activeTab.filePath}
+                        documentContent={activeTab.content}
+                        selectionText={editorSelection?.text ?? ""}
+                        selectionRect={editorSelection?.rect ?? null}
+                        onApplyReplace={(outputText) => {
+                          if (
+                            editorSelection &&
+                            editorRef.current?.replaceRange(
+                              editorSelection.from,
+                              editorSelection.to,
+                              outputText
+                            )
+                          ) {
+                            pushToast(msg.toast.aiTextApplied, "success");
+                          } else {
+                            handleApplyAiTextToEditor(
+                              outputText,
+                              editorSelection?.text.trim()
+                                ? "replace-selection"
+                                : "insert-cursor"
+                            );
+                          }
+                          setInlineAiOpen(false);
+                        }}
+                        onOpenAiSettings={() => {
+                          setInlineAiOpen(false);
+                          openSettingsModal("ai");
+                        }}
+                      />
                     )}
 
                     {/* Print-only article fallback for Write / Focus / Live preview modes */}
@@ -2428,6 +2594,7 @@ export function App() {
                   onClearLogs={clearHexoLogs}
                   targetUrl={activeLivePostUrl}
                   onOpenServerUrl={(url) => void handleOpenExternalUrl(url)}
+                  onAiDiagnose={() => triggerAiAction("diagnose_terminal")}
                   disabled={!activeSiteRoot}
                   locale={locale}
                   engine={siteConfig?.engine}
@@ -2491,6 +2658,7 @@ export function App() {
         onOpenChange={setSettingsOpen}
         locale={locale}
         initialSection={settingsSection}
+        appVersion={appVersion}
         onLocaleChange={setLocale}
         autoSave={autoSave}
         onAutoSaveChange={setAutoSave}
@@ -2544,6 +2712,10 @@ export function App() {
         cleaningUnused={cleaningUnused}
         onScanUnused={handleScanUnusedImages}
         onDeleteUnused={handleDeleteUnusedImages}
+        onAiSuggestImages={() => {
+          setImageManagerOpen(false);
+          triggerAiAction("image_caption");
+        }}
       />
 
       {/* Modals & Toasts */}

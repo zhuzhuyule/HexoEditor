@@ -13,7 +13,7 @@ use tokio::sync::{oneshot, watch};
 
 use crate::error::{AppError, AppResult};
 
-use super::discovery::build_ai_path_env;
+use super::discovery::{build_ai_path_env, resolve_agent_executable};
 use super::{
     emit_ai_event, terminate_process_group_force, terminate_process_group_graceful, AcpAgentInfo,
     AcpAuthMethod, AcpPermissionDecision, AcpPermissionOption, AcpPermissionRequestEvent,
@@ -101,14 +101,15 @@ fn spawn_acp_child(
     env: Option<&HashMap<String, String>>,
     cwd: Option<&Path>,
 ) -> AppResult<Child> {
-    let exe = executable.trim();
-    if exe.is_empty() {
+    let exe_input = executable.trim();
+    if exe_input.is_empty() {
         return Err(AppError::InvalidInput(
             "ACP executable path cannot be empty".into(),
         ));
     }
+    let exe = resolve_agent_executable(exe_input);
 
-    let mut cmd = Command::new(exe);
+    let mut cmd = Command::new(&exe);
     cmd.args(args)
         .env("PATH", build_ai_path_env())
         .env("NO_COLOR", "1")

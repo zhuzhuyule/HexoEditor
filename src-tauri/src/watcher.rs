@@ -35,11 +35,27 @@ impl Default for FileWatcherState {
     }
 }
 
+#[cfg(target_os = "windows")]
+fn strip_windows_verbatim_prefix(path: PathBuf) -> PathBuf {
+    let raw = path.to_string_lossy();
+    if let Some(rest) = raw.strip_prefix(r"\\?\") {
+        if !rest.starts_with("UNC\\") {
+            return PathBuf::from(rest);
+        }
+    }
+    path
+}
+
+#[cfg(not(target_os = "windows"))]
+fn strip_windows_verbatim_prefix(path: PathBuf) -> PathBuf {
+    path
+}
+
 /// Canonicalizes `path` even if the leaf file does not exist yet (e.g., before Save As / create)
 /// or was just deleted, by canonicalizing the nearest existing ancestor directory.
 pub(crate) fn normalize_path(path: &Path) -> PathBuf {
     if let Ok(canon) = std::fs::canonicalize(path) {
-        return canon;
+        return strip_windows_verbatim_prefix(canon);
     }
     let mut missing_components = Vec::new();
     let mut current = path.to_path_buf();
@@ -49,14 +65,14 @@ pub(crate) fn normalize_path(path: &Path) -> PathBuf {
             break;
         }
         if let Ok(canon_ancestor) = std::fs::canonicalize(&current) {
-            let mut result = canon_ancestor;
+            let mut result = strip_windows_verbatim_prefix(canon_ancestor);
             for comp in missing_components.into_iter().rev() {
                 result.push(comp);
             }
             return result;
         }
     }
-    path.to_path_buf()
+    strip_windows_verbatim_prefix(path.to_path_buf())
 }
 
 impl FileWatcherState {
