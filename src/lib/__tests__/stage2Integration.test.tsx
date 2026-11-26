@@ -166,20 +166,29 @@ describe("Stage 2 workbench integration", () => {
       });
     });
 
-    // Toggle toolbar & line numbers on via TabBar icon buttons
-    const toolbarToggleBtn = container.querySelector<HTMLButtonElement>(
-      'button[aria-label="显示/隐藏格式工具栏"]'
-    );
-    const lineNumToggleBtn = container.querySelector<HTMLButtonElement>(
-      'button[aria-label="显示/隐藏编辑器行号"]'
-    );
-    expect(toolbarToggleBtn).not.toBeNull();
-    expect(lineNumToggleBtn).not.toBeNull();
+    // Toggle toolbar & line numbers on via TabBar "More Tools" dropdown menu
+    const clickMoreToolItem = async (label: string) => {
+      const moreToolsBtn = container.querySelector<HTMLButtonElement>(
+        'button[aria-label="更多工具"]'
+      );
+      expect(moreToolsBtn).not.toBeNull();
+      await act(async () => {
+        moreToolsBtn!.focus();
+        moreToolsBtn!.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
+        );
+      });
+      const item = Array.from(
+        document.body.querySelectorAll<HTMLElement>('[role="menuitem"]')
+      ).find((el) => el.textContent?.includes(label));
+      expect(item).toBeDefined();
+      await act(async () => {
+        item!.click();
+      });
+    };
 
-    await act(async () => {
-      toolbarToggleBtn!.click();
-      lineNumToggleBtn!.click();
-    });
+    await clickMoreToolItem("显示/隐藏格式工具栏");
+    await clickMoreToolItem("显示/隐藏编辑器行号");
 
     expect(useAppStore.getState().showToolbar).toBe(true);
     expect(container.querySelector('button[title="加粗 (⌘B)"]')).not.toBeNull();

@@ -69,7 +69,6 @@ import {
   type UnusedImageItem,
 } from "@/components/images/ImageBedUploadDialog";
 import { ExternalChangeBanner } from "@/components/layout/ExternalChangeBanner";
-import { StatusBar } from "@/components/layout/StatusBar";
 import { ToastHost } from "@/components/layout/ToastHost";
 import {
   WelcomePane,
@@ -247,6 +246,17 @@ export function App() {
 
   const msg = getMessages(locale);
   const activeTab = tabs.find((t) => t.id === activeTabId) ?? null;
+  const isMacTauri =
+    api.isTauriRuntime() &&
+    typeof navigator !== "undefined" &&
+    /mac/i.test(navigator.platform || navigator.userAgent);
+  const useOverlayTitleBar =
+    isMacTauri && (editorPrefs.titleBarMode ?? "overlay") === "overlay";
+
+  useEffect(() => {
+    if (!api.isTauriRuntime()) return;
+    void api.setWindowTitleBarMode(editorPrefs.titleBarMode ?? "overlay");
+  }, [editorPrefs.titleBarMode]);
 
   const editorRef = useRef<MarkdownEditorHandle | null>(null);
   const previewRef = useRef<MarkdownPreviewHandle | null>(null);
@@ -1628,6 +1638,20 @@ export function App() {
         onSelect: () => setAutoSave(!autoSave),
       },
       {
+        id: "view:toggle-titlebar",
+        label: msg.command.toggleTitleBar,
+        group: msg.command.groupView,
+        keywords: ["titlebar", "overlay", "system", "header", "macos"],
+        icon: <Maximize2 className="h-3.5 w-3.5" />,
+        onSelect: () =>
+          setEditorPrefs({
+            titleBarMode:
+              (editorPrefs.titleBarMode ?? "overlay") === "overlay"
+                ? "system"
+                : "overlay",
+          }),
+      },
+      {
         id: "view:toggle-terminal",
         label: msg.command.toggleTerminal,
         group: msg.command.groupView,
@@ -1911,7 +1935,9 @@ export function App() {
     saveTabAs,
     setActiveTab,
     setAutoSave,
+    setEditorPrefs,
     setEnableHexoTags,
+    editorPrefs.titleBarMode,
     setPreviewSource,
     setSidebarOpen,
     setSidebarTab,
@@ -2006,6 +2032,7 @@ export function App() {
                 <Sidebar
                   onRequestNewPost={() => setNewPostOpen(true)}
                   onSelectOutline={handleSelectOutline}
+                  overlayInset={useOverlayTitleBar}
                 />
               </Panel>
               <PanelResizeHandle className="no-print w-[1px] bg-transparent hover:bg-zinc-300 transition-colors cursor-col-resize" />
@@ -2030,6 +2057,7 @@ export function App() {
                   onExportPdf={handleExportPdf}
                   aiDrawerOpen={aiDrawerOpen}
                   onToggleAiDrawer={() => setAiDrawerOpen((v) => !v)}
+                  overlayInset={useOverlayTitleBar && !showSidebar}
                 />
               )}
 
@@ -2218,7 +2246,7 @@ export function App() {
                 </div>
               )}
 
-              {/* Collapsible Hexo CLI Terminal Drawer (hidden in Focus mode) */}
+              {/* Unified Workspace Footer & Collapsible CLI Drawer (hidden in Focus mode) */}
               {!isFocusMode && (
                 <HexoTerminalDrawer
                   status={hexoCliStatus}
@@ -2234,6 +2262,14 @@ export function App() {
                   disabled={!activeSiteRoot}
                   locale={locale}
                   engine={siteConfig?.engine}
+                  activeTab={activeTab}
+                  syncScroll={syncScroll}
+                  onToggleSyncScroll={() => setSyncScroll(!syncScroll)}
+                  autoSave={autoSave}
+                  onToggleAutoSave={() => setAutoSave(!autoSave)}
+                  onToggleLocale={() =>
+                    setLocale(locale === "zh-CN" ? "en-US" : "zh-CN")
+                  }
                   className="no-print"
                 />
               )}
@@ -2264,9 +2300,6 @@ export function App() {
           />
         )}
       </div>
-
-      {/* Bottom Status Bar (hidden in Focus mode) */}
-      {!isFocusMode && <StatusBar activeTab={activeTab} />}
 
       {/* Command Palette (Cmd/Ctrl + K) */}
       <CommandPalette

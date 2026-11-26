@@ -290,6 +290,7 @@ function sanitizeEditorPrefs(
       merged.externalChangePolicy === "ignore"
         ? merged.externalChangePolicy
         : "prompt",
+    titleBarMode: merged.titleBarMode === "system" ? "system" : "overlay",
   };
 }
 

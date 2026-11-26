@@ -53,6 +53,7 @@ import {
   type ImageBedSettings,
   type ImageBedTestResult,
   type SettingsSectionId,
+  type TitleBarMode,
 } from "@/types/settings";
 
 export interface SettingsDialogProps {
@@ -867,6 +868,37 @@ export function SettingsDialog({
                       aria-label={isEn ? "Sync Scroll" : "同步滚动"}
                       checked={syncScroll}
                       onCheckedChange={onSyncScrollChange}
+                    />
+                  </SettingRow>
+
+                  <Separator />
+
+                  <SettingRow
+                    label={isEn ? "Title Bar Mode" : "标题栏模式"}
+                    hint={
+                      isEn
+                        ? "Blend tools into macOS title bar or use classic system title bar"
+                        : "融合标题栏可将窗口控制与工具栏合二为一，也可切回系统原生标题栏"
+                    }
+                  >
+                    <SegmentedControl<TitleBarMode>
+                      ariaLabel={isEn ? "Title Bar Mode" : "标题栏模式"}
+                      value={editorPrefs.titleBarMode ?? "overlay"}
+                      onChange={(titleBarMode) =>
+                        onEditorPrefsChange({ titleBarMode })
+                      }
+                      options={[
+                        {
+                          value: "overlay",
+                          label: isEn
+                            ? "Overlay (Draggable)"
+                            : "融合标题栏（可拖拽）",
+                        },
+                        {
+                          value: "system",
+                          label: isEn ? "System Title Bar" : "系统标题栏",
+                        },
+                      ]}
                     />
                   </SettingRow>
 

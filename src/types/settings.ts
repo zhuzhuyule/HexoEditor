@@ -10,6 +10,8 @@ export type CodeHighlightTheme =
 
 export type ExternalChangePolicy = "prompt" | "auto" | "ignore";
 
+export type TitleBarMode = "overlay" | "system";
+
 export type ImageBedProvider = "none" | "picgo" | "s3" | "oss" | "cos";
 
 export type SettingsSectionId =
@@ -28,6 +30,7 @@ export interface EditorPreferences {
   zoomLevel: number;
   codeTheme: CodeHighlightTheme;
   externalChangePolicy: ExternalChangePolicy;
+  titleBarMode?: TitleBarMode;
   ai?: AiSettings;
 }
 
@@ -73,6 +76,7 @@ export const DEFAULT_EDITOR_PREFS: EditorPreferences = {
   zoomLevel: 100,
   codeTheme: "github-light",
   externalChangePolicy: "prompt",
+  titleBarMode: "overlay",
 };
 
 export const DEFAULT_IMAGE_BED_SETTINGS: ImageBedSettings = {

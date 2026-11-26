@@ -442,6 +442,29 @@ fn read_local_file_as_data_uri(file_path: String) -> AppResult<String> {
     image_bed::read_local_file_as_data_uri(&file_path)
 }
 
+#[tauri::command]
+fn set_window_title_bar_mode(window: tauri::WebviewWindow, mode: String) -> AppResult<()> {
+    #[cfg(target_os = "macos")]
+    {
+        let normalized = mode.trim().to_ascii_lowercase();
+        if normalized == "system" {
+            window
+                .set_title_bar_style(tauri::TitleBarStyle::Visible)
+                .map_err(|e| crate::error::AppError::InvalidInput(e.to_string()))?;
+            let _ = window.set_title("HexoEditor");
+        } else {
+            window
+                .set_title_bar_style(tauri::TitleBarStyle::Overlay)
+                .map_err(|e| crate::error::AppError::InvalidInput(e.to_string()))?;
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = (window, mode);
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
@@ -501,6 +524,7 @@ pub fn run() {
             scan_unused_local_images,
             delete_local_images,
             read_local_file_as_data_uri,
+            set_window_title_bar_mode,
             ai::discover_local_agents,
             ai::probe_acp_agent,
             ai::build_site_ai_context,

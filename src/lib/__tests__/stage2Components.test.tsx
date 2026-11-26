@@ -362,6 +362,9 @@ describe("Stage 2 minimalist UI & workbench components", () => {
     const onKillPort = vi.fn();
     const onClearLogs = vi.fn();
     const onOpenServerUrl = vi.fn();
+    const onToggleSyncScroll = vi.fn();
+    const onToggleAutoSave = vi.fn();
+    const onToggleLocale = vi.fn();
 
     const idleStatus: HexoTerminalStatus = {
       running: false,
@@ -376,7 +379,25 @@ describe("Stage 2 minimalist UI & workbench components", () => {
       { id: "3", stream: "stderr", line: "ERROR Deploy failed", timestamp: 1700000002000 },
     ];
 
-    // Expanded with logs
+    const sampleTab = {
+      id: "tab-1",
+      filePath: "/demo/source/_posts/hello.md",
+      title: "hello.md",
+      content: "---\ntitle: Hello\n---\n\n你好 HexoEditor V2",
+      savedContent: "---\ntitle: Hello\n---\n\n你好 HexoEditor V2",
+      isDirty: false,
+      isDraft: false,
+      isStandalone: false,
+      siteRoot: "/demo",
+      postAssetFolder: true,
+      sourceDir: "source",
+      modifiedMs: 1,
+      cursorLine: 5,
+      cursorCol: 3,
+      externalChange: null,
+    };
+
+    // Expanded with logs + integrated document stats & workspace toggles
     await act(async () => {
       root.render(
         <HexoTerminalDrawer
@@ -389,6 +410,12 @@ describe("Stage 2 minimalist UI & workbench components", () => {
           onKillPort={onKillPort}
           onClearLogs={onClearLogs}
           onOpenServerUrl={onOpenServerUrl}
+          activeTab={sampleTab}
+          syncScroll={true}
+          onToggleSyncScroll={onToggleSyncScroll}
+          autoSave={true}
+          onToggleAutoSave={onToggleAutoSave}
+          onToggleLocale={onToggleLocale}
         />
       );
     });
@@ -398,6 +425,8 @@ describe("Stage 2 minimalist UI & workbench components", () => {
     expect(logPanel!.querySelector('[data-stream="system"]')?.textContent).toContain("$ hexo g -d");
     expect(logPanel!.querySelector('[data-stream="stdout"]')?.textContent).toContain("Files loaded");
     expect(logPanel!.querySelector('[data-stream="stderr"]')?.textContent).toContain("Deploy failed");
+    expect(container.textContent).toContain("行 5, 列 3");
+    expect(container.textContent).toContain("4 字");
 
     const clickByTitle = async (title: string) => {
       const btn = container.querySelector<HTMLButtonElement>(`button[title="${title}"]`);
@@ -407,13 +436,36 @@ describe("Stage 2 minimalist UI & workbench components", () => {
       });
     };
 
+    const clickMoreMenuItem = async (text: string) => {
+      const moreBtn = container.querySelector<HTMLButtonElement>(
+        'button[title="更多操作"]'
+      );
+      expect(moreBtn).not.toBeNull();
+      await act(async () => {
+        moreBtn!.focus();
+        moreBtn!.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
+        );
+      });
+      const item = Array.from(
+        document.body.querySelectorAll<HTMLElement>('[role="menuitem"]')
+      ).find((el) => el.textContent?.includes(text));
+      expect(item).toBeDefined();
+      await act(async () => {
+        item!.click();
+      });
+    };
+
     await clickByTitle("启动预览 (hexo s)");
-    await clickByTitle("生成 (g)");
+    await clickMoreMenuItem("生成 (g)");
     await clickByTitle("一键部署 (g -d)");
-    await clickByTitle("部署 (d)");
-    await clickByTitle("清理 (clean)");
-    await clickByTitle("释放端口");
-    await clickByTitle("清空日志");
+    await clickMoreMenuItem("部署 (d)");
+    await clickMoreMenuItem("清理 (clean)");
+    await clickMoreMenuItem("释放端口");
+    await clickMoreMenuItem("清空日志");
+    await clickMoreMenuItem("同步滚动");
+    await clickMoreMenuItem("自动保存");
+    await clickMoreMenuItem("界面语言：中文");
     await clickByTitle("收起日志");
 
     expect(onRunAction.mock.calls.map((c) => c[0])).toEqual([
@@ -425,6 +477,9 @@ describe("Stage 2 minimalist UI & workbench components", () => {
     ]);
     expect(onKillPort).toHaveBeenCalledTimes(1);
     expect(onClearLogs).toHaveBeenCalledTimes(1);
+    expect(onToggleSyncScroll).toHaveBeenCalledTimes(1);
+    expect(onToggleAutoSave).toHaveBeenCalledTimes(1);
+    expect(onToggleLocale).toHaveBeenCalledTimes(1);
     expect(onOpenChange).toHaveBeenCalledWith(false);
 
     // Collapsed while server is running shows URL and stop preview button
@@ -661,10 +716,25 @@ describe("Stage 2 minimalist UI & workbench components", () => {
 
     expect(container.textContent).toContain("Hugo 终端");
     expect(container.querySelector('button[title="启动预览 (hugo server -D)"]')).not.toBeNull();
-    expect(container.querySelector('button[title="构建 (hugo)"]')).not.toBeNull();
-    expect(container.querySelector('button[title="部署 (hugo deploy)"]')).not.toBeNull();
-    expect(container.querySelector('button[title="清理 (clean)"]')).not.toBeNull();
+    expect(container.querySelector('button[title="构建并部署"]')).not.toBeNull();
     expect(container.textContent).toContain("暂无 Hugo 命令输出日志");
+
+    const moreBtn = container.querySelector<HTMLButtonElement>('button[title="更多操作"]');
+    expect(moreBtn).not.toBeNull();
+    await act(async () => {
+      moreBtn!.focus();
+      moreBtn!.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
+      );
+    });
+    const menuText = Array.from(
+      document.body.querySelectorAll<HTMLElement>('[role="menuitem"]')
+    )
+      .map((el) => el.textContent ?? "")
+      .join(" | ");
+    expect(menuText).toContain("构建 (hugo)");
+    expect(menuText).toContain("部署 (hugo deploy)");
+    expect(menuText).toContain("清理 (clean)");
 
     useAppStore.setState({
       activeSiteRoot: "/hugo-site",

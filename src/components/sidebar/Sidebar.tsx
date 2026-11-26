@@ -48,9 +48,14 @@ import type { PostSummary } from "@/types";
 interface SidebarProps {
   onRequestNewPost: () => void;
   onSelectOutline?: (line: number, id: string) => void;
+  overlayInset?: boolean;
 }
 
-export function Sidebar({ onRequestNewPost, onSelectOutline }: SidebarProps) {
+export function Sidebar({
+  onRequestNewPost,
+  onSelectOutline,
+  overlayInset = false,
+}: SidebarProps) {
   const {
     locale,
     sites,
@@ -84,6 +89,7 @@ export function Sidebar({ onRequestNewPost, onSelectOutline }: SidebarProps) {
   } = useAppStore();
 
   const msg = getMessages(locale);
+  const isEn = locale === "en-US";
   const [deleteTarget, setDeleteTarget] = useState<PostSummary | null>(null);
   const [deleteAssets, setDeleteAssets] = useState(true);
 
@@ -145,13 +151,19 @@ export function Sidebar({ onRequestNewPost, onSelectOutline }: SidebarProps) {
 
   return (
     <aside className="flex h-full w-full flex-col bg-zinc-50/70 border-r border-zinc-200/80 select-none overflow-hidden">
-      {/* Site Selector & Primary Actions */}
-      <div className="flex items-center gap-1.5 px-2.5 py-2 border-b border-zinc-200/70 shrink-0">
+      {/* Site Selector & Primary Actions (aligned height with TabBar h-10) */}
+      <div
+        data-tauri-drag-region
+        className={cn(
+          "flex h-10 shrink-0 items-center gap-1 border-b border-zinc-200/80 bg-zinc-50/75 pr-2",
+          overlayInset ? "pl-[76px]" : "pl-2.5"
+        )}
+      >
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="flex min-w-0 flex-1 items-center justify-between gap-1.5 rounded-md px-2 py-1.5 text-left text-xs font-semibold text-zinc-800 hover:bg-zinc-200/60 transition-colors cursor-pointer"
+              className="flex min-w-0 flex-1 items-center justify-between gap-1.5 rounded-md px-2 py-1 text-left text-xs font-semibold text-zinc-800 hover:bg-zinc-200/60 transition-colors cursor-pointer"
             >
               <span className="flex min-w-0 items-center gap-1.5">
                 <span className="truncate">
@@ -240,14 +252,6 @@ export function Sidebar({ onRequestNewPost, onSelectOutline }: SidebarProps) {
             <FilePlus2 className="h-3.5 w-3.5" />
           </Button>
         )}
-        <Button
-          variant="ghost"
-          size="icon"
-          title={msg.sidebar.openFile}
-          onClick={() => void handlePickFile()}
-        >
-          <FolderOpen className="h-3.5 w-3.5" />
-        </Button>
       </div>
 
       {/* Posts / Outline Switcher */}
@@ -635,26 +639,36 @@ export function Sidebar({ onRequestNewPost, onSelectOutline }: SidebarProps) {
               })
             )}
           </div>
-
-          {/* Sidebar Footer */}
-          <div className="flex items-center justify-between border-t border-zinc-200/70 px-3 py-1.5 text-[11px] text-zinc-400 shrink-0">
-            <span>
-              {formatMessage(msg.sidebar.postCount, { count: filteredPosts.length })}
-            </span>
-            <button
-              type="button"
-              onClick={() => void refreshActiveSite()}
-              disabled={isScanning}
-              title={msg.sidebar.refreshSite}
-              className="rounded p-0.5 hover:bg-zinc-200/70 hover:text-zinc-700 cursor-pointer"
-            >
-              <RefreshCw
-                className={cn("h-3 w-3", isScanning && "animate-spin")}
-              />
-            </button>
-          </div>
         </>
       )}
+
+      {/* Unified Sidebar Footer (aligned height with workspace FooterBar h-8) */}
+      <div className="flex h-8 shrink-0 items-center justify-between border-t border-zinc-200/80 bg-zinc-50/75 px-3 text-[11px] text-zinc-400">
+        <span>
+          {sidebarTab === "outline"
+            ? activeTab
+              ? isEn
+                ? `${outlineItems.length} headings`
+                : `${outlineItems.length} 个标题`
+              : "—"
+            : activeSiteRoot
+            ? formatMessage(msg.sidebar.postCount, { count: filteredPosts.length })
+            : "—"}
+        </span>
+        {activeSiteRoot && (
+          <button
+            type="button"
+            onClick={() => void refreshActiveSite()}
+            disabled={isScanning}
+            title={msg.sidebar.refreshSite}
+            className="rounded p-0.5 hover:bg-zinc-200/70 hover:text-zinc-700 cursor-pointer"
+          >
+            <RefreshCw
+              className={cn("h-3 w-3", isScanning && "animate-spin")}
+            />
+          </button>
+        )}
+      </div>
 
       {/* Delete Confirmation Dialog */}
       <Dialog

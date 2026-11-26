@@ -4,14 +4,17 @@ import {
   CloudUpload,
   Columns2,
   Command,
-  Download,
+  ExternalLink,
   FileCode2,
   FileText,
-  FolderSymlink,
+  FolderOpen,
+  FolderTree,
   Globe,
   Hash,
+  Image,
+  Images,
   Maximize2,
-  Palette,
+  MoreHorizontal,
   PanelLeft,
   PenLine,
   Printer,
@@ -24,10 +27,7 @@ import {
   X,
 } from "lucide-react";
 
-import {
-  QuickOpenMenu,
-  type QuickOpenAvailability,
-} from "@/components/quickopen/QuickOpenMenu";
+import { type QuickOpenAvailability } from "@/components/quickopen/QuickOpenMenu";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -51,6 +51,7 @@ interface TabBarProps {
   onExportPdf: () => void;
   aiDrawerOpen?: boolean;
   onToggleAiDrawer?: () => void;
+  overlayInset?: boolean;
 }
 
 export function TabBar({
@@ -62,6 +63,7 @@ export function TabBar({
   onExportPdf,
   aiDrawerOpen = false,
   onToggleAiDrawer,
+  overlayInset = false,
 }: TabBarProps) {
   const {
     locale,
@@ -93,6 +95,7 @@ export function TabBar({
   } = useAppStore();
 
   const msg = getMessages(locale);
+  const isEn = locale === "en-US";
   const activeTab = tabs.find((t) => t.id === activeTabId) ?? null;
 
   const modes: {
@@ -121,9 +124,18 @@ export function TabBar({
   const isLivePreview = previewSource === "live";
 
   return (
-    <header className="no-print flex h-10 shrink-0 items-center justify-between gap-2 border-b border-zinc-200/80 bg-zinc-50/50 px-2 select-none">
+    <header
+      data-tauri-drag-region
+      className={cn(
+        "no-print flex h-10 shrink-0 items-center justify-between gap-2 border-b border-zinc-200/80 bg-zinc-50/75 pr-2 select-none",
+        overlayInset ? "pl-[76px]" : "pl-2"
+      )}
+    >
       {/* Left: Sidebar Toggle + Open Tabs */}
-      <div className="flex min-w-0 flex-1 items-center gap-1">
+      <div
+        data-tauri-drag-region
+        className="flex min-w-0 flex-1 items-center gap-1"
+      >
         <Button
           variant="ghost"
           size="icon"
@@ -135,7 +147,10 @@ export function TabBar({
           <PanelLeft className="h-3.5 w-3.5" />
         </Button>
 
-        <div className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto no-scrollbar">
+        <div
+          data-tauri-drag-region
+          className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto no-scrollbar"
+        >
           {tabs.map((tab) => {
             const isActive = tab.id === activeTabId;
             return (
@@ -184,7 +199,7 @@ export function TabBar({
         </div>
       </div>
 
-      {/* Right: Minimalist Icon Actions + View Mode Switcher */}
+      {/* Right: Primary Actions + More Tools Menu + Compact View Mode Switcher */}
       <div className="flex shrink-0 items-center gap-0.5">
         {activeTab && (
           <Button
@@ -199,136 +214,7 @@ export function TabBar({
           </Button>
         )}
 
-        <Button
-          variant="ghost"
-          size="icon"
-          title={msg.toolbar.toggleToolbar}
-          aria-label={msg.toolbar.toggleToolbar}
-          aria-pressed={showToolbar}
-          onClick={toggleToolbar}
-          className={cn(showToolbar && "bg-zinc-200/70 text-zinc-900")}
-        >
-          <SlidersHorizontal className="h-3.5 w-3.5" />
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          title={msg.toolbar.toggleLineNumbers}
-          aria-label={msg.toolbar.toggleLineNumbers}
-          aria-pressed={showLineNumbers}
-          onClick={toggleLineNumbers}
-          className={cn(showLineNumbers && "bg-zinc-200/70 text-zinc-900")}
-        >
-          <Hash className="h-3.5 w-3.5" />
-        </Button>
-
-        {/* Theme CSS & Hexo Tag Rendering Menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              title={
-                themeCssLabel
-                  ? formatMessage(msg.preview.themeCssActive, {
-                      label: themeCssLabel,
-                    })
-                  : msg.preview.themeCss
-              }
-              aria-label={msg.preview.themeCss}
-              className={cn(
-                "relative",
-                themeCss && "bg-zinc-200/70 text-zinc-900"
-              )}
-            >
-              <Palette className="h-3.5 w-3.5" />
-              {themeCss && (
-                <span
-                  aria-hidden="true"
-                  className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-zinc-900"
-                />
-              )}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-60">
-            <DropdownMenuLabel className="truncate font-normal text-zinc-500">
-              {themeCssLabel
-                ? formatMessage(msg.preview.themeCssActive, {
-                    label: themeCssLabel,
-                  })
-                : msg.preview.themeCssNone}
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              disabled={!activeSiteRoot}
-              onSelect={() => void loadSiteThemeCssAction()}
-            >
-              <Sparkles className="h-3.5 w-3.5 text-zinc-500" />
-              <span>{msg.preview.loadSiteCss}</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => void importCustomThemeCssAction()}>
-              <Upload className="h-3.5 w-3.5 text-zinc-500" />
-              <span>{msg.preview.pickCustomCss}</span>
-            </DropdownMenuItem>
-            {themeCss && (
-              <DropdownMenuItem onSelect={clearThemeCssAction}>
-                <Trash2 className="h-3.5 w-3.5 text-zinc-500" />
-                <span>{msg.preview.clearThemeCss}</span>
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onSelect={() => setEnableHexoTags(!enableHexoTags)}
-              className="justify-between"
-            >
-              <span className="inline-flex items-center gap-2">
-                <FileCode2 className="h-3.5 w-3.5 text-zinc-500" />
-                <span>{msg.preview.toggleHexoTags}</span>
-              </span>
-              {enableHexoTags && <Check className="h-3.5 w-3.5 text-zinc-900" />}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Image Bed & Local Asset Manager */}
-        <Button
-          variant="ghost"
-          size="icon"
-          title={msg.tabs.imageManager}
-          aria-label={msg.tabs.imageManager}
-          disabled={!activeTab}
-          onClick={onOpenImageManager}
-        >
-          <CloudUpload className="h-3.5 w-3.5" />
-        </Button>
-
-        {/* Export Menu (Standalone HTML / Print PDF) */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              title={msg.tabs.exportMenu}
-              aria-label={msg.tabs.exportMenu}
-              disabled={!activeTab}
-            >
-              <Download className="h-3.5 w-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem disabled={!activeTab} onSelect={onExportHtml}>
-              <FileText className="h-3.5 w-3.5 text-zinc-500" />
-              <span>{msg.export.exportHtml}</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled={!activeTab} onSelect={onExportPdf}>
-              <Printer className="h-3.5 w-3.5 text-zinc-500" />
-              <span>{msg.export.exportPdf}</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Markdown Preview / Live Hexo Server Preview Switcher */}
+        {/* Markdown Preview / Live Server Preview Switcher */}
         <Button
           variant="ghost"
           size="icon"
@@ -345,23 +231,6 @@ export function TabBar({
           <Globe className="h-3.5 w-3.5" />
         </Button>
 
-        {/* Quick Open Menu (Minimal Icon Trigger) */}
-        <QuickOpenMenu
-          availability={quickOpenAvailability}
-          onSelectTarget={(target) => void openQuickOpenTarget(target)}
-          locale={locale}
-          trigger={
-            <Button
-              variant="ghost"
-              size="icon"
-              title={msg.quickOpen.trigger}
-              aria-label={msg.quickOpen.trigger}
-            >
-              <FolderSymlink className="h-3.5 w-3.5" />
-            </Button>
-          }
-        />
-
         {/* AI Writing Assistant Drawer Toggle */}
         {onToggleAiDrawer && (
           <Button
@@ -377,16 +246,171 @@ export function TabBar({
           </Button>
         )}
 
-        {/* Command Palette Trigger (Cmd+K) */}
-        <Button
-          variant="ghost"
-          size="icon"
-          title={msg.command.openPalette}
-          aria-label={msg.command.openPalette}
-          onClick={onOpenCommandPalette}
-        >
-          <Command className="h-3.5 w-3.5" />
-        </Button>
+        {/* More Tools Menu (Editor Options, Theme CSS, Image Bed, Export, Quick Open, Cmd+K) */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              title={msg.tabs.moreTools}
+              aria-label={msg.tabs.moreTools}
+              className={cn(
+                "relative",
+                (showToolbar || showLineNumbers || Boolean(themeCss)) &&
+                  "text-zinc-800"
+              )}
+            >
+              <MoreHorizontal className="h-3.5 w-3.5" />
+              {themeCss && (
+                <span
+                  aria-hidden="true"
+                  className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-zinc-900"
+                />
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            className="w-60 max-h-[75vh] overflow-y-auto"
+          >
+            <DropdownMenuLabel>
+              {isEn ? "Editor Options" : "编辑器显示"}
+            </DropdownMenuLabel>
+            <DropdownMenuItem
+              onSelect={toggleToolbar}
+              className="justify-between"
+            >
+              <span className="inline-flex items-center gap-2">
+                <SlidersHorizontal className="h-3.5 w-3.5 text-zinc-500" />
+                <span>{msg.toolbar.toggleToolbar}</span>
+              </span>
+              {showToolbar && <Check className="h-3.5 w-3.5 text-zinc-900" />}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={toggleLineNumbers}
+              className="justify-between"
+            >
+              <span className="inline-flex items-center gap-2">
+                <Hash className="h-3.5 w-3.5 text-zinc-500" />
+                <span>{msg.toolbar.toggleLineNumbers}</span>
+              </span>
+              {showLineNumbers && (
+                <Check className="h-3.5 w-3.5 text-zinc-900" />
+              )}
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="truncate font-normal text-zinc-500">
+              {themeCssLabel
+                ? formatMessage(msg.preview.themeCssActive, {
+                    label: themeCssLabel,
+                  })
+                : msg.preview.themeCssNone}
+            </DropdownMenuLabel>
+            <DropdownMenuItem
+              disabled={!activeSiteRoot}
+              onSelect={() => void loadSiteThemeCssAction()}
+            >
+              <Sparkles className="h-3.5 w-3.5 text-zinc-500" />
+              <span>{msg.preview.loadSiteCss}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => void importCustomThemeCssAction()}
+            >
+              <Upload className="h-3.5 w-3.5 text-zinc-500" />
+              <span>{msg.preview.pickCustomCss}</span>
+            </DropdownMenuItem>
+            {themeCss && (
+              <DropdownMenuItem onSelect={clearThemeCssAction}>
+                <Trash2 className="h-3.5 w-3.5 text-zinc-500" />
+                <span>{msg.preview.clearThemeCss}</span>
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem
+              onSelect={() => setEnableHexoTags(!enableHexoTags)}
+              className="justify-between"
+            >
+              <span className="inline-flex items-center gap-2">
+                <FileCode2 className="h-3.5 w-3.5 text-zinc-500" />
+                <span>{msg.preview.toggleHexoTags}</span>
+              </span>
+              {enableHexoTags && (
+                <Check className="h-3.5 w-3.5 text-zinc-900" />
+              )}
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>
+              {isEn ? "Assets & Export" : "资源与导出"}
+            </DropdownMenuLabel>
+            <DropdownMenuItem
+              disabled={!activeTab}
+              onSelect={onOpenImageManager}
+            >
+              <CloudUpload className="h-3.5 w-3.5 text-zinc-500" />
+              <span>{msg.tabs.imageManager}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem disabled={!activeTab} onSelect={onExportHtml}>
+              <FileText className="h-3.5 w-3.5 text-zinc-500" />
+              <span>{msg.export.exportHtml}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem disabled={!activeTab} onSelect={onExportPdf}>
+              <Printer className="h-3.5 w-3.5 text-zinc-500" />
+              <span>{msg.export.exportPdf}</span>
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>{msg.quickOpen.trigger}</DropdownMenuLabel>
+            <DropdownMenuItem
+              disabled={!quickOpenAvailability.postDir}
+              onSelect={() => void openQuickOpenTarget("post_dir")}
+            >
+              <FolderOpen className="h-3.5 w-3.5 text-zinc-500" />
+              <span>{msg.quickOpen.postDir}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={!quickOpenAvailability.postAssetDir}
+              onSelect={() => void openQuickOpenTarget("post_asset_dir")}
+            >
+              <Image className="h-3.5 w-3.5 text-zinc-500" />
+              <span>{msg.quickOpen.postAssetDir}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={!quickOpenAvailability.imagesDir}
+              onSelect={() => void openQuickOpenTarget("images_dir")}
+            >
+              <Images className="h-3.5 w-3.5 text-zinc-500" />
+              <span>{msg.quickOpen.imagesDir}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={!quickOpenAvailability.siteRoot}
+              onSelect={() => void openQuickOpenTarget("site_root")}
+            >
+              <FolderTree className="h-3.5 w-3.5 text-zinc-500" />
+              <span>{msg.quickOpen.siteRoot}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={!quickOpenAvailability.localPreview}
+              onSelect={() => void openQuickOpenTarget("local_preview")}
+            >
+              <ExternalLink className="h-3.5 w-3.5 text-zinc-500" />
+              <span>{msg.quickOpen.localPreview}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={!quickOpenAvailability.blogHome}
+              onSelect={() => void openQuickOpenTarget("blog_home")}
+            >
+              <Globe className="h-3.5 w-3.5 text-zinc-500" />
+              <span>{msg.quickOpen.blogHome}</span>
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={onOpenCommandPalette}>
+              <Command className="h-3.5 w-3.5 text-zinc-500" />
+              <span>{msg.command.openPalette}</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* Settings Dialog Trigger (Cmd+,) */}
         <Button
@@ -401,7 +425,7 @@ export function TabBar({
 
         <span className="mx-1 h-3.5 w-px bg-zinc-200/80" aria-hidden="true" />
 
-        {/* 4 View Modes */}
+        {/* Compact Icon-Only View Modes */}
         <div className="inline-flex items-center rounded-md bg-zinc-200/60 p-0.5">
           {modes.map((m) => {
             const Icon = m.icon;
@@ -411,16 +435,17 @@ export function TabBar({
                 key={m.id}
                 type="button"
                 title={`${m.label} (${m.shortcut})`}
+                aria-label={m.label}
+                aria-pressed={active}
                 onClick={() => setViewMode(m.id)}
                 className={cn(
-                  "inline-flex h-6 items-center gap-1 rounded px-2 text-[11px] font-medium transition-colors cursor-pointer",
+                  "inline-flex h-6 items-center justify-center rounded px-1.5 text-[11px] font-medium transition-colors cursor-pointer",
                   active
                     ? "bg-white text-zinc-900 shadow-2xs"
                     : "text-zinc-500 hover:text-zinc-800"
                 )}
               >
-                <Icon className="h-3 w-3" />
-                <span className="hidden xl:inline">{m.label}</span>
+                <Icon className="h-3.5 w-3.5" />
               </button>
             );
           })}

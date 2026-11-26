@@ -259,6 +259,13 @@ export async function listenMenuCloseTab(handler: () => void): Promise<UnlistenF
   });
 }
 
+export async function setWindowTitleBarMode(
+  mode: "overlay" | "system"
+): Promise<void> {
+  if (!isTauriRuntime()) return;
+  await invoke<void>("set_window_title_bar_mode", { mode });
+}
+
 /**
  * Fallback for native OS clipboard images (e.g., macOS screenshots / Finder image copy)
  * when WebKit's DOM ClipboardEvent does not expose image blobs.
