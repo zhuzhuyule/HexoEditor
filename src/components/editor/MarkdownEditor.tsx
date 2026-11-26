@@ -3,6 +3,7 @@ import {
   history,
   historyKeymap,
   indentWithTab,
+  isolateHistory,
 } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { yamlFrontmatter } from "@codemirror/lang-yaml";
@@ -51,10 +52,24 @@ import {
   type EditorFontFamily,
 } from "@/types/settings";
 
+export interface EditorSelectionRect {
+  top: number;
+  left: number;
+  bottom: number;
+}
+
+export interface EditorSelectionChange {
+  text: string;
+  from: number;
+  to: number;
+  rect: EditorSelectionRect | null;
+}
+
 export interface MarkdownEditorHandle {
   getView: () => EditorView | null;
   scrollToSourceLine: (line: number) => void;
   insertText: (text: string) => void;
+  replaceRange: (from: number, to: number, text: string) => boolean;
   formatTables: () => number;
   focus: () => void;
 }
@@ -63,6 +78,7 @@ export interface MarkdownEditorProps {
   value: string;
   onChange: (next: string) => void;
   onCursorChange?: (line: number, col: number) => void;
+  onSelectionChange?: (sel: EditorSelectionChange) => void;
   onScrollLine?: (line: number, ratio: number) => void;
   onPasteImageBytes?: (
     bytes: number[],
@@ -212,6 +228,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
       value,
       onChange,
       onCursorChange,
+      onSelectionChange,
       onScrollLine,
       onPasteImageBytes,
       onRequestInsertImage,
@@ -261,6 +278,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     const callbacksRef = useRef({
       onChange,
       onCursorChange,
+      onSelectionChange,
       onScrollLine,
       onPasteImageBytes,
       onRequestInsertImage,
@@ -270,6 +288,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     callbacksRef.current = {
       onChange,
       onCursorChange,
+      onSelectionChange,
       onScrollLine,
       onPasteImageBytes,
       onRequestInsertImage,
@@ -293,6 +312,20 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         if (!view) return;
         view.focus();
         insertTextAtCursor(view, text);
+      },
+      replaceRange: (from: number, to: number, text: string) => {
+        const view = viewRef.current;
+        if (!view) return false;
+        const docLen = view.state.doc.length;
+        const safeFrom = Math.max(0, Math.min(from, docLen));
+        const safeTo = Math.max(safeFrom, Math.min(to, docLen));
+        view.focus();
+        view.dispatch({
+          changes: { from: safeFrom, to: safeTo, insert: text },
+          selection: { anchor: safeFrom, head: safeFrom + text.length },
+          annotations: isolateHistory.of("full"),
+        });
+        return true;
       },
       formatTables: () => {
         const view = viewRef.current;
@@ -458,12 +491,43 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
                 callbacksRef.current.onChange(update.state.doc.toString());
               }
               if (update.selectionSet || update.docChanged) {
-                const head = update.state.selection.main.head;
+                const range = update.state.selection.main;
+                const head = range.head;
                 const line = update.state.doc.lineAt(head);
                 callbacksRef.current.onCursorChange?.(
                   line.number,
                   head - line.from + 1
                 );
+
+                if (callbacksRef.current.onSelectionChange) {
+                  const text = range.empty
+                    ? ""
+                    : update.state.sliceDoc(range.from, range.to);
+                  let rect: EditorSelectionRect | null = null;
+                  try {
+                    const coords = update.view.coordsAtPos(range.from);
+                    if (
+                      coords &&
+                      Number.isFinite(coords.top) &&
+                      Number.isFinite(coords.left) &&
+                      Number.isFinite(coords.bottom)
+                    ) {
+                      rect = {
+                        top: coords.top,
+                        left: coords.left,
+                        bottom: coords.bottom,
+                      };
+                    }
+                  } catch {
+                    rect = null;
+                  }
+                  callbacksRef.current.onSelectionChange({
+                    text,
+                    from: range.from,
+                    to: range.to,
+                    rect,
+                  });
+                }
               }
             }),
           ],
