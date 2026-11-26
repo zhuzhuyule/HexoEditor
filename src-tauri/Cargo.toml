@@ -1,0 +1,45 @@
+[package]
+name = "hexo-editor"
+version = "2.0.0-beta.1"
+description = "HexoEditor V2 - Native lightweight Hexo & Hugo Markdown desktop workbench"
+authors = ["HexoEditor Contributors"]
+edition = "2021"
+
+[lib]
+name = "hexo_editor_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["protocol-asset"] }
+tauri-plugin-fs = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-store = "2"
+tauri-plugin-clipboard-manager = "2"
+tauri-plugin-window-state = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+toml = "0.8"
+walkdir = "2"
+notify = "7"
+md-5 = "0.10"
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "2"
+regex = "1"
+tokio = { version = "1", features = ["process", "io-util", "sync", "time", "rt"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+opendal = { version = "0.53", default-features = false, features = ["services-s3", "services-oss", "services-cos", "services-memory"] }
+base64 = "0.22"
+
+[dev-dependencies]
+tempfile = "3"
+
+[profile.release]
+strip = true
+lto = "thin"
+codegen-units = 1
+opt-level = "s"

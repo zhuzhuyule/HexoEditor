@@ -1,190 +1,152 @@
-<div align="right">Language: :us:
-<a title="Chinese" href="doc/cn/README.md">:cn:</a>
-<a title="Russian" href="doc/ru/README.md">:ru:</a></div>
+# HexoEditor V2
 
-# <div align="center"><a title="Go to homepage" href="#"><img align="center" width="56" height="56" src="https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/icons/HexoEditor.svg?sanitize=true"></a>  HexoEditor</div>
+基于 **Tauri v2 + Rust + React 19 + CodeMirror 6** 打造的原生轻量级桌面写作工作台，**原生支持 Hexo 与 Hugo 双静态博客引擎**（macOS 安装包体积约 ~17 MB）。
 
-[![Join the chat](https://badges.gitter.im/hexo-theme-tomotoes/Lobby.svg)](https://gitter.im/zhuzhuyule/Lobby)
-[![license](https://img.shields.io/badge/license-GPL3.0-brightgreen.svg)](https://github.com/zhuzhuyule/HexoEditor/blob/master/LICENSE)
-[![Download](https://img.shields.io/badge/download-page-blue.svg)](https://github.com/zhuzhuyule/HexoEditor/releases)
-[![Conda](https://img.shields.io/conda/pn/conda-forge/python.svg)](https://github.com/zhuzhuyule/HexoEditor/releases)
+> **V1 归档提示**：原 V1 Electron 实现保留在 `v1-legacy` 分支与 `v1.x-archive` Tag，当前开发与发布以 V2 全新架构为准。
 
-This is markdown editor for Hexo.
+---
 
-Built with Electron.
+## 界面预览
 
-Inherit [Moeditor](https://github.com/Moeditor/Moeditor), I want to fix it appropriate to Hexo Blog!
+### 双栏写作与实时预览工作台
 
-#### if you have good ideas, please comment [Here](https://github.com/zhuzhuyule/HexoEditor/issues/2)
-#### if you have time, and interest, and energy, welcome join us !
+> 支持固定像素宽可拖拽侧边栏、YAML/TOML Front-Matter 双向编辑、CodeMirror 6 单实例秒切，以及 KaTeX 公式、Mermaid 流程图与 Hexo 主题标签同步渲染。
 
-# Features
-* HexoEditor 
-  * Hexo Post Preview same as in Browser
-  * Hexo Tag/Filter/Renderer support
-  * Use Hexo `_config.yml` support
-  * Quick New Post in hexo source 
-  * Quick Modify File Name (In Hexo Post Edit)  
-  * Quick Deploy Post
-  * Quick Hexo Command `hexo d`,`hexo g`,`hexo s`,`hexo clean`
-  * Auto Change Image to Markdown 
-    * Support Drag Image
-    * Support Paste Clipboard Image
-  * Support Image Cloud (One Step Upload)
-    * Support [SM.MS](https://sm.ms) 
-    * Support [QiNiu](https://portal.qiniu.com) 
-    * Support [Tencent](https://console.cloud.tencent.com) 
-  * Quick Start (Common Directory, Common URL)
-  * Scorll Together/None
-* HexoEditor (Inherit [Moeditor](https://github.com/Moeditor/Moeditor))
-  * GitHub Flavored Markdown
-  * TeX math expressions
-  * UML diagrams
-  * Code highlight in editor
-  * Read/Write/Preview mode
-  * Custom font / line height / font size
-  * Custom themes
-  * Code highlight themes (powered by [highlight.js](https://highlightjs.org/))
-  * Auto reload
-  * Localization
-  * Focus mode
+![HexoEditor V2 双栏写作工作台](docs/images/workbench-split.png)
 
-# Screenshots
+### 站点上下文感知 AI 写作助手
 
-![HexoEditor Main](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/main.png)
+> 自动注入当前博客引擎、主题标签与全站分类词表，支持本地 ACP Agent / 站点 `.hexoeditor/prompts/*.md` 模板一键润色并确认回写。
 
-![HexoEditor side](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/side-menu.png)
+![HexoEditor V2 站点感知 AI 写作助手](docs/images/ai-workbench.png)
 
-![HexoEditor menu](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/menu.png)
+### 本地 Agent 自动发现与多账号 ACP 配置
 
-![HexoEditor About](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/about.png)
+> 自动扫描本机 `Antigravity`、`OpenCode`、`Claude Code` 与 `Gemini CLI`，并支持通过独立环境变量配置多账号自定义 ACP Profile。
 
-# Gif Screenshots
-![HexoEditor settings](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/gif-settings.gif)
+![HexoEditor V2 ACP 与多账号配置](docs/images/settings-acp.png)
 
-![HexoEditor tag](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/gif-tag.gif)
+---
 
-![HexoEditor Mode](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/gif-mode.gif)
+## 核心特性
 
-![HexoEditor Upload Image](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/gif-uploadImage.gif)
+### 1. Hexo & Hugo 双引擎原生支持
 
-![HexoEditor New Post](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/gif-newpost.gif)
+打开站点根目录时自动识别引擎类型并适配对应的目录规范、Front-Matter 格式、资产目录与本地构建 CLI：
 
-![HexoEditor Hexo](https://raw.githubusercontent.com/zhuzhuyule/HexoEditor/master/screenshots/gif-hexo.gif)
+| 能力维度 | Hexo 引擎 | Hugo 引擎 |
+| :--- | :--- | :--- |
+| **站点配置识别** | 自动解析 `_config.yml`（`source_dir`、`post_asset_folder`、`permalink`、`theme`） | 自动识别 `hugo.toml` / `config.toml` / `config.yml` / `config.yaml` 及 `config/_default/*` |
+| **Front-Matter 格式** | YAML (`---`) 双向属性栏与分类/标签全站补全 | 原生兼容 YAML (`---`) 与 TOML (`+++`)，支持 `draft` 状态切换 |
+| **文档与图片资产** | 支持 `source/_posts`、`source/_drafts`、`post_asset_folder` 同名资产目录与 `source/images` | 原生支持 Hugo Page Bundles（`<slug>/index.md`）及同级资产自动迁移与相对路径解析 |
+| **主题标签与样式** | 内置 NexT 等高频标签预处理（`note` / `tabs` / `codeblock` / `asset_img` 等）及本地主题 CSS 注入 | 原生 Markdown / KaTeX / Mermaid 渲染与实时站点内嵌预览 |
+| **本地 CLI 控制台** | 一键运行 `hexo server` / `generate` / `deploy` / `clean` 与端口占用清理 | 一键运行 `hugo server -D` / `hugo` 构建、草稿预览与当前文章直达 URL |
 
-# Plan To Do
-- [ ] Add Toc
-- [x] Add Hexo Title Header setting (100%)
-- [x] Add Editor ShortCut
-- [ ] Add history files tree
-.....
-- [x] Deploy Post
-- [ ] Add multi-editing in tabs
+同时支持无站点模式直接打开、编辑与保存任意本地 `.md` / `.markdown` 文件。
 
-# ShortCut
-| Key                    | Method              | explanation            |
-| :--------------------: | :------------------ | :-------------- |
-| `Tab`                  | tabAdd              | add indentation        |
-| `Shift` - `Tab`        | tabSubtract         | reduce indentation        |
-| `Ctrl` - `B`           | toggleBlod          | toggle blod        |
-| `Ctrl` - `I`           | toggleItalic        | toggle italic        |
-| `Ctrl` - `D`           | toggleDelete        | delete current line        |
-| `Ctrl` - <code>\`</code>         | toggleComment       | toggle comment        |
-| `Ctrl` - `L`           | toggleUnOrderedList | toggle unordered list    |
-| `Ctrl` - `Alt` - `L`   | toggleOrderedList   | toggle ordered list    |
-| `Ctrl` - `]`           | toggleHeader        | downgrade title        |
-| `Ctrl` - `[`           | toggleUnHeader      | upgrade title        |
-| `Ctrl` - `=`           | toggleBlockquote    | add blockquote        |
-| `Ctrl` - ` - `         | toggleUnBlockquote  | reduce blockquote        |
-| `Ctrl` - `U`           | drawLink            | add hyperlink    |
-| `Ctrl` - `Alt` - `U`   | drawImageLink       | add image       |
-| `Ctrl` - `T`           | drawTable(row col)  | add table(row column) |
-| `Ctrl` - `V`           | pasteOriginContent  | paste origin content       |
-| `Shift` - `Ctrl` - `V` | pasteContent        | auto paste content      |
-| `Alt` - `F`            | formatTables        | format tables      |
-| `Ctrl` - `N`            |         | new md document      |
-| `Ctrl` - `H`            |         | new hexo document      |
-| `Ctrl` - `O`            |         | open md document      |
-| `Ctrl` - `S`            |         | save md document      |
-| `Shift` - `Ctrl` - `S`            |         | save as      |
-| `Alt` - `Ctrl` - `S`            |         | open settings      |
-| `Ctrl` - `W`            |         | toggle write mode      |
-| `Ctrl` - `P`            |         | toggle preview mode       |
-| `Ctrl` - `R`            |         | toggle read mode       |
+### 2. 极简浅色写作工作台
 
-* **tip**: In mac OS, plase replace `Ctrl` key with `Cmd` key.
+- **单 `EditorView` 缓存秒切**：多标签页切换复用底层 CodeMirror 6 实例与滚动/选区状态，支持百篇级站点毫秒级响应。
+- **多级预览缓存与骨架屏**：异步 Markdown / KaTeX / Mermaid 渲染与 LRU 缓存，切换文章和分栏时平滑无卡顿；支持源码行号双向同步滚动。
+- **克制可控的界面布局**：
+  - 固定像素宽可拖拽侧边栏（全部 / 文章 / 草稿过滤、分类标签筛选、全文搜索、大纲导航）
+  - **小 / 中 / 大**三档全局 UI 字号，以及编辑器字体、字号、行高、缩放与代码高亮主题自定义
+  - 支持 **Overlay 无边框** 与 **系统原生标题栏** 一键切换
+  - 四种视图模式：纯写作 / 分栏预览 / 纯阅读 / 专注模式（`Esc` 快速退出）
+- **外部文件变更感知**：基于 Rust `notify` 监听磁盘变化（内置自写抑制），支持提示重载、自动同步或忽略。
 
-# Building
-```c
-//if use Windows:
-npm config set prefix "C:/Program Files/nodejs/npm_global"
-npm config set cache "C:/Program Files/nodejs/npm_cache" 
+### 3. 图片工作流与离线导出
 
-//if use Linux\Mac:
-npm config set prefix "~/nodejs/npm_global"
-npm config set cache "~/nodejs/npm_cache" 
+- **本地图片管理**：剪贴板粘贴自动落盘（MD5 内容去重）、拖拽图片入库、HTML 粘贴转 Markdown（GFM）、点击预览图片快速重命名并同步更新正文引用。
+- **多云图床集成**：基于 Rust（`reqwest` + Apache `opendal`）实现 **PicGo / PicList** 本地服务、**S3 / Cloudflare R2 / MinIO**、**阿里云 OSS** 与 **腾讯云 COS** 上传；支持批量替换链接与一键撤销远端上传。
+- **未引用图片扫描清理**：全站级扫描文章资产目录与 `source/images` 中的孤儿图片（兼容中文与百分号编码路径），支持安全校验删除。
+- **多格式导出**：一键导出静态自包含 **离线内联 HTML**（本地图片自动转 Base64 Data URI）以及基于排版样式的 **PDF 打印导出**。
 
-//If In China, China, China, you can set mirror to speed up !
-npm config set registry "https://registry.npm.taobao.org/"
-npm config set electron_mirror "https://npm.taobao.org/mirrors/electron/"
+### 4. 站点感知 AI 与 ACP 生态
 
-git clone https://github.com/zhuzhuyule/HexoEditor.git
-cd HexoEditor
-npm install
-npm start
-```
-This is [Detail Method](https://github.com/zhuzhuyule/HexoEditor/blob/master/doc/en/Building.md)
+- **零配置本地 Agent 自动发现**：跨平台扫描本机已安装的 ACP（Agent Client Protocol）与 CLI 工具，包括 **Antigravity (`agy acp`)**、**OpenCode (`opencode acp`)**、**Gemini CLI**、**Goose**、**Claude Code** 与 **Codex CLI**。
+- **多账号自定义 ACP 配置**：支持配置多个自定义 ACP Agent Profile（独立命令、参数与环境变量），复用本地订阅或免费额度。
+- **标准 API 与本地模型**：兼容 OpenAI-Compatible（DeepSeek、OpenRouter 等）、Anthropic Messages API 及 **Ollama / LM Studio**，所有密钥仅存本地且日志脱敏。
+- **站点上下文深度协同**：请求自动附带精简的 `SiteContextSnapshot`（引擎类型、标签/分类词表、主题能力与当前文档资产）：
+  - **Front-Matter 智能补全**：对齐全站已有分类/标签词表生成标题、摘要与关键词
+  - **划词行内 Diff**：选中文本触发润色、精简、翻译或主题排版，红绿 Diff 预览确认后一键替换（支持 `⌘Z` 撤销）
+  - **终端报错 AI 诊断**：CLI 执行失败或产生 `stderr` 时提供「AI 诊断」入口，结合站点配置定位根因
+  - **站点级自定义模板**：在站点 `.hexoeditor/prompts/*.md` 中沉淀可随 Git 共享的自定义写作 Prompt 模板
 
-# Debugging
-There's three ways to open the [Chromium Developer Tools](https://developer.chrome.com/devtools).
+---
 
-1. Add `--debug` to the command line args:
+## 安装说明
+
+前往 GitHub [Releases](../../releases) 下载对应平台安装包：
+
+- **macOS**：`.dmg`（Apple Silicon `aarch64` / Intel `x86_64`）
+- **Windows**：`.msi` / `.exe`
+- **Linux**：`.deb` / `.AppImage`
+
+### macOS Gatekeeper 放行说明
+
+当前开源版本暂未购买 Apple Developer 签名公证。首次将 `HexoEditor.app` 拖入「应用程序」打开时，如系统提示**「已损坏，无法打开」**或**「无法验证开发者」**，请在终端执行以下命令移除隔离属性后重新打开：
+
 ```bash
-npm start -- --debug
-```
-2. `Ctrl` + `Shift` + `I` in Linux / Windows or `Command` + `Option` + `I` in OS X / macOS to toggle devtools for a window.
-3. Set `debug` to `true` in the config. The config file is stored in `~/.config/configstore/HexoEditor.json` (for every system).
-
-# Localization
-HexoEditor will auto detect your system language and use the localization.
-
-You can set language manually in the Settings window.
-
-Now the app supports English, Chinese, French, German, Spanish and *incomplete* Portuguese.
-
-**Help us** if you can translate this app. Please follow the guide in `app/moe-l10n.js`.
-
-# License
-HexoEditor itself is licensed under the **GPL v3** license.
-
-Some node modules are licensed under other free software license.
-
-The `Raleway` font is licensed under the OFL open font license.
-
-
-# Tips
-1. modify codemirror file :
-
-> ./node_modules/codemirror/lib/codemirror.js (line: `3104`)
-
-
-> ./node_modules/codemirror/src/display/selection.js (line: `56`)
-
-```js 
-//var rightSide = Math.max(display.sizerWidth, displayWidth(cm) - display.sizer.offsetLeft) - padding.right;
-var rightSide = display.lineDiv.offsetWidth - padding.right;
+xattr -cr /Applications/HexoEditor.app
 ```
 
-# Compatibility
+---
 
-* :triangular_flag_on_post: <a href="https://github.com/theme-next/hexo-theme-next" target="_blank">NexT theme</a>
+## 常用快捷键速查
 
-# Hexo Help
-- [Hexo](https://hexo.io)
-- [EasyHexo](https://easyhexo.github.io/Easy-Hexo/)
+> Windows / Linux 平台请将 `⌘` 替换为 `Ctrl`，`⌥` 替换为 `Alt`。
 
-# QQ Group:
-- Name：HexoEditor        
-- QQID：602883087   
-- PASS：HexoEditor           
-- Data：2017-12-29  
+| 快捷键 | 功能 |
+| :--- | :--- |
+| `⌘N` | 在当前站点新建文章（无站点时新建临时笔记） |
+| `⌘O` | 打开本地 Markdown 文件 |
+| `⌘S` | 保存当前文档 |
+| `⌘⇧S` | 另存为 |
+| `⌘⌥S` | 保存全部已修改标签页 |
+| `⌘W` | 关闭当前标签页 |
+| `⌘\` | 展开 / 收起左侧边栏 |
+| `⌘K` | 打开全局命令面板 |
+| `⌘,` | 打开设置中心 |
+| `⌘⌥1` ~ `⌘⌥4` | 切换视图模式：写作 (`1`) / 分栏 (`2`) / 阅读 (`3`) / 专注 (`4`) |
+| `⌘I` / `⌘B` | 选中文本斜体 / 加粗（Markdown 编辑快捷操作） |
+| `⌘⇧I` | 插入本地图片 |
+| `⌘⇧F` | 格式化当前 Markdown 表格（支持 CJK 等宽对齐） |
+
+---
+
+## 开发与构建
+
+### 环境要求
+
+- **Node.js** >= 20 & **pnpm** 9.x
+- **Rust** stable toolchain（含 `clippy`）
+- **Linux 额外依赖**（仅 Ubuntu/Debian 构建需要）：
+  ```bash
+  sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev libxdo-dev
+  ```
+
+### 常用命令
+
+```bash
+# 1. 安装前端依赖
+pnpm install
+
+# 2. 前端类型检查、单元测试与生产构建
+pnpm typecheck
+pnpm test
+pnpm build
+
+# 3. Rust 后端静态检查与单元测试
+cd src-tauri && cargo clippy --all-targets -- -D warnings && cargo test
+
+# 4. 启动桌面端开发模式 / 构建安装包
+pnpm tauri dev
+pnpm tauri build
+```
+
+---
+
+## 开源协议
+
+[GNU General Public License v3.0](./LICENSE)

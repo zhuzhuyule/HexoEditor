@@ -1,0 +1,1069 @@
+@import "tailwindcss";
+@import "katex/dist/katex.min.css";
+@import "highlight.js/styles/github.min.css";
+
+@layer base {
+  html {
+    font-size: 16px;
+  }
+  html[data-ui-font-size="sm"] {
+    font-size: 15.5px;
+  }
+  html[data-ui-font-size="md"] {
+    font-size: 17px;
+  }
+  html[data-ui-font-size="lg"] {
+    font-size: 18.5px;
+  }
+  html[data-ui-font-size="md"] .text-\[11px\] {
+    font-size: 12px;
+  }
+  html[data-ui-font-size="md"] .text-\[10\.5px\] {
+    font-size: 11.5px;
+  }
+  html[data-ui-font-size="md"] .text-\[10px\] {
+    font-size: 11px;
+  }
+  html[data-ui-font-size="lg"] .text-\[11px\] {
+    font-size: 13px;
+  }
+  html[data-ui-font-size="lg"] .text-\[10\.5px\] {
+    font-size: 12.5px;
+  }
+  html[data-ui-font-size="lg"] .text-\[10px\] {
+    font-size: 12px;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #ffffff;
+    color: #18181b;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "PingFang SC",
+      "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Subtle minimalist light scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(161, 161, 170, 0.32) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(161, 161, 170, 0.32);
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(113, 113, 122, 0.52);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Minimalist Light Markdown Preview Typography */
+.markdown-preview {
+  color: #27272a;
+  font-size: 15px;
+  line-height: 1.8;
+  word-wrap: break-word;
+}
+
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3,
+.markdown-preview h4,
+.markdown-preview h5,
+.markdown-preview h6 {
+  color: #18181b;
+  font-weight: 600;
+  line-height: 1.35;
+  margin-top: 1.6em;
+  margin-bottom: 0.65em;
+  letter-spacing: -0.015em;
+}
+
+.markdown-preview h1 {
+  font-size: 1.75em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid #f4f4f5;
+}
+
+.markdown-preview h2 {
+  font-size: 1.4em;
+  padding-bottom: 0.25em;
+  border-bottom: 1px solid #f4f4f5;
+}
+
+.markdown-preview h3 {
+  font-size: 1.18em;
+}
+
+.markdown-preview h4 {
+  font-size: 1.02em;
+}
+
+.markdown-preview p {
+  margin-top: 0;
+  margin-bottom: 1em;
+}
+
+.markdown-preview a {
+  color: #2563eb;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(37, 99, 235, 0.35);
+}
+
+.markdown-preview a:hover {
+  text-decoration-color: #2563eb;
+}
+
+.markdown-preview blockquote {
+  margin: 1.1em 0;
+  padding: 0.25em 1em;
+  border-left: 3px solid #d4d4d8;
+  background-color: #fafafa;
+  color: #52525b;
+  border-radius: 0 4px 4px 0;
+}
+
+.markdown-preview blockquote > p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-preview ul,
+.markdown-preview ol {
+  margin: 0.85em 0;
+  padding-left: 1.65em;
+}
+
+.markdown-preview ul {
+  list-style-type: disc;
+}
+
+.markdown-preview ol {
+  list-style-type: decimal;
+}
+
+.markdown-preview li {
+  margin: 0.3em 0;
+}
+
+.markdown-preview li.task-list-item {
+  list-style-type: none;
+  margin-left: -1.3em;
+}
+
+.markdown-preview .task-list-checkbox {
+  margin-right: 0.5em;
+  vertical-align: middle;
+  accent-color: #18181b;
+}
+
+.markdown-preview code:not(.hljs) {
+  font-family: "JetBrains Mono", "SF Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.87em;
+  background-color: #f4f4f5;
+  color: #b91c1c;
+  padding: 0.14em 0.38em;
+  border-radius: 4px;
+}
+
+.markdown-preview .code-block-wrapper {
+  position: relative;
+  margin: 1.1em 0;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  background-color: #fafafa;
+  overflow: hidden;
+}
+
+.markdown-preview .code-lang-badge {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10px;
+  color: #a1a1aa;
+  text-transform: lowercase;
+  user-select: none;
+}
+
+.markdown-preview .code-block-wrapper pre {
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  font-family: "JetBrains Mono", "SF Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  line-height: 1.65;
+  background: transparent;
+}
+
+.markdown-preview .code-block-wrapper code.hljs {
+  padding: 0;
+  background: transparent;
+}
+
+.markdown-preview table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.2em 0;
+  font-size: 0.92em;
+}
+
+.markdown-preview th,
+.markdown-preview td {
+  border: 1px solid #e4e4e7;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.markdown-preview th {
+  background-color: #fafafa;
+  font-weight: 600;
+  color: #18181b;
+}
+
+.markdown-preview hr {
+  border: none;
+  border-top: 1px solid #e4e4e7;
+  margin: 1.8em 0;
+}
+
+.markdown-preview img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1.2em auto;
+  border-radius: 6px;
+  border: 1px solid #f4f4f5;
+}
+
+.markdown-preview img[data-local-image="true"] {
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.markdown-preview img[data-local-image="true"]:hover {
+  border-color: #a1a1aa;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+}
+
+.markdown-preview img.local-image-missing {
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px dashed #d4d4d8;
+  background-color: #fafafa;
+  color: #71717a;
+  font-size: 12px;
+}
+
+.markdown-preview .katex-display-wrapper {
+  margin: 1.2em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 0;
+}
+
+.markdown-preview .katex-error {
+  color: #dc2626;
+  background-color: #fef2f2;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 0.88em;
+}
+
+.markdown-preview .mermaid-block {
+  margin: 1.25em 0;
+  padding: 16px;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  background-color: #fafafa;
+  display: flex;
+  justify-content: center;
+  overflow-x: auto;
+}
+
+.markdown-preview .mermaid-block svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.markdown-preview .mermaid-loading {
+  font-size: 12px;
+  color: #a1a1aa;
+}
+
+.markdown-preview .mermaid-error {
+  font-size: 12px;
+  color: #b91c1c;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 8px 12px;
+  width: 100%;
+  font-family: monospace;
+}
+
+/* Hexo Tags Minimalist Light Styles */
+.markdown-preview .hexo-note {
+  margin: 1.15em 0;
+  padding: 0.85em 1.05em;
+  border: 1px solid #e4e4e7;
+  border-left: 3.5px solid #71717a;
+  border-radius: 0 8px 8px 0;
+  background-color: #f8f8f9;
+  color: #3f3f46;
+}
+
+.markdown-preview .hexo-note > p:last-child,
+.markdown-preview .hexo-note > ul:last-child,
+.markdown-preview .hexo-note > ol:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-preview .hexo-note-default,
+.markdown-preview .hexo-note.default {
+  border-color: #e4e4e7;
+  border-left-color: #71717a;
+  background-color: #f8f8f9;
+  color: #3f3f46;
+}
+
+.markdown-preview .hexo-note-primary,
+.markdown-preview .hexo-note.primary {
+  border-color: #ddd6fe;
+  border-left-color: #7c3aed;
+  background-color: #f5f3ff;
+  color: #4c1d95;
+}
+
+.markdown-preview .hexo-note-success,
+.markdown-preview .hexo-note.success {
+  border-color: #bbf7d0;
+  border-left-color: #16a34a;
+  background-color: #f0fdf4;
+  color: #14532d;
+}
+
+.markdown-preview .hexo-note-info,
+.markdown-preview .hexo-note.info {
+  border-color: #bae6fd;
+  border-left-color: #0284c7;
+  background-color: #f0f9ff;
+  color: #0c4a6e;
+}
+
+.markdown-preview .hexo-note-warning,
+.markdown-preview .hexo-note.warning {
+  border-color: #fde68a;
+  border-left-color: #d97706;
+  background-color: #fffbeb;
+  color: #78350f;
+}
+
+.markdown-preview .hexo-note-danger,
+.markdown-preview .hexo-note.danger {
+  border-color: #fecaca;
+  border-left-color: #dc2626;
+  background-color: #fef2f2;
+  color: #7f1d1d;
+}
+
+/* Hexo Tabs */
+.markdown-preview .hexo-tabs {
+  margin: 1.2em 0;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  background-color: #ffffff;
+  overflow: hidden;
+}
+
+.markdown-preview .hexo-tabs-nav,
+.markdown-preview .hexo-tabs .nav-tabs,
+.markdown-preview .hexo-tabs [role="tablist"] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
+  padding: 6px 8px 0 8px;
+  list-style: none;
+  background-color: #f8f8f9;
+  border-bottom: 1px solid #e4e4e7;
+}
+
+.markdown-preview .hexo-tabs button[data-tab-index],
+.markdown-preview .hexo-tabs .hexo-tab-btn,
+.markdown-preview .hexo-tabs [role="tab"] {
+  appearance: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  padding: 6px 12px;
+  margin-bottom: -1px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #71717a;
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.markdown-preview .hexo-tabs button[data-tab-index]:hover,
+.markdown-preview .hexo-tabs .hexo-tab-btn:hover,
+.markdown-preview .hexo-tabs [role="tab"]:hover {
+  color: #18181b;
+  background-color: rgba(24, 24, 27, 0.04);
+}
+
+.markdown-preview .hexo-tabs button[data-tab-index].active,
+.markdown-preview .hexo-tabs button[data-tab-index][aria-selected="true"],
+.markdown-preview .hexo-tabs button[data-tab-index][data-active="true"],
+.markdown-preview .hexo-tabs .hexo-tab-btn.active,
+.markdown-preview .hexo-tabs [role="tab"][aria-selected="true"] {
+  color: #18181b;
+  background-color: #ffffff;
+  border-bottom-color: #18181b;
+}
+
+.markdown-preview .hexo-tabs-content,
+.markdown-preview .hexo-tabs .tab-content {
+  padding: 14px 16px;
+  background-color: #ffffff;
+}
+
+.markdown-preview .hexo-tabs [data-tab-panel] {
+  padding: 14px 16px;
+}
+
+.markdown-preview .hexo-tabs .hexo-tabs-content [data-tab-panel],
+.markdown-preview .hexo-tabs .tab-content [data-tab-panel] {
+  padding: 0;
+}
+
+.markdown-preview .hexo-tabs [data-tab-panel][hidden],
+.markdown-preview .hexo-tabs .hexo-tab-panel[hidden] {
+  display: none;
+}
+
+.markdown-preview .hexo-tabs [data-tab-panel] > :first-child {
+  margin-top: 0;
+}
+
+.markdown-preview .hexo-tabs [data-tab-panel] > :last-child {
+  margin-bottom: 0;
+}
+
+/* Hexo Codeblock with Caption/Header */
+.markdown-preview .hexo-codeblock {
+  margin: 1.15em 0;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  background-color: #f8f8f9;
+  overflow: hidden;
+}
+
+.markdown-preview .hexo-codeblock-header,
+.markdown-preview .hexo-codeblock figcaption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 14px;
+  border-bottom: 1px solid #e4e4e7;
+  background-color: #f4f4f5;
+  font-family: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+  font-size: 12px;
+  color: #52525b;
+}
+
+.markdown-preview .hexo-codeblock-title {
+  font-weight: 500;
+  color: #27272a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.markdown-preview .hexo-codeblock-link {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.markdown-preview .hexo-codeblock-link:hover {
+  text-decoration: underline;
+}
+
+.markdown-preview .hexo-codeblock .code-block-wrapper {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background-color: transparent;
+}
+
+.markdown-preview .hexo-codeblock pre {
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  font-family: "JetBrains Mono", "SF Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  line-height: 1.65;
+  background: transparent;
+}
+
+/* Hexo Pullquote & Blockquote Footer */
+.markdown-preview .hexo-pullquote {
+  margin: 1.4em 0;
+  padding: 0.9em 1.25em;
+  border-left: 2px solid #a1a1aa;
+  border-top: 1px solid #f4f4f5;
+  border-bottom: 1px solid #f4f4f5;
+  background-color: #fafafa;
+  color: #3f3f46;
+  font-style: italic;
+  font-size: 1.02em;
+  border-radius: 0 6px 6px 0;
+}
+
+.markdown-preview .hexo-pullquote.left {
+  float: left;
+  width: 44%;
+  margin: 0.4em 1.4em 0.8em 0;
+}
+
+.markdown-preview .hexo-pullquote.right {
+  float: right;
+  width: 44%;
+  margin: 0.4em 0 0.8em 1.4em;
+}
+
+.markdown-preview .hexo-pullquote > p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-preview blockquote footer,
+.markdown-preview .hexo-blockquote footer {
+  margin-top: 0.5em;
+  font-size: 0.85em;
+  font-style: normal;
+  color: #71717a;
+}
+
+.markdown-preview blockquote footer strong {
+  color: #3f3f46;
+  font-weight: 600;
+}
+
+.markdown-preview blockquote footer cite {
+  margin-left: 0.45em;
+  font-style: normal;
+  color: #71717a;
+}
+
+/* ============================================================================
+ * Code Block Highlight Themes (4 lightweight scoped presets)
+ * ============================================================================ */
+
+/* 1. GitHub Light */
+[data-code-theme="github-light"] .code-block-wrapper,
+[data-code-theme="github-light"] .hexo-codeblock {
+  background-color: #fafafa;
+  border-color: #e4e4e7;
+}
+
+[data-code-theme="github-light"] .code-lang-badge {
+  color: #a1a1aa;
+}
+
+[data-code-theme="github-light"] .hljs {
+  color: #24292e;
+  background: transparent;
+}
+
+[data-code-theme="github-light"] .hljs-doctag,
+[data-code-theme="github-light"] .hljs-keyword,
+[data-code-theme="github-light"] .hljs-meta .hljs-keyword,
+[data-code-theme="github-light"] .hljs-template-tag,
+[data-code-theme="github-light"] .hljs-template-variable,
+[data-code-theme="github-light"] .hljs-type,
+[data-code-theme="github-light"] .hljs-variable.language_ {
+  color: #d73a49;
+}
+
+[data-code-theme="github-light"] .hljs-title,
+[data-code-theme="github-light"] .hljs-title.class_,
+[data-code-theme="github-light"] .hljs-title.function_ {
+  color: #6f42c1;
+}
+
+[data-code-theme="github-light"] .hljs-attr,
+[data-code-theme="github-light"] .hljs-attribute,
+[data-code-theme="github-light"] .hljs-literal,
+[data-code-theme="github-light"] .hljs-meta,
+[data-code-theme="github-light"] .hljs-number,
+[data-code-theme="github-light"] .hljs-operator,
+[data-code-theme="github-light"] .hljs-selector-attr,
+[data-code-theme="github-light"] .hljs-selector-class,
+[data-code-theme="github-light"] .hljs-selector-id,
+[data-code-theme="github-light"] .hljs-variable {
+  color: #005cc5;
+}
+
+[data-code-theme="github-light"] .hljs-meta .hljs-string,
+[data-code-theme="github-light"] .hljs-regexp,
+[data-code-theme="github-light"] .hljs-string {
+  color: #032f62;
+}
+
+[data-code-theme="github-light"] .hljs-built_in,
+[data-code-theme="github-light"] .hljs-symbol {
+  color: #e36209;
+}
+
+[data-code-theme="github-light"] .hljs-comment,
+[data-code-theme="github-light"] .hljs-code,
+[data-code-theme="github-light"] .hljs-formula {
+  color: #6a737d;
+}
+
+[data-code-theme="github-light"] .hljs-name,
+[data-code-theme="github-light"] .hljs-quote,
+[data-code-theme="github-light"] .hljs-selector-pseudo,
+[data-code-theme="github-light"] .hljs-selector-tag {
+  color: #22863a;
+}
+
+[data-code-theme="github-light"] .hljs-addition {
+  color: #22863a;
+  background-color: #f0fff4;
+}
+
+[data-code-theme="github-light"] .hljs-deletion {
+  color: #b31d28;
+  background-color: #ffeef0;
+}
+
+/* 2. Atom One Light */
+[data-code-theme="atom-one-light"] .code-block-wrapper,
+[data-code-theme="atom-one-light"] .hexo-codeblock {
+  background-color: #fafafa;
+  border-color: #e4e4e7;
+}
+
+[data-code-theme="atom-one-light"] .code-lang-badge {
+  color: #a0a1a7;
+}
+
+[data-code-theme="atom-one-light"] .hljs {
+  color: #383a42;
+  background: transparent;
+}
+
+[data-code-theme="atom-one-light"] .hljs-comment,
+[data-code-theme="atom-one-light"] .hljs-quote {
+  color: #a0a1a7;
+  font-style: italic;
+}
+
+[data-code-theme="atom-one-light"] .hljs-doctag,
+[data-code-theme="atom-one-light"] .hljs-keyword,
+[data-code-theme="atom-one-light"] .hljs-formula {
+  color: #a626a4;
+}
+
+[data-code-theme="atom-one-light"] .hljs-section,
+[data-code-theme="atom-one-light"] .hljs-name,
+[data-code-theme="atom-one-light"] .hljs-selector-tag,
+[data-code-theme="atom-one-light"] .hljs-deletion,
+[data-code-theme="atom-one-light"] .hljs-subst {
+  color: #e45649;
+}
+
+[data-code-theme="atom-one-light"] .hljs-literal {
+  color: #0184bb;
+}
+
+[data-code-theme="atom-one-light"] .hljs-string,
+[data-code-theme="atom-one-light"] .hljs-regexp,
+[data-code-theme="atom-one-light"] .hljs-addition,
+[data-code-theme="atom-one-light"] .hljs-attribute,
+[data-code-theme="atom-one-light"] .hljs-meta .hljs-string {
+  color: #50a14f;
+}
+
+[data-code-theme="atom-one-light"] .hljs-attr,
+[data-code-theme="atom-one-light"] .hljs-variable,
+[data-code-theme="atom-one-light"] .hljs-template-variable,
+[data-code-theme="atom-one-light"] .hljs-type,
+[data-code-theme="atom-one-light"] .hljs-selector-class,
+[data-code-theme="atom-one-light"] .hljs-selector-attr,
+[data-code-theme="atom-one-light"] .hljs-selector-pseudo,
+[data-code-theme="atom-one-light"] .hljs-number {
+  color: #986801;
+}
+
+[data-code-theme="atom-one-light"] .hljs-symbol,
+[data-code-theme="atom-one-light"] .hljs-bullet,
+[data-code-theme="atom-one-light"] .hljs-link,
+[data-code-theme="atom-one-light"] .hljs-meta,
+[data-code-theme="atom-one-light"] .hljs-selector-id,
+[data-code-theme="atom-one-light"] .hljs-title {
+  color: #4078f2;
+}
+
+[data-code-theme="atom-one-light"] .hljs-built_in,
+[data-code-theme="atom-one-light"] .hljs-title.class_,
+[data-code-theme="atom-one-light"] .hljs-class .hljs-title {
+  color: #c18401;
+}
+
+/* 3. GitHub Dark */
+[data-code-theme="github-dark"] .code-block-wrapper,
+[data-code-theme="github-dark"] .hexo-codeblock {
+  background-color: #0d1117;
+  border-color: #30363d;
+}
+
+[data-code-theme="github-dark"] .hexo-codeblock .code-block-wrapper {
+  background-color: transparent;
+}
+
+[data-code-theme="github-dark"] .hexo-codeblock-header,
+[data-code-theme="github-dark"] .hexo-codeblock figcaption {
+  background-color: #161b22;
+  border-bottom-color: #30363d;
+  color: #8b949e;
+}
+
+[data-code-theme="github-dark"] .hexo-codeblock-title {
+  color: #e6edf3;
+}
+
+[data-code-theme="github-dark"] .hexo-codeblock-link {
+  color: #58a6ff;
+}
+
+[data-code-theme="github-dark"] .code-lang-badge {
+  color: #8b949e;
+}
+
+[data-code-theme="github-dark"] .hljs {
+  color: #c9d1d9;
+  background: transparent;
+}
+
+[data-code-theme="github-dark"] .hljs-doctag,
+[data-code-theme="github-dark"] .hljs-keyword,
+[data-code-theme="github-dark"] .hljs-meta .hljs-keyword,
+[data-code-theme="github-dark"] .hljs-template-tag,
+[data-code-theme="github-dark"] .hljs-template-variable,
+[data-code-theme="github-dark"] .hljs-type,
+[data-code-theme="github-dark"] .hljs-variable.language_ {
+  color: #ff7b72;
+}
+
+[data-code-theme="github-dark"] .hljs-title,
+[data-code-theme="github-dark"] .hljs-title.class_,
+[data-code-theme="github-dark"] .hljs-title.function_ {
+  color: #d2a8ff;
+}
+
+[data-code-theme="github-dark"] .hljs-attr,
+[data-code-theme="github-dark"] .hljs-attribute,
+[data-code-theme="github-dark"] .hljs-literal,
+[data-code-theme="github-dark"] .hljs-meta,
+[data-code-theme="github-dark"] .hljs-number,
+[data-code-theme="github-dark"] .hljs-operator,
+[data-code-theme="github-dark"] .hljs-selector-attr,
+[data-code-theme="github-dark"] .hljs-selector-class,
+[data-code-theme="github-dark"] .hljs-selector-id,
+[data-code-theme="github-dark"] .hljs-variable {
+  color: #79c0ff;
+}
+
+[data-code-theme="github-dark"] .hljs-meta .hljs-string,
+[data-code-theme="github-dark"] .hljs-regexp,
+[data-code-theme="github-dark"] .hljs-string {
+  color: #a5d6ff;
+}
+
+[data-code-theme="github-dark"] .hljs-built_in,
+[data-code-theme="github-dark"] .hljs-symbol {
+  color: #ffa657;
+}
+
+[data-code-theme="github-dark"] .hljs-comment,
+[data-code-theme="github-dark"] .hljs-code,
+[data-code-theme="github-dark"] .hljs-formula {
+  color: #8b949e;
+}
+
+[data-code-theme="github-dark"] .hljs-name,
+[data-code-theme="github-dark"] .hljs-quote,
+[data-code-theme="github-dark"] .hljs-selector-pseudo,
+[data-code-theme="github-dark"] .hljs-selector-tag {
+  color: #7ee787;
+}
+
+[data-code-theme="github-dark"] .hljs-addition {
+  color: #aff5b4;
+  background-color: #033a16;
+}
+
+[data-code-theme="github-dark"] .hljs-deletion {
+  color: #ffdcd7;
+  background-color: #67060c;
+}
+
+/* 4. Atom One Dark */
+[data-code-theme="atom-one-dark"] .code-block-wrapper,
+[data-code-theme="atom-one-dark"] .hexo-codeblock {
+  background-color: #282c34;
+  border-color: #3e4451;
+}
+
+[data-code-theme="atom-one-dark"] .hexo-codeblock .code-block-wrapper {
+  background-color: transparent;
+}
+
+[data-code-theme="atom-one-dark"] .hexo-codeblock-header,
+[data-code-theme="atom-one-dark"] .hexo-codeblock figcaption {
+  background-color: #21252b;
+  border-bottom-color: #3e4451;
+  color: #9da5b4;
+}
+
+[data-code-theme="atom-one-dark"] .hexo-codeblock-title {
+  color: #dcdfe4;
+}
+
+[data-code-theme="atom-one-dark"] .hexo-codeblock-link {
+  color: #61afef;
+}
+
+[data-code-theme="atom-one-dark"] .code-lang-badge {
+  color: #7f848e;
+}
+
+[data-code-theme="atom-one-dark"] .hljs {
+  color: #abb2bf;
+  background: transparent;
+}
+
+[data-code-theme="atom-one-dark"] .hljs-comment,
+[data-code-theme="atom-one-dark"] .hljs-quote {
+  color: #5c6370;
+  font-style: italic;
+}
+
+[data-code-theme="atom-one-dark"] .hljs-doctag,
+[data-code-theme="atom-one-dark"] .hljs-keyword,
+[data-code-theme="atom-one-dark"] .hljs-formula {
+  color: #c678dd;
+}
+
+[data-code-theme="atom-one-dark"] .hljs-section,
+[data-code-theme="atom-one-dark"] .hljs-name,
+[data-code-theme="atom-one-dark"] .hljs-selector-tag,
+[data-code-theme="atom-one-dark"] .hljs-deletion,
+[data-code-theme="atom-one-dark"] .hljs-subst {
+  color: #e06c75;
+}
+
+[data-code-theme="atom-one-dark"] .hljs-literal {
+  color: #56b6c2;
+}
+
+[data-code-theme="atom-one-dark"] .hljs-string,
+[data-code-theme="atom-one-dark"] .hljs-regexp,
+[data-code-theme="atom-one-dark"] .hljs-addition,
+[data-code-theme="atom-one-dark"] .hljs-attribute,
+[data-code-theme="atom-one-dark"] .hljs-meta .hljs-string {
+  color: #98c379;
+}
+
+[data-code-theme="atom-one-dark"] .hljs-attr,
+[data-code-theme="atom-one-dark"] .hljs-variable,
+[data-code-theme="atom-one-dark"] .hljs-template-variable,
+[data-code-theme="atom-one-dark"] .hljs-type,
+[data-code-theme="atom-one-dark"] .hljs-selector-class,
+[data-code-theme="atom-one-dark"] .hljs-selector-attr,
+[data-code-theme="atom-one-dark"] .hljs-selector-pseudo,
+[data-code-theme="atom-one-dark"] .hljs-number {
+  color: #d19a66;
+}
+
+[data-code-theme="atom-one-dark"] .hljs-symbol,
+[data-code-theme="atom-one-dark"] .hljs-bullet,
+[data-code-theme="atom-one-dark"] .hljs-link,
+[data-code-theme="atom-one-dark"] .hljs-meta,
+[data-code-theme="atom-one-dark"] .hljs-selector-id,
+[data-code-theme="atom-one-dark"] .hljs-title {
+  color: #61afef;
+}
+
+[data-code-theme="atom-one-dark"] .hljs-built_in,
+[data-code-theme="atom-one-dark"] .hljs-title.class_,
+[data-code-theme="atom-one-dark"] .hljs-class .hljs-title {
+  color: #e6c07b;
+}
+
+/* ============================================================================
+ * Print / Save-as-PDF Styles
+ * ============================================================================ */
+.print-only-article {
+  display: none;
+}
+
+@page {
+  margin: 16mm 14mm;
+}
+
+@media print {
+  .print-only-article {
+    display: block !important;
+  }
+  html,
+  body,
+  #root {
+    height: auto !important;
+    min-height: 0 !important;
+    width: auto !important;
+    overflow: visible !important;
+    background-color: #ffffff !important;
+    color: #18181b !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Hide application chrome, sidebars, tabs, toolbars, forms, drawers, and modals */
+  .no-print,
+  [data-print-hidden="true"],
+  [data-panel-resize-handle-id],
+  [data-radix-portal] {
+    display: none !important;
+  }
+
+  /* Release viewport & scroll container locks so multi-page documents paginate fully */
+  #root .h-screen,
+  #root .h-full,
+  #root .min-h-0,
+  #root .overflow-hidden,
+  #root .overflow-y-auto,
+  #root .overflow-auto,
+  #root [data-panel-group],
+  #root [data-panel] {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  #root [data-panel-group] {
+    display: block !important;
+  }
+
+  #root [data-panel] {
+    flex: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  #root article {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .markdown-preview {
+    font-size: 13.5px;
+    line-height: 1.7;
+  }
+
+  .markdown-preview p {
+    orphans: 3;
+    widows: 3;
+  }
+
+  /* Prevent headings from stranding at the bottom of a page */
+  .markdown-preview h1,
+  .markdown-preview h2,
+  .markdown-preview h3,
+  .markdown-preview h4,
+  .markdown-preview h5,
+  .markdown-preview h6 {
+    break-after: avoid;
+    page-break-after: avoid;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Prevent code blocks, images, diagrams, callouts, and table rows from splitting */
+  .markdown-preview .code-block-wrapper,
+  .markdown-preview .hexo-codeblock,
+  .markdown-preview pre,
+  .markdown-preview blockquote,
+  .markdown-preview .hexo-note,
+  .markdown-preview .hexo-pullquote,
+  .markdown-preview .hexo-tabs,
+  .markdown-preview .mermaid-block,
+  .markdown-preview .katex-display-wrapper,
+  .markdown-preview img,
+  .markdown-preview figure,
+  .markdown-preview tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .markdown-preview table {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .markdown-preview thead {
+    display: table-header-group;
+  }
+
+  .markdown-preview pre {
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    overflow-x: visible !important;
+  }
+
+  .markdown-preview img {
+    max-height: 85vh;
+    box-shadow: none !important;
+    cursor: default !important;
+  }
+}
