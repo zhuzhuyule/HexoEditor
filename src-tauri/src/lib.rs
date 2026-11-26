@@ -579,9 +579,13 @@ pub fn run() {
             ai::discover_local_agents,
             ai::probe_acp_agent,
             ai::build_site_ai_context,
+            ai::list_site_prompts,
+            ai::fetch_acp_registry,
             ai::test_ai_connection,
             ai::ai_run_prompt,
             ai::ai_cancel_prompt,
+            ai::ai_respond_permission,
+            ai::ai_reset_session,
         ])
         .build(tauri::generate_context!())
         .expect("error while building HexoEditor");

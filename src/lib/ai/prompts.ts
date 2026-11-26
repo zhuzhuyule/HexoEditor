@@ -289,3 +289,38 @@ export function parseSuggestedFrontMatter(
 
   return null;
 }
+
+export interface SitePromptDocMeta {
+  title?: string;
+  filePath?: string | null;
+}
+
+/**
+ * Renders a site custom `.hexoeditor/prompts/*.md` template with `{{site.*}}`
+ * and `{{doc.*}}` placeholders using the active SiteContextSnapshot and doc metadata.
+ */
+export function renderSitePromptTemplate(
+  template: string,
+  ctx: SiteContextSnapshot | null,
+  docMeta?: SitePromptDocMeta
+): string {
+  const vars: Record<string, string> = {
+    "site.engine": ctx?.engine ?? "unknown",
+    "site.title": ctx?.siteTitle ?? "",
+    "site.theme": ctx?.theme ?? "",
+    "site.language": ctx?.language ?? "",
+    "site.permalink": ctx?.permalink ?? "",
+    "site.postAssetFolder": ctx ? String(ctx.postAssetFolder) : "false",
+    "site.categories": (ctx?.existingCategories ?? []).join(", "),
+    "site.tags": (ctx?.existingTags ?? []).join(", "),
+    "site.themeTags": (ctx?.enabledThemeTags ?? []).join(", "),
+    "doc.title": docMeta?.title ?? "",
+    "doc.filePath": docMeta?.filePath ?? ctx?.activeDoc?.relativePath ?? "",
+    "doc.relativePath": ctx?.activeDoc?.relativePath ?? docMeta?.filePath ?? "",
+    "doc.localImages": (ctx?.activeDoc?.localImages ?? []).join(", "),
+  };
+
+  return template.replace(/\{\{\s*([a-zA-Z0-9_.]+)\s*\}\}/g, (raw, key: string) => {
+    return Object.prototype.hasOwnProperty.call(vars, key) ? vars[key] : raw;
+  });
+}

@@ -93,6 +93,58 @@ export interface AiRunRequest {
   systemPrompt?: string | null;
   prompt: string;
   cwd?: string | null;
+  sessionKey?: string | null;
+  keepSession?: boolean;
+}
+
+export interface SitePromptTemplate {
+  id: string;
+  title: string;
+  description?: string | null;
+  scope?: string | null;
+  body: string;
+  filePath: string;
+}
+
+export interface AcpRegistryEntry {
+  id: string;
+  name: string;
+  version?: string | null;
+  description: string;
+  executable: string;
+  args: string[];
+  protocol: "acp" | "cli" | string;
+  homepage?: string | null;
+  installHint?: string | null;
+}
+
+export interface AcpRegistryResult {
+  source: "remote" | "builtin" | string;
+  fetchedAt?: string | null;
+  agents: AcpRegistryEntry[];
+  message?: string | null;
+}
+
+export interface AcpPermissionOption {
+  optionId: string;
+  name: string;
+  kind?: string | null;
+}
+
+export interface AcpPermissionRequestEvent {
+  permissionId: string;
+  requestId: string;
+  toolTitle: string;
+  kind?: string | null;
+  options: AcpPermissionOption[];
+}
+
+export interface AiConversationTurn {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  action?: AiPromptAction;
+  label?: string;
 }
 
 export interface AiStreamEvent {
