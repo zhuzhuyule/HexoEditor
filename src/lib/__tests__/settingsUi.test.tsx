@@ -282,6 +282,15 @@ describe("SettingsDialog & live MarkdownEditor typography", () => {
     });
     expect(onSyncScrollChange).toHaveBeenCalledWith(false);
 
+    const largeFontBtn = Array.from(
+      document.body.querySelectorAll<HTMLButtonElement>('button[role="radio"]')
+    ).find((b) => b.textContent?.trim() === "Large");
+    expect(largeFontBtn).toBeDefined();
+    await act(async () => {
+      largeFontBtn!.click();
+    });
+    expect(onEditorPrefsChange).toHaveBeenCalledWith({ uiFontSize: "lg" });
+
     const resetBtn = Array.from(document.body.querySelectorAll("button")).find(
       (b) => b.textContent?.includes("Reset Typography Defaults")
     );

@@ -10,12 +10,15 @@ import {
   Info,
   Loader2,
   Palette,
+  Pencil,
+  Plus,
   RefreshCw,
   RotateCcw,
   SlidersHorizontal,
   Sparkles,
   Trash2,
   Type,
+  UserPlus,
   X,
   XCircle,
 } from "lucide-react";
@@ -26,6 +29,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import {
+  formatArgsString,
+  formatEnvText,
+  parseArgsString,
+  parseEnvText,
+} from "@/lib/ai/profiles";
 import * as aiApi from "@/lib/tauri/aiApi";
 import { cn } from "@/lib/utils";
 import type { Locale } from "@/types";
@@ -35,6 +44,7 @@ import {
   type AiApiPreset,
   type AiConnectionResult,
   type AiSettings,
+  type CustomAcpProfile,
   type DiscoveredAgent,
 } from "@/types/ai";
 import {
@@ -54,6 +64,7 @@ import {
   type ImageBedTestResult,
   type SettingsSectionId,
   type TitleBarMode,
+  type UiFontSize,
 } from "@/types/settings";
 
 export interface SettingsDialogProps {
@@ -314,6 +325,18 @@ export function SettingsDialog({
   const [probeResults, setProbeResults] = useState<Record<string, AcpProbeResult>>({});
   const [testingAiConn, setTestingAiConn] = useState(false);
   const [aiConnResult, setAiConnResult] = useState<AiConnectionResult | null>(null);
+  const [acpFormOpen, setAcpFormOpen] = useState(false);
+  const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
+  const [acpFormName, setAcpFormName] = useState("");
+  const [acpFormAccountLabel, setAcpFormAccountLabel] = useState("");
+  const [acpFormProtocol, setAcpFormProtocol] = useState<"acp" | "cli">("acp");
+  const [acpFormExecutable, setAcpFormExecutable] = useState("");
+  const [acpFormArgsText, setAcpFormArgsText] = useState("");
+  const [acpFormCwd, setAcpFormCwd] = useState("");
+  const [acpFormEnvText, setAcpFormEnvText] = useState("");
+  const [acpFormBaseAgentId, setAcpFormBaseAgentId] = useState<string | undefined>(
+    undefined
+  );
 
   const wasOpenRef = useRef(false);
   const testSeqRef = useRef(0);
@@ -326,6 +349,8 @@ export function SettingsDialog({
       setTestResult(null);
       setAiConnResult(null);
       setRecentClearedNotice(false);
+      setAcpFormOpen(false);
+      setEditingProfileId(null);
     }
     wasOpenRef.current = open;
   }, [open, initialSection]);
@@ -388,6 +413,7 @@ export function SettingsDialog({
       lineHeight: DEFAULT_EDITOR_PREFS.lineHeight,
       tabSize: DEFAULT_EDITOR_PREFS.tabSize,
       zoomLevel: DEFAULT_EDITOR_PREFS.zoomLevel,
+      uiFontSize: DEFAULT_EDITOR_PREFS.uiFontSize,
     });
   };
 
@@ -471,6 +497,116 @@ export function SettingsDialog({
       }));
     } finally {
       setProbingAgentId(null);
+    }
+  };
+
+  const handleProbeCustomProfile = async (profile: CustomAcpProfile) => {
+    const resultKey = `profile:${profile.id}`;
+    setProbingAgentId(resultKey);
+    try {
+      const res = await aiApi.probeAcpAgent(
+        profile.executable,
+        profile.args,
+        profile.env,
+        profile.cwd ?? null
+      );
+      setProbeResults((prev) => ({ ...prev, [resultKey]: res }));
+    } catch (err) {
+      setProbeResults((prev) => ({
+        ...prev,
+        [resultKey]: {
+          ok: false,
+          protocolVersion: null,
+          agentInfo: null,
+          agentCapabilities: {},
+          authMethods: [],
+          message: err instanceof Error ? err.message : String(err),
+          latencyMs: 0,
+        },
+      }));
+    } finally {
+      setProbingAgentId(null);
+    }
+  };
+
+  const openNewCustomAcpForm = (preset?: {
+    name?: string;
+    accountLabel?: string;
+    protocol?: "acp" | "cli";
+    executable?: string;
+    args?: string[];
+    envText?: string;
+    baseAgentId?: string;
+  }) => {
+    setEditingProfileId(null);
+    setAcpFormName(preset?.name ?? "");
+    setAcpFormAccountLabel(preset?.accountLabel ?? "");
+    setAcpFormProtocol(preset?.protocol ?? "acp");
+    setAcpFormExecutable(preset?.executable ?? "");
+    setAcpFormArgsText(preset?.args ? formatArgsString(preset.args) : "");
+    setAcpFormCwd("");
+    setAcpFormEnvText(preset?.envText ?? "");
+    setAcpFormBaseAgentId(preset?.baseAgentId);
+    setAcpFormOpen(true);
+  };
+
+  const openEditCustomAcpForm = (profile: CustomAcpProfile) => {
+    setEditingProfileId(profile.id);
+    setAcpFormName(profile.name);
+    setAcpFormAccountLabel(profile.accountLabel ?? "");
+    setAcpFormProtocol(profile.protocol);
+    setAcpFormExecutable(profile.executable);
+    setAcpFormArgsText(formatArgsString(profile.args));
+    setAcpFormCwd(profile.cwd ?? "");
+    setAcpFormEnvText(formatEnvText(profile.env));
+    setAcpFormBaseAgentId(profile.baseAgentId);
+    setAcpFormOpen(true);
+  };
+
+  const handleSaveCustomAcpProfile = () => {
+    const name = acpFormName.trim();
+    const executable = acpFormExecutable.trim();
+    if (!name || !executable) return;
+    const existingProfiles = aiSettings.customAcpProfiles ?? [];
+    const profileId =
+      editingProfileId ||
+      `acp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+    const nextProfile: CustomAcpProfile = {
+      id: profileId,
+      name,
+      protocol: acpFormProtocol,
+      executable,
+      args: parseArgsString(acpFormArgsText),
+      env: parseEnvText(acpFormEnvText),
+      cwd: acpFormCwd.trim() || undefined,
+      accountLabel: acpFormAccountLabel.trim() || undefined,
+      baseAgentId: acpFormBaseAgentId,
+      enabled: true,
+    };
+    const nextProfiles = editingProfileId
+      ? existingProfiles.map((p) => (p.id === editingProfileId ? nextProfile : p))
+      : [...existingProfiles, nextProfile];
+    onAiSettingsChange?.({
+      customAcpProfiles: nextProfiles,
+      ...(editingProfileId ? {} : { selectedProviderKey: `profile:${profileId}` }),
+    });
+    setAcpFormOpen(false);
+    setEditingProfileId(null);
+  };
+
+  const handleDeleteCustomAcpProfile = (profileId: string) => {
+    const existingProfiles = aiSettings.customAcpProfiles ?? [];
+    const nextProfiles = existingProfiles.filter((p) => p.id !== profileId);
+    const wasSelected = aiSettings.selectedProviderKey === `profile:${profileId}`;
+    const fallbackKey =
+      discoveredAgents.length > 0 ? `agent:${discoveredAgents[0].id}` : "api";
+    onAiSettingsChange?.({
+      customAcpProfiles: nextProfiles,
+      ...(wasSelected ? { selectedProviderKey: fallbackKey } : {}),
+    });
+    if (editingProfileId === profileId) {
+      setAcpFormOpen(false);
+      setEditingProfileId(null);
     }
   };
 
@@ -868,6 +1004,30 @@ export function SettingsDialog({
                       aria-label={isEn ? "Sync Scroll" : "同步滚动"}
                       checked={syncScroll}
                       onCheckedChange={onSyncScrollChange}
+                    />
+                  </SettingRow>
+
+                  <Separator />
+
+                  <SettingRow
+                    label={isEn ? "UI Font Size" : "界面字号"}
+                    hint={
+                      isEn
+                        ? "Adjust interface font scale across sidebar, menus, and status bar"
+                        : "统一调整侧边栏、菜单与底部工具栏的整体字号"
+                    }
+                  >
+                    <SegmentedControl<UiFontSize>
+                      ariaLabel={isEn ? "UI Font Size" : "界面字号"}
+                      value={editorPrefs.uiFontSize ?? "md"}
+                      onChange={(uiFontSize) =>
+                        onEditorPrefsChange({ uiFontSize })
+                      }
+                      options={[
+                        { value: "sm", label: isEn ? "Small" : "小" },
+                        { value: "md", label: isEn ? "Medium" : "中" },
+                        { value: "lg", label: isEn ? "Large" : "大" },
+                      ]}
                     />
                   </SettingRow>
 
@@ -1540,6 +1700,36 @@ export function SettingsDialog({
                                 </div>
 
                                 <div className="flex shrink-0 items-center gap-1.5">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="xs"
+                                    title={
+                                      isEn
+                                        ? "Add another account/profile using this agent"
+                                        : "基于此 Agent 添加多账号或独立配置"
+                                    }
+                                    onClick={() =>
+                                      openNewCustomAcpForm({
+                                        name: isEn
+                                          ? `${agent.label} (Account 2)`
+                                          : `${agent.label} - 账号 2`,
+                                        accountLabel: isEn ? "Account 2" : "账号 2",
+                                        protocol:
+                                          agent.protocol === "cli" ? "cli" : "acp",
+                                        executable: agent.executable,
+                                        args: agent.args,
+                                        envText:
+                                          agent.id === "opencode"
+                                            ? "XDG_CONFIG_HOME=~/.config/opencode-acc2"
+                                            : "",
+                                        baseAgentId: agent.id,
+                                      })
+                                    }
+                                  >
+                                    <UserPlus className="h-3 w-3" />
+                                    {isEn ? "+ Account" : "+ 多账号"}
+                                  </Button>
                                   {agent.protocol === "acp" && (
                                     <Button
                                       type="button"
@@ -1609,6 +1799,413 @@ export function SettingsDialog({
                                       ))}
                                     </div>
                                   )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  {/* Custom ACP & Multi-Account Profiles (OMB-style) */}
+                  <div className="space-y-3" data-testid="custom-acp-section">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-semibold text-zinc-800">
+                          {isEn
+                            ? "Custom ACP & Multi-Account Profiles"
+                            : "自定义 ACP 与多账号配置"}
+                        </div>
+                        <div className="mt-0.5 text-[11px] text-zinc-400">
+                          {isEn
+                            ? "Add custom ACP agents or isolate multiple accounts via custom env & args"
+                            : "支持自定义 ACP 命令或通过独立环境变量配置同一 Agent 的多个账号"}
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        data-testid="add-custom-acp-btn"
+                        onClick={() => openNewCustomAcpForm()}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        {isEn ? "Add ACP / Account" : "添加 ACP / 账号"}
+                      </Button>
+                    </div>
+
+                    {acpFormOpen && (
+                      <div
+                        data-testid="custom-acp-form"
+                        className="space-y-3 rounded-lg border border-zinc-200 bg-zinc-50/70 p-3.5"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-xs font-semibold text-zinc-800">
+                            {editingProfileId
+                              ? isEn
+                                ? "Edit ACP Profile"
+                                : "编辑 ACP / 账号配置"
+                              : isEn
+                                ? "New ACP Profile"
+                                : "新建 ACP / 账号配置"}
+                          </span>
+                          {!editingProfileId && (
+                            <div className="flex flex-wrap items-center gap-1">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="xs"
+                                onClick={() =>
+                                  openNewCustomAcpForm({
+                                    name: isEn
+                                      ? "OpenCode (Account 2)"
+                                      : "OpenCode 多账号",
+                                    accountLabel: isEn ? "Account 2" : "账号 2",
+                                    protocol: "acp",
+                                    executable: "opencode",
+                                    args: ["acp"],
+                                    envText:
+                                      "XDG_CONFIG_HOME=~/.config/opencode-acc2",
+                                    baseAgentId: "opencode",
+                                  })
+                                }
+                              >
+                                OpenCode 多账号
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="xs"
+                                onClick={() =>
+                                  openNewCustomAcpForm({
+                                    name: isEn
+                                      ? "Antigravity (Account 2)"
+                                      : "Antigravity 多账号",
+                                    accountLabel: isEn ? "Work" : "工作号",
+                                    protocol: "acp",
+                                    executable: "agy",
+                                    args: ["acp"],
+                                    envText: "",
+                                    baseAgentId: "antigravity",
+                                  })
+                                }
+                              >
+                                Antigravity 多账号
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="xs"
+                                onClick={() =>
+                                  openNewCustomAcpForm({
+                                    name: "Gemini CLI (ACP)",
+                                    accountLabel: "",
+                                    protocol: "acp",
+                                    executable: "gemini",
+                                    args: ["--experimental-acp"],
+                                    envText: "GEMINI_API_KEY=",
+                                    baseAgentId: "gemini",
+                                  })
+                                }
+                              >
+                                Gemini ACP
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                          <div>
+                            <label
+                              htmlFor="acp-profile-name"
+                              className="mb-1 block text-[11px] font-medium text-zinc-700"
+                            >
+                              {isEn ? "Display Name" : "配置名称"} *
+                            </label>
+                            <Input
+                              id="acp-profile-name"
+                              value={acpFormName}
+                              onChange={(e) => setAcpFormName(e.target.value)}
+                              placeholder={
+                                isEn ? "e.g. OpenCode Work" : "如：OpenCode 免费号 2"
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label
+                              htmlFor="acp-profile-account"
+                              className="mb-1 block text-[11px] font-medium text-zinc-700"
+                            >
+                              {isEn ? "Account Label (optional)" : "账号标识（可选）"}
+                            </label>
+                            <Input
+                              id="acp-profile-account"
+                              value={acpFormAccountLabel}
+                              onChange={(e) =>
+                                setAcpFormAccountLabel(e.target.value)
+                              }
+                              placeholder={isEn ? "e.g. Work / Free-2" : "如：工作号 / 免费号 2"}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-[120px_1fr]">
+                          <div>
+                            <span className="mb-1 block text-[11px] font-medium text-zinc-700">
+                              {isEn ? "Protocol" : "协议模式"}
+                            </span>
+                            <SegmentedControl<"acp" | "cli">
+                              ariaLabel={isEn ? "Profile Protocol" : "协议模式"}
+                              value={acpFormProtocol}
+                              onChange={setAcpFormProtocol}
+                              options={[
+                                { value: "acp", label: "ACP" },
+                                { value: "cli", label: "CLI" },
+                              ]}
+                            />
+                          </div>
+                          <div>
+                            <label
+                              htmlFor="acp-profile-exe"
+                              className="mb-1 block text-[11px] font-medium text-zinc-700"
+                            >
+                              {isEn ? "Executable Path / Command" : "可执行命令或路径"} *
+                            </label>
+                            <Input
+                              id="acp-profile-exe"
+                              value={acpFormExecutable}
+                              onChange={(e) =>
+                                setAcpFormExecutable(e.target.value)
+                              }
+                              placeholder="opencode / agy / /usr/local/bin/my-agent"
+                              className="font-mono"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                          <div>
+                            <label
+                              htmlFor="acp-profile-args"
+                              className="mb-1 block text-[11px] font-medium text-zinc-700"
+                            >
+                              {isEn ? "Arguments" : "启动参数"}
+                            </label>
+                            <Input
+                              id="acp-profile-args"
+                              value={acpFormArgsText}
+                              onChange={(e) => setAcpFormArgsText(e.target.value)}
+                              placeholder="acp --profile work"
+                              className="font-mono"
+                            />
+                          </div>
+                          <div>
+                            <label
+                              htmlFor="acp-profile-cwd"
+                              className="mb-1 block text-[11px] font-medium text-zinc-700"
+                            >
+                              {isEn ? "Working Dir (optional)" : "工作目录（可选）"}
+                            </label>
+                            <Input
+                              id="acp-profile-cwd"
+                              value={acpFormCwd}
+                              onChange={(e) => setAcpFormCwd(e.target.value)}
+                              placeholder={
+                                isEn ? "Defaults to active site root" : "留空默认当前站点根目录"
+                              }
+                              className="font-mono"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label
+                            htmlFor="acp-profile-env"
+                            className="mb-1 block text-[11px] font-medium text-zinc-700"
+                          >
+                            {isEn
+                              ? "Environment Variables (KEY=VALUE per line)"
+                              : "环境变量（每行一个 KEY=VALUE，用于隔离多账号或注入密钥）"}
+                          </label>
+                          <textarea
+                            id="acp-profile-env"
+                            rows={3}
+                            value={acpFormEnvText}
+                            onChange={(e) => setAcpFormEnvText(e.target.value)}
+                            placeholder={
+                              "XDG_CONFIG_HOME=/Users/me/.config/opencode-acc2\nANTHROPIC_API_KEY=..."
+                            }
+                            className="w-full rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 font-mono text-[11px] text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none"
+                          />
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-1">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="xs"
+                            onClick={() => {
+                              setAcpFormOpen(false);
+                              setEditingProfileId(null);
+                            }}
+                          >
+                            {isEn ? "Cancel" : "取消"}
+                          </Button>
+                          <Button
+                            type="button"
+                            size="xs"
+                            disabled={
+                              !acpFormName.trim() || !acpFormExecutable.trim()
+                            }
+                            onClick={handleSaveCustomAcpProfile}
+                          >
+                            {isEn ? "Save Profile" : "保存配置"}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {(aiSettings.customAcpProfiles ?? []).length === 0 ? (
+                      !acpFormOpen && (
+                        <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 px-3.5 py-2.5 text-[11px] text-zinc-400">
+                          {isEn
+                            ? "No custom ACP or multi-account profiles yet. Click \"+ Account\" above or \"Add ACP / Account\"."
+                            : "暂无自定义 ACP 或多账号配置；可点击上方某 Agent 的「+ 多账号」或右侧「添加 ACP / 账号」。"}
+                        </div>
+                      )
+                    ) : (
+                      <div className="space-y-2">
+                        {(aiSettings.customAcpProfiles ?? []).map((profile) => {
+                          const profileKey = `profile:${profile.id}`;
+                          const isSelected =
+                            aiSettings.selectedProviderKey === profileKey;
+                          const envCount = Object.keys(profile.env).length;
+                          const probe = probeResults[profileKey];
+                          return (
+                            <div
+                              key={profile.id}
+                              data-custom-acp-profile={profile.id}
+                              className={cn(
+                                "rounded-lg border p-3 transition-colors",
+                                isSelected
+                                  ? "border-zinc-900 bg-zinc-50/70"
+                                  : "border-zinc-200 bg-white"
+                              )}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    <Cpu className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                                    <span className="text-xs font-semibold text-zinc-900">
+                                      {profile.name}
+                                    </span>
+                                    {profile.accountLabel && (
+                                      <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 border border-blue-200/60">
+                                        {profile.accountLabel}
+                                      </span>
+                                    )}
+                                    <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase text-zinc-600">
+                                      {profile.protocol}
+                                    </span>
+                                    {envCount > 0 && (
+                                      <span className="rounded bg-amber-50 px-1.5 py-0.5 font-mono text-[10px] text-amber-700 border border-amber-200/60">
+                                        {envCount} env
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="mt-1 truncate font-mono text-[10.5px] text-zinc-400">
+                                    {profile.executable}
+                                    {profile.args.length > 0
+                                      ? ` ${profile.args.join(" ")}`
+                                      : ""}
+                                  </div>
+                                </div>
+
+                                <div className="flex shrink-0 items-center gap-1">
+                                  {profile.protocol === "acp" && (
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="xs"
+                                      disabled={probingAgentId === profileKey}
+                                      onClick={() =>
+                                        void handleProbeCustomProfile(profile)
+                                      }
+                                    >
+                                      {probingAgentId === profileKey && (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      )}
+                                      {isEn ? "Test ACP" : "ACP 握手测试"}
+                                    </Button>
+                                  )}
+                                  <Button
+                                    type="button"
+                                    variant={isSelected ? "default" : "outline"}
+                                    size="xs"
+                                    onClick={() =>
+                                      onAiSettingsChange?.({
+                                        selectedProviderKey: profileKey,
+                                      })
+                                    }
+                                  >
+                                    {isSelected
+                                      ? isEn
+                                        ? "Active"
+                                        : "当前使用"
+                                      : isEn
+                                        ? "Use"
+                                        : "启用"}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="iconSm"
+                                    title={isEn ? "Edit" : "编辑"}
+                                    aria-label={isEn ? "Edit" : "编辑"}
+                                    onClick={() =>
+                                      openEditCustomAcpForm(profile)
+                                    }
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="iconSm"
+                                    title={isEn ? "Delete" : "删除"}
+                                    aria-label={isEn ? "Delete" : "删除"}
+                                    onClick={() =>
+                                      handleDeleteCustomAcpProfile(profile.id)
+                                    }
+                                    className="text-zinc-400 hover:text-red-600"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+
+                              {probe && (
+                                <div
+                                  className={cn(
+                                    "mt-2 rounded border px-2.5 py-1.5 text-[11px]",
+                                    probe.ok
+                                      ? "border-emerald-200 bg-emerald-50/60 text-emerald-800"
+                                      : "border-red-200 bg-red-50/60 text-red-700"
+                                  )}
+                                >
+                                  <div className="flex items-center gap-1.5 font-medium">
+                                    {probe.ok ? (
+                                      <CheckCircle2 className="h-3 w-3 shrink-0" />
+                                    ) : (
+                                      <XCircle className="h-3 w-3 shrink-0" />
+                                    )}
+                                    <span>
+                                      {probe.message} ({probe.latencyMs}ms)
+                                    </span>
+                                  </div>
                                 </div>
                               )}
                             </div>

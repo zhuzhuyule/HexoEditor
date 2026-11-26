@@ -15,6 +15,7 @@ import {
   Square,
   Terminal,
   Trash2,
+  Type,
 } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
 
@@ -30,6 +31,7 @@ import {
 import { formatMessage, getMessages } from "@/lib/i18n";
 import { cn, computeDocumentStats } from "@/lib/utils";
 import type { EditorTab, Locale, SiteEngine } from "@/types";
+import type { UiFontSize } from "@/types/settings";
 
 export type HexoCliAction =
   | "server"
@@ -74,6 +76,8 @@ export interface HexoTerminalDrawerProps {
   autoSave?: boolean;
   onToggleAutoSave?: () => void;
   onToggleLocale?: () => void;
+  uiFontSize?: UiFontSize;
+  onCycleUiFontSize?: () => void;
   className?: string;
 }
 
@@ -153,6 +157,8 @@ export function HexoTerminalDrawer({
   autoSave,
   onToggleAutoSave,
   onToggleLocale,
+  uiFontSize = "md",
+  onCycleUiFontSize,
   className,
 }: HexoTerminalDrawerProps) {
   const logListRef = useRef<HTMLDivElement | null>(null);
@@ -255,8 +261,23 @@ export function HexoTerminalDrawer({
   };
 
   const hasEditorToggles = Boolean(
-    onToggleSyncScroll || onToggleAutoSave || onToggleLocale
+    onToggleSyncScroll ||
+      onToggleAutoSave ||
+      onToggleLocale ||
+      onCycleUiFontSize
   );
+
+  const uiFontSizeLabel = isEn
+    ? uiFontSize === "sm"
+      ? "UI Font: Small"
+      : uiFontSize === "lg"
+      ? "UI Font: Large"
+      : "UI Font: Medium"
+    : uiFontSize === "sm"
+    ? "界面字号：小"
+    : uiFontSize === "lg"
+    ? "界面字号：大"
+    : "界面字号：中";
 
   return (
     <section
@@ -561,6 +582,12 @@ export function HexoTerminalDrawer({
                       <span>
                         {isEn ? "Language: English" : "界面语言：中文"}
                       </span>
+                    </DropdownMenuItem>
+                  )}
+                  {onCycleUiFontSize && (
+                    <DropdownMenuItem onSelect={onCycleUiFontSize}>
+                      <Type className="h-3.5 w-3.5 text-zinc-500" />
+                      <span>{uiFontSizeLabel}</span>
                     </DropdownMenuItem>
                   )}
                 </>

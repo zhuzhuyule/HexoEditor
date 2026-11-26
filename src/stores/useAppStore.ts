@@ -291,7 +291,59 @@ function sanitizeEditorPrefs(
         ? merged.externalChangePolicy
         : "prompt",
     titleBarMode: merged.titleBarMode === "system" ? "system" : "overlay",
+    uiFontSize:
+      merged.uiFontSize === "sm" || merged.uiFontSize === "lg"
+        ? merged.uiFontSize
+        : "md",
   };
+}
+
+function sanitizeCustomAcpProfiles(raw: unknown): NonNullable<AiSettings["customAcpProfiles"]> {
+  if (!Array.isArray(raw)) return [];
+  const out: NonNullable<AiSettings["customAcpProfiles"]> = [];
+  const seenIds = new Set<string>();
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const obj = item as Record<string, unknown>;
+    const id = typeof obj.id === "string" ? obj.id.trim() : "";
+    const name = typeof obj.name === "string" ? obj.name.trim() : "";
+    const executable = typeof obj.executable === "string" ? obj.executable.trim() : "";
+    if (!id || !name || !executable || seenIds.has(id)) continue;
+    seenIds.add(id);
+
+    const protocol = obj.protocol === "cli" ? "cli" : "acp";
+    const args = Array.isArray(obj.args)
+      ? obj.args.filter((a): a is string => typeof a === "string" && a.trim().length > 0)
+      : [];
+    const env: Record<string, string> = {};
+    if (obj.env && typeof obj.env === "object" && !Array.isArray(obj.env)) {
+      for (const [k, v] of Object.entries(obj.env as Record<string, unknown>)) {
+        const key = k.trim();
+        if (key && typeof v === "string") {
+          env[key] = v;
+        }
+      }
+    }
+    out.push({
+      id,
+      name,
+      protocol,
+      executable,
+      args,
+      env,
+      cwd: typeof obj.cwd === "string" && obj.cwd.trim() ? obj.cwd.trim() : undefined,
+      accountLabel:
+        typeof obj.accountLabel === "string" && obj.accountLabel.trim()
+          ? obj.accountLabel.trim()
+          : undefined,
+      baseAgentId:
+        typeof obj.baseAgentId === "string" && obj.baseAgentId.trim()
+          ? obj.baseAgentId.trim()
+          : undefined,
+      enabled: typeof obj.enabled === "boolean" ? obj.enabled : true,
+    });
+  }
+  return out;
 }
 
 function sanitizeAiSettings(
@@ -317,6 +369,7 @@ function sanitizeAiSettings(
     apiKey: typeof merged.apiKey === "string" ? merged.apiKey : "",
     model:
       typeof merged.model === "string" ? merged.model : DEFAULT_AI_SETTINGS.model,
+    customAcpProfiles: sanitizeCustomAcpProfiles(merged.customAcpProfiles),
   };
 }
 

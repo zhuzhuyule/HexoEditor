@@ -12,6 +12,8 @@ export type ExternalChangePolicy = "prompt" | "auto" | "ignore";
 
 export type TitleBarMode = "overlay" | "system";
 
+export type UiFontSize = "sm" | "md" | "lg";
+
 export type ImageBedProvider = "none" | "picgo" | "s3" | "oss" | "cos";
 
 export type SettingsSectionId =
@@ -31,6 +33,7 @@ export interface EditorPreferences {
   codeTheme: CodeHighlightTheme;
   externalChangePolicy: ExternalChangePolicy;
   titleBarMode?: TitleBarMode;
+  uiFontSize?: UiFontSize;
   ai?: AiSettings;
 }
 
@@ -77,6 +80,7 @@ export const DEFAULT_EDITOR_PREFS: EditorPreferences = {
   codeTheme: "github-light",
   externalChangePolicy: "prompt",
   titleBarMode: "overlay",
+  uiFontSize: "md",
 };
 
 export const DEFAULT_IMAGE_BED_SETTINGS: ImageBedSettings = {

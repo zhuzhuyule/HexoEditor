@@ -3,9 +3,18 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "@/App";
-import { AiAssistantDrawer } from "@/components/ai/AiAssistantDrawer";
+import {
+  AiAssistantDrawer,
+  resolveActiveAiProvider,
+} from "@/components/ai/AiAssistantDrawer";
 import { SettingsDialog } from "@/components/settings/SettingsDialog";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import {
+  formatArgsString,
+  formatEnvText,
+  parseArgsString,
+  parseEnvText,
+} from "@/lib/ai/profiles";
 import {
   buildSiteAwarePrompt,
   parseSuggestedFrontMatter,
@@ -486,5 +495,154 @@ describe("Phase 4A: Site-aware AI prompts, drawer, and settings", () => {
       container.querySelector('[data-testid="ai-assistant-drawer"]')
     ).not.toBeNull();
     expect(runSpy).toHaveBeenCalledTimes(1);
+
+    // UI font size preference syncs dataset attribute on <html>
+    await act(async () => {
+      useAppStore.getState().setEditorPrefs({ uiFontSize: "lg" });
+    });
+    expect(document.documentElement.dataset.uiFontSize).toBe("lg");
+  });
+
+  it("supports OMB-style custom & multi-account ACP profiles with custom env/cwd and helper parsers", async () => {
+    expect(parseArgsString('acp --profile "work acc"')).toEqual([
+      "acp",
+      "--profile",
+      "work acc",
+    ]);
+    expect(formatArgsString(["acp", "--dir", "/my blog"])).toBe(
+      'acp --dir "/my blog"'
+    );
+    const parsedEnv = parseEnvText(
+      "# comment\nXDG_CONFIG_HOME=/tmp/acc2\nTOKEN='secret val'"
+    );
+    expect(parsedEnv).toEqual({
+      XDG_CONFIG_HOME: "/tmp/acc2",
+      TOKEN: "secret val",
+    });
+    expect(formatEnvText(parsedEnv)).toContain("XDG_CONFIG_HOME=/tmp/acc2");
+
+    const customSettings: AiSettings = {
+      ...DEFAULT_AI_SETTINGS,
+      selectedProviderKey: "profile:p-acc2",
+      customAcpProfiles: [
+        {
+          id: "p-acc2",
+          name: "OpenCode 免费号 2",
+          protocol: "acp",
+          executable: "/Users/test/.opencode/bin/opencode",
+          args: ["acp"],
+          env: { XDG_CONFIG_HOME: "/tmp/opencode-acc2" },
+          cwd: "/tmp/blog",
+          accountLabel: "账号 2",
+          enabled: true,
+        },
+      ],
+    };
+
+    expect(resolveActiveAiProvider(customSettings, SAMPLE_AGENTS)).toEqual({
+      mode: "acp",
+      executable: "/Users/test/.opencode/bin/opencode",
+      args: ["acp"],
+      env: { XDG_CONFIG_HOME: "/tmp/opencode-acc2" },
+      cwd: "/tmp/blog",
+      baseUrl: null,
+      apiKey: null,
+      model: null,
+    });
+
+    const probeSpy = vi.spyOn(aiApi, "probeAcpAgent").mockResolvedValue({
+      ok: true,
+      protocolVersion: 1,
+      agentInfo: { name: "opencode", version: "2.2.5" },
+      agentCapabilities: { loadSession: true },
+      authMethods: [],
+      message: "ACP v1 ready (opencode 2.2.5)",
+      latencyMs: 12,
+    });
+
+    function CustomAcpHarness() {
+      const [aiSettings, setAiSettings] = useState<AiSettings>({
+        ...DEFAULT_AI_SETTINGS,
+        selectedProviderKey: "agent:opencode",
+        customAcpProfiles: [],
+      });
+      return (
+        <SettingsDialog
+          open
+          onOpenChange={() => {}}
+          locale="zh-CN"
+          initialSection="ai"
+          onLocaleChange={() => {}}
+          autoSave
+          onAutoSaveChange={() => {}}
+          editorPrefs={DEFAULT_EDITOR_PREFS}
+          onEditorPrefsChange={() => {}}
+          showLineNumbers={false}
+          onShowLineNumbersChange={() => {}}
+          showToolbar={false}
+          onShowToolbarChange={() => {}}
+          syncScroll
+          onSyncScrollChange={() => {}}
+          enableHexoTags
+          onEnableHexoTagsChange={() => {}}
+          imageBed={DEFAULT_IMAGE_BED_SETTINGS}
+          onImageBedChange={() => {}}
+          aiSettings={aiSettings}
+          onAiSettingsChange={(patch) =>
+            setAiSettings((prev) => ({ ...prev, ...patch }))
+          }
+          discoveredAgents={SAMPLE_AGENTS}
+          onRefreshAgents={async () => SAMPLE_AGENTS}
+        />
+      );
+    }
+
+    await act(async () => {
+      root.render(<CustomAcpHarness />);
+    });
+
+    // Click "+ 多账号" on OpenCode discovered card
+    const opencodeCard = document.body.querySelector(
+      '[data-discovered-agent="opencode"]'
+    )!;
+    const addAccountBtn = Array.from(opencodeCard.querySelectorAll("button")).find(
+      (b) => b.textContent?.includes("+ 多账号")
+    )!;
+    await act(async () => {
+      addAccountBtn.click();
+    });
+
+    const form = document.body.querySelector('[data-testid="custom-acp-form"]');
+    expect(form).not.toBeNull();
+    const envTextarea = document.body.querySelector<HTMLTextAreaElement>(
+      "#acp-profile-env"
+    )!;
+    expect(envTextarea.value).toContain("XDG_CONFIG_HOME=");
+
+    const saveBtn = Array.from(form!.querySelectorAll("button")).find((b) =>
+      b.textContent?.includes("保存配置")
+    )!;
+    await act(async () => {
+      saveBtn.click();
+    });
+
+    const profileCard = document.body.querySelector('[data-custom-acp-profile]');
+    expect(profileCard).not.toBeNull();
+    expect(profileCard!.textContent).toContain("账号 2");
+    expect(profileCard!.textContent).toContain("当前使用");
+
+    // Probe custom ACP profile passes custom env
+    const probeCustomBtn = Array.from(
+      profileCard!.querySelectorAll("button")
+    ).find((b) => b.textContent?.includes("ACP 握手测试"))!;
+    await act(async () => {
+      probeCustomBtn.click();
+    });
+    expect(probeSpy).toHaveBeenCalledWith(
+      "/Users/test/.opencode/bin/opencode",
+      ["acp"],
+      { XDG_CONFIG_HOME: "~/.config/opencode-acc2" },
+      null
+    );
   });
 });

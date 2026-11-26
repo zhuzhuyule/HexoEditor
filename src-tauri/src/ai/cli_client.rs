@@ -131,6 +131,13 @@ pub async fn run_cli_prompt(
         .stderr(Stdio::piped())
         .kill_on_drop(true);
 
+    for (raw_key, val) in &provider.env {
+        let key = raw_key.trim();
+        if !key.is_empty() {
+            cmd.env(key, val);
+        }
+    }
+
     if let Some(dir) = cwd.filter(|d| d.is_dir()) {
         cmd.current_dir(dir);
     }

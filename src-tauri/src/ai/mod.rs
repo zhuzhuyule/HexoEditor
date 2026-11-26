@@ -95,6 +95,10 @@ pub struct AiProviderConfig {
     pub executable: Option<String>,
     #[serde(default)]
     pub args: Vec<String>,
+    #[serde(default)]
+    pub env: HashMap<String, String>,
+    #[serde(default)]
+    pub cwd: Option<String>,
     pub base_url: Option<String>,
     pub api_key: Option<String>,
     pub model: Option<String>,
@@ -107,10 +111,14 @@ impl fmt::Debug for AiProviderConfig {
             .as_deref()
             .filter(|k| !k.trim().is_empty())
             .map(|_| "[REDACTED]");
+        let mut env_keys: Vec<&str> = self.env.keys().map(String::as_str).collect();
+        env_keys.sort_unstable();
         f.debug_struct("AiProviderConfig")
             .field("mode", &self.mode)
             .field("executable", &self.executable)
             .field("args", &self.args)
+            .field("env_keys", &env_keys)
+            .field("cwd", &self.cwd)
             .field("base_url", &self.base_url)
             .field("api_key", &redacted_key)
             .field("model", &self.model)
@@ -342,8 +350,15 @@ pub async fn discover_local_agents() -> AppResult<Vec<DiscoveredAgent>> {
 pub async fn probe_acp_agent(
     executable: String,
     args: Vec<String>,
+    env: Option<HashMap<String, String>>,
+    cwd: Option<String>,
 ) -> AppResult<AcpProbeResult> {
-    acp_client::probe_acp_agent(&executable, &args).await
+    let cwd_path = cwd
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(PathBuf::from);
+    acp_client::probe_acp_agent(&executable, &args, env.as_ref(), cwd_path.as_deref()).await
 }
 
 #[tauri::command]
@@ -400,10 +415,18 @@ pub async fn ai_run_prompt(
 
     tauri::async_runtime::spawn(async move {
         let cwd_path = request
+            .provider
             .cwd
             .as_deref()
             .map(str::trim)
             .filter(|s| !s.is_empty())
+            .or_else(|| {
+                request
+                    .cwd
+                    .as_deref()
+                    .map(str::trim)
+                    .filter(|s| !s.is_empty())
+            })
             .map(PathBuf::from)
             .filter(|p| p.is_dir());
 
@@ -482,16 +505,31 @@ mod tests {
 
     #[test]
     fn ai_provider_config_debug_redacts_api_key() {
+        let mut env = HashMap::new();
+        env.insert(
+            "XDG_CONFIG_HOME".to_string(),
+            "/tmp/secret-account-dir".to_string(),
+        );
+        env.insert(
+            "OPENAI_API_KEY".to_string(),
+            "sk-env-secret-99999".to_string(),
+        );
         let cfg = AiProviderConfig {
             mode: "openai_compatible".to_string(),
             executable: None,
             args: vec![],
+            env,
+            cwd: Some("/tmp/blog".to_string()),
             base_url: Some("https://api.example.com/v1".to_string()),
             api_key: Some("sk-super-secret-value-12345".to_string()),
             model: Some("gpt-4o-mini".to_string()),
         };
         let debug_str = format!("{:?}", cfg);
         assert!(!debug_str.contains("sk-super-secret-value-12345"));
+        assert!(!debug_str.contains("sk-env-secret-99999"));
+        assert!(!debug_str.contains("/tmp/secret-account-dir"));
+        assert!(debug_str.contains("OPENAI_API_KEY"));
+        assert!(debug_str.contains("XDG_CONFIG_HOME"));
         assert!(debug_str.contains("[REDACTED]"));
         assert!(debug_str.contains("openai_compatible"));
     }

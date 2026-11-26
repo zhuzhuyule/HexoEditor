@@ -24,7 +24,9 @@ export async function discoverLocalAgents(): Promise<DiscoveredAgent[]> {
 
 export async function probeAcpAgent(
   executable: string,
-  args: string[]
+  args: string[],
+  env?: Record<string, string>,
+  cwd?: string | null
 ): Promise<AcpProbeResult> {
   if (!isTauriRuntime()) {
     return {
@@ -37,7 +39,12 @@ export async function probeAcpAgent(
       latencyMs: 0,
     };
   }
-  return invoke<AcpProbeResult>("probe_acp_agent", { executable, args });
+  return invoke<AcpProbeResult>("probe_acp_agent", {
+    executable,
+    args,
+    env: env ?? null,
+    cwd: cwd ?? null,
+  });
 }
 
 export async function buildSiteAiContext(

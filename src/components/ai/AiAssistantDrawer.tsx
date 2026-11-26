@@ -66,6 +66,24 @@ export function resolveActiveAiProvider(
   discoveredAgents: DiscoveredAgent[]
 ): AiProviderConfig {
   const key = aiSettings.selectedProviderKey || "api";
+  if (key.startsWith("profile:")) {
+    const profileId = key.slice("profile:".length);
+    const matchedProfile = (aiSettings.customAcpProfiles ?? []).find(
+      (p) => p.id === profileId && p.enabled
+    );
+    if (matchedProfile) {
+      return {
+        mode: matchedProfile.protocol,
+        executable: matchedProfile.executable,
+        args: matchedProfile.args,
+        env: matchedProfile.env,
+        cwd: matchedProfile.cwd || null,
+        baseUrl: null,
+        apiKey: null,
+        model: null,
+      };
+    }
+  }
   if (key.startsWith("agent:")) {
     const agentId = key.slice("agent:".length);
     const matched = discoveredAgents.find((a) => a.id === agentId);
@@ -74,6 +92,8 @@ export function resolveActiveAiProvider(
         mode: matched.protocol === "cli" ? "cli" : "acp",
         executable: matched.executable,
         args: matched.args,
+        env: {},
+        cwd: null,
         baseUrl: null,
         apiKey: null,
         model: null,
@@ -85,6 +105,8 @@ export function resolveActiveAiProvider(
     mode: aiSettings.apiPreset,
     executable: null,
     args: [],
+    env: {},
+    cwd: null,
     baseUrl: aiSettings.baseUrl.trim() || null,
     apiKey: aiSettings.apiKey.trim() || null,
     model: aiSettings.model.trim() || null,
@@ -247,7 +269,7 @@ export function AiAssistantDrawer({
           provider,
           systemPrompt: built.systemPrompt,
           prompt: built.userPrompt,
-          cwd: activeSiteRoot,
+          cwd: provider.cwd || activeSiteRoot,
         });
         if (returnedId && activeRequestIdRef.current === reqId) {
           activeRequestIdRef.current = returnedId;
@@ -286,14 +308,23 @@ export function AiAssistantDrawer({
     [outputText]
   );
 
+  const enabledCustomProfiles = useMemo(
+    () => (aiSettings.customAcpProfiles ?? []).filter((p) => p.enabled),
+    [aiSettings.customAcpProfiles]
+  );
+
   const selectedValue = useMemo(() => {
     const key = aiSettings.selectedProviderKey || "api";
+    if (key.startsWith("profile:")) {
+      const pid = key.slice("profile:".length);
+      if (enabledCustomProfiles.some((p) => p.id === pid)) return key;
+    }
     if (key.startsWith("agent:")) {
       const id = key.slice("agent:".length);
       if (discoveredAgents.some((a) => a.id === id)) return key;
     }
     return "api";
-  }, [aiSettings.selectedProviderKey, discoveredAgents]);
+  }, [aiSettings.selectedProviderKey, discoveredAgents, enabledCustomProfiles]);
 
   const handleRefreshAgents = async () => {
     if (!onRefreshAgents || refreshingAgents) return;
@@ -425,12 +456,38 @@ export function AiAssistantDrawer({
           }
           className="h-7 w-full rounded-md border border-zinc-200 bg-white px-2 text-xs text-zinc-800 focus:border-zinc-400 focus:outline-none"
         >
-          {discoveredAgents.map((agent) => (
-            <option key={agent.id} value={`agent:${agent.id}`}>
-              {agent.label}
-              {agent.version ? ` · ${agent.version}` : ""}
-            </option>
-          ))}
+          {enabledCustomProfiles.length > 0 && (
+            <optgroup
+              label={
+                locale === "en-US"
+                  ? "Custom ACP / Multi-Account"
+                  : "自定义 ACP / 多账号"
+              }
+            >
+              {enabledCustomProfiles.map((profile) => (
+                <option key={profile.id} value={`profile:${profile.id}`}>
+                  {profile.name}
+                  {profile.accountLabel ? ` (${profile.accountLabel})` : ""}
+                </option>
+              ))}
+            </optgroup>
+          )}
+          {discoveredAgents.length > 0 && (
+            <optgroup
+              label={
+                locale === "en-US"
+                  ? "Auto-Discovered Local Agents"
+                  : "本地自动发现（默认）"
+              }
+            >
+              {discoveredAgents.map((agent) => (
+                <option key={agent.id} value={`agent:${agent.id}`}>
+                  {agent.label}
+                  {agent.version ? ` · ${agent.version}` : ""}
+                </option>
+              ))}
+            </optgroup>
+          )}
           <option value="api">
             {formatMessage(msg.ai.apiProviderLabel, {
               model: aiSettings.model || aiSettings.apiPreset,

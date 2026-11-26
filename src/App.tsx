@@ -258,6 +258,12 @@ export function App() {
     void api.setWindowTitleBarMode(editorPrefs.titleBarMode ?? "overlay");
   }, [editorPrefs.titleBarMode]);
 
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.documentElement.dataset.uiFontSize =
+      editorPrefs.uiFontSize ?? "md";
+  }, [editorPrefs.uiFontSize]);
+
   const editorRef = useRef<MarkdownEditorHandle | null>(null);
   const previewRef = useRef<MarkdownPreviewHandle | null>(null);
   const pendingAutoOpenServerRef = useRef(false);
@@ -1652,6 +1658,30 @@ export function App() {
           }),
       },
       {
+        id: "view:ui-font-sm",
+        label: locale === "en-US" ? "UI Font Size: Small" : "界面字号：小",
+        group: msg.command.groupView,
+        keywords: ["font", "size", "small", "ui", "scale"],
+        icon: <SlidersHorizontal className="h-3.5 w-3.5" />,
+        onSelect: () => setEditorPrefs({ uiFontSize: "sm" }),
+      },
+      {
+        id: "view:ui-font-md",
+        label: locale === "en-US" ? "UI Font Size: Medium" : "界面字号：中",
+        group: msg.command.groupView,
+        keywords: ["font", "size", "medium", "ui", "scale"],
+        icon: <SlidersHorizontal className="h-3.5 w-3.5" />,
+        onSelect: () => setEditorPrefs({ uiFontSize: "md" }),
+      },
+      {
+        id: "view:ui-font-lg",
+        label: locale === "en-US" ? "UI Font Size: Large" : "界面字号：大",
+        group: msg.command.groupView,
+        keywords: ["font", "size", "large", "ui", "scale"],
+        icon: <SlidersHorizontal className="h-3.5 w-3.5" />,
+        onSelect: () => setEditorPrefs({ uiFontSize: "lg" }),
+      },
+      {
         id: "view:toggle-terminal",
         label: msg.command.toggleTerminal,
         group: msg.command.groupView,
@@ -2270,6 +2300,13 @@ export function App() {
                   onToggleLocale={() =>
                     setLocale(locale === "zh-CN" ? "en-US" : "zh-CN")
                   }
+                  uiFontSize={editorPrefs.uiFontSize ?? "md"}
+                  onCycleUiFontSize={() => {
+                    const current = editorPrefs.uiFontSize ?? "md";
+                    const next =
+                      current === "sm" ? "md" : current === "md" ? "lg" : "sm";
+                    setEditorPrefs({ uiFontSize: next });
+                  }}
                   className="no-print"
                 />
               )}

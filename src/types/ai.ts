@@ -67,9 +67,24 @@ export interface AiProviderConfig {
   mode: AiProviderMode | string;
   executable?: string | null;
   args: string[];
+  env?: Record<string, string>;
+  cwd?: string | null;
   baseUrl?: string | null;
   apiKey?: string | null;
   model?: string | null;
+}
+
+export interface CustomAcpProfile {
+  id: string;
+  name: string;
+  protocol: "acp" | "cli";
+  executable: string;
+  args: string[];
+  env: Record<string, string>;
+  cwd?: string;
+  accountLabel?: string;
+  baseAgentId?: string;
+  enabled: boolean;
 }
 
 export interface AiRunRequest {
@@ -95,12 +110,13 @@ export interface AiConnectionResult {
 }
 
 export interface AiSettings {
-  /** `"api"` or `"agent:<id>"` (e.g. `"agent:opencode"`) */
+  /** `"api"`, `"agent:<id>"`, or `"profile:<profileId>"` */
   selectedProviderKey: string;
   apiPreset: AiApiPreset;
   baseUrl: string;
   apiKey: string;
   model: string;
+  customAcpProfiles?: CustomAcpProfile[];
 }
 
 export const DEFAULT_AI_SETTINGS: AiSettings = {
@@ -109,6 +125,7 @@ export const DEFAULT_AI_SETTINGS: AiSettings = {
   baseUrl: "https://api.openai.com/v1",
   apiKey: "",
   model: "gpt-4o-mini",
+  customAcpProfiles: [],
 };
 
 export type AiPromptAction =

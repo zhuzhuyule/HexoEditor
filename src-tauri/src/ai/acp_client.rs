@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::Path;
 use std::process::Stdio;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -21,7 +22,12 @@ use super::{
 const ACP_PROBE_TIMEOUT_SECS: u64 = 5;
 const ACP_HANDSHAKE_TIMEOUT_SECS: u64 = 12;
 
-fn spawn_acp_child(executable: &str, args: &[String], cwd: Option<&Path>) -> AppResult<Child> {
+fn spawn_acp_child(
+    executable: &str,
+    args: &[String],
+    env: Option<&HashMap<String, String>>,
+    cwd: Option<&Path>,
+) -> AppResult<Child> {
     let exe = executable.trim();
     if exe.is_empty() {
         return Err(AppError::InvalidInput(
@@ -38,6 +44,15 @@ fn spawn_acp_child(executable: &str, args: &[String], cwd: Option<&Path>) -> App
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .kill_on_drop(true);
+
+    if let Some(custom_env) = env {
+        for (raw_key, val) in custom_env {
+            let key = raw_key.trim();
+            if !key.is_empty() {
+                cmd.env(key, val);
+            }
+        }
+    }
 
     if let Some(dir) = cwd.filter(|d| d.is_dir()) {
         cmd.current_dir(dir);
@@ -353,9 +368,14 @@ fn spawn_stderr_collector(stderr: Option<tokio::process::ChildStderr>) -> Arc<Mu
     tail
 }
 
-pub async fn probe_acp_agent(executable: &str, args: &[String]) -> AppResult<AcpProbeResult> {
+pub async fn probe_acp_agent(
+    executable: &str,
+    args: &[String],
+    env: Option<&HashMap<String, String>>,
+    cwd: Option<&Path>,
+) -> AppResult<AcpProbeResult> {
     let started = Instant::now();
-    let mut child = spawn_acp_child(executable, args, None)?;
+    let mut child = spawn_acp_child(executable, args, env, cwd)?;
     let pid = child.id().unwrap_or(0);
 
     let mut stdin = child
@@ -443,7 +463,7 @@ where
         .filter(|s| !s.is_empty())
         .ok_or_else(|| AppError::InvalidInput("ACP executable is required".into()))?;
 
-    let mut child = spawn_acp_child(executable, &provider.args, cwd)?;
+    let mut child = spawn_acp_child(executable, &provider.args, Some(&provider.env), cwd)?;
     let pid = child.id().unwrap_or(0);
     child_pid.store(pid, Ordering::Release);
 
@@ -771,18 +791,20 @@ while IFS= read -r line; do
       printf '%s\n' '{{"jsonrpc":"2.0","id":99,"method":"session/request_permission","params":{{"sessionId":"sess-42","toolCall":{{"title":"write_file"}}}}}}'
       IFS= read -r perm_reply
       printf '%s\n' "$perm_reply" > "{}"
+      printf '%s\n' "${{HEXO_ACP_ACCOUNT:-default}}" > "{}"
       printf '%s\n' '{{"jsonrpc":"2.0","method":"session/update","params":{{"sessionId":"sess-42","update":{{"sessionUpdate":"agent_message_chunk","content":{{"type":"text","text":"Polished text"}}}}}}}}'
       printf '%s\n' '{{"jsonrpc":"2.0","id":3,"result":{{"stopReason":"end_turn"}}}}'
       ;;
   esac
 done
 "#,
-            log_path.display()
+            log_path.display(),
+            tmp.path().join("env-account.log").display()
         );
         fs::write(&script_path, script).unwrap();
         fs::set_permissions(&script_path, fs::Permissions::from_mode(0o755)).unwrap();
 
-        let probe = probe_acp_agent(&script_path.to_string_lossy(), &[])
+        let probe = probe_acp_agent(&script_path.to_string_lossy(), &[], None, None)
             .await
             .expect("probe succeeds");
         assert!(probe.ok);
@@ -796,10 +818,15 @@ done
             Some(true)
         );
 
+        let mut env = HashMap::new();
+        env.insert("HEXO_ACP_ACCOUNT".to_string(), "work-account-2".to_string());
+
         let provider = AiProviderConfig {
             mode: "acp".to_string(),
             executable: Some(script_path.to_string_lossy().to_string()),
             args: vec![],
+            env,
+            cwd: None,
             base_url: None,
             api_key: None,
             model: None,
@@ -829,6 +856,10 @@ done
             .iter()
             .any(|(k, t, _)| k == "delta" && t == "Polished text"));
         assert_eq!(events.last(), Some(&("done".into(), "".into(), true)));
+
+        let env_raw = fs::read_to_string(tmp.path().join("env-account.log"))
+            .expect("env account logged");
+        assert_eq!(env_raw.trim(), "work-account-2");
 
         let reply_raw = fs::read_to_string(&log_path).expect("permission reply logged");
         let reply_val: Value = serde_json::from_str(reply_raw.trim()).unwrap();
